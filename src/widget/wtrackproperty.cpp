@@ -15,11 +15,13 @@ WTrackProperty::WTrackProperty(
         QWidget* pParent,
         UserSettingsPointer pConfig,
         Library* pLibrary,
-        const QString& group)
+        const QString& group,
+        bool isMainDeck)
         : WLabel(pParent),
           m_group(group),
           m_pConfig(pConfig),
-          m_pLibrary(pLibrary) {
+          m_pLibrary(pLibrary),
+          m_isMainDeck(isMainDeck) {
     setAcceptDrops(true);
 }
 
@@ -85,14 +87,18 @@ void WTrackProperty::updateLabel() {
     setText("");
 }
 
-void WTrackProperty::mouseMoveEvent(QMouseEvent* event) {
-    if (event->buttons().testFlag(Qt::LeftButton) && m_pCurrentTrack) {
+void WTrackProperty::mousePressEvent(QMouseEvent* pEvent) {
+    DragAndDropHelper::mousePressed(pEvent);
+}
+
+void WTrackProperty::mouseMoveEvent(QMouseEvent* pEvent) {
+    if (m_pCurrentTrack && DragAndDropHelper::mouseMoveInitiatesDrag(pEvent)) {
         DragAndDropHelper::dragTrack(m_pCurrentTrack, this, m_group);
     }
 }
 
-void WTrackProperty::mouseDoubleClickEvent(QMouseEvent* event) {
-    Q_UNUSED(event);
+void WTrackProperty::mouseDoubleClickEvent(QMouseEvent* pEvent) {
+    Q_UNUSED(pEvent);
     if (!m_pCurrentTrack) {
         return;
     }
@@ -101,41 +107,47 @@ void WTrackProperty::mouseDoubleClickEvent(QMouseEvent* event) {
     m_pTrackMenu->showDlgTrackInfo(m_property);
 }
 
-void WTrackProperty::dragEnterEvent(QDragEnterEvent* event) {
-    DragAndDropHelper::handleTrackDragEnterEvent(event, m_group, m_pConfig);
+void WTrackProperty::dragEnterEvent(QDragEnterEvent* pEvent) {
+    DragAndDropHelper::handleTrackDragEnterEvent(pEvent, m_group, m_pConfig);
 }
 
-void WTrackProperty::dropEvent(QDropEvent* event) {
-    DragAndDropHelper::handleTrackDropEvent(event, *this, m_group, m_pConfig);
+void WTrackProperty::dropEvent(QDropEvent* pEvent) {
+    DragAndDropHelper::handleTrackDropEvent(pEvent, *this, m_group, m_pConfig);
 }
 
-void WTrackProperty::contextMenuEvent(QContextMenuEvent* event) {
-    event->accept();
+void WTrackProperty::contextMenuEvent(QContextMenuEvent* pEvent) {
+    pEvent->accept();
     if (m_pCurrentTrack) {
         ensureTrackMenuIsCreated();
         m_pTrackMenu->loadTrack(m_pCurrentTrack, m_group);
         // Show the right-click menu
-        m_pTrackMenu->popup(event->globalPos());
+        m_pTrackMenu->popup(pEvent->globalPos());
     }
 }
 
 void WTrackProperty::ensureTrackMenuIsCreated() {
-    if (m_pTrackMenu.get() == nullptr) {
-        m_pTrackMenu = make_parented<WTrackMenu>(
-                this, m_pConfig, m_pLibrary, WTrackMenu::kDeckTrackMenuFeatures);
-
-        // When a track menu for this deck is shown/hidden via contextMenuEvent
-        // or pushbutton, it emits trackMenuVisible(bool).
-        // The pushbutton is created in BaseTrackPlayer which, on value change requests,
-        // also emits a signal which is connected to our slotShowTrackMenuChangeRequest().
-        connect(m_pTrackMenu,
-                &WTrackMenu::trackMenuVisible,
-                this,
-                [this](bool visible) {
-                    ControlObject::set(ConfigKey(m_group, kShowTrackMenuKey),
-                            visible ? 1.0 : 0.0);
-                });
+    if (m_pTrackMenu.get() != nullptr) {
+        return;
     }
+
+    m_pTrackMenu = make_parented<WTrackMenu>(
+            this, m_pConfig, m_pLibrary, WTrackMenu::kDeckTrackMenuFeatures);
+
+    // The show control exists only for main decks.
+    if (!m_isMainDeck) {
+        return;
+    }
+    // When a track menu for this deck is shown/hidden via contextMenuEvent
+    // or pushbutton, it emits trackMenuVisible(bool).
+    // The pushbutton is created in BaseTrackPlayer which, on value change requests,
+    // also emits a signal which is connected to our slotShowTrackMenuChangeRequest().
+    connect(m_pTrackMenu,
+            &WTrackMenu::trackMenuVisible,
+            this,
+            [this](bool visible) {
+                ControlObject::set(ConfigKey(m_group, kShowTrackMenuKey),
+                        visible ? 1.0 : 0.0);
+            });
 }
 
 /// This slot handles show/hide requests originating from both pushbutton changes

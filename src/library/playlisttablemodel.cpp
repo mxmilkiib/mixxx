@@ -16,10 +16,10 @@ const QString kModelName = "playlist:";
 PlaylistTableModel::PlaylistTableModel(QObject* parent,
         TrackCollectionManager* pTrackCollectionManager,
         const char* settingsNamespace,
-        bool keepDeletedTracks)
+        bool keepHiddenTracks)
         : TrackSetTableModel(parent, pTrackCollectionManager, settingsNamespace),
           m_iPlaylistId(kInvalidPlaylistId),
-          m_keepDeletedTracks(keepDeletedTracks) {
+          m_keepHiddenTracks(keepHiddenTracks) {
     connect(&m_pTrackCollectionManager->internalCollection()->getPlaylistDAO(),
             &PlaylistDAO::tracksChanged,
             this,
@@ -139,7 +139,7 @@ void PlaylistTableModel::selectPlaylist(int playlistId) {
 
     m_iPlaylistId = playlistId;
 
-    if (!m_keepDeletedTracks) {
+    if (!m_keepHiddenTracks) {
         // From Mixxx 2.1 we drop tracks that have been explicitly deleted
         // in the library (mixxx_deleted = 0) from playlists.
         // These invisible tracks, consuming a playlist position number were
@@ -189,30 +189,35 @@ void PlaylistTableModel::selectPlaylist(int playlistId) {
     setSort(defaultSortColumn(), defaultSortOrder());
 }
 
-int PlaylistTableModel::addTracks(const QModelIndex& index,
-        const QList<QString>& locations) {
-    if (locations.isEmpty()) {
+int PlaylistTableModel::addTracksWithTrackIds(const QModelIndex& insertionIndex,
+        const QList<TrackId>& trackIds,
+        int* pOutInsertionPos) {
+    if (trackIds.isEmpty()) {
         return 0;
     }
 
-    QList<TrackId> trackIds = m_pTrackCollectionManager->resolveTrackIdsFromLocations(
-            locations);
-
     const int positionColumn = fieldIndex(ColumnCache::COLUMN_PLAYLISTTRACKSTABLE_POSITION);
-    int position = index.sibling(index.row(), positionColumn).data().toInt();
+    int position = index(insertionIndex.row(), positionColumn).data().toInt();
 
     // Handle weird cases like a drag and drop to an invalid index
     if (position <= 0) {
         position = rowCount() + 1;
     }
 
+    if (pOutInsertionPos) {
+        *pOutInsertionPos = position;
+    }
+
     int tracksAdded = m_pTrackCollectionManager->internalCollection()->getPlaylistDAO().insertTracksIntoPlaylist(
             trackIds, m_iPlaylistId, position);
 
-    if (locations.size() - tracksAdded > 0) {
+    if (trackIds.size() - tracksAdded > 0) {
+        QString playlistName = m_pTrackCollectionManager->internalCollection()
+                                       ->getPlaylistDAO()
+                                       .getPlaylistName(m_iPlaylistId);
         qDebug() << "PlaylistTableModel::addTracks could not add"
-                 << locations.size() - tracksAdded
-                 << "to playlist" << m_iPlaylistId;
+                 << trackIds.size() - tracksAdded
+                 << "to playlist id" << m_iPlaylistId << "name" << playlistName;
     }
     return tracksAdded;
 }

@@ -39,12 +39,14 @@ BasePlaylistFeature::BasePlaylistFeature(
         UserSettingsPointer pConfig,
         PlaylistTableModel* pModel,
         const QString& rootViewName,
-        const QString& iconName)
+        const QString& iconName,
+        bool keepHiddenTracks)
         : BaseTrackSetFeature(pLibrary, pConfig, rootViewName, iconName),
           m_playlistDao(pLibrary->trackCollectionManager()
                                 ->internalCollection()
                                 ->getPlaylistDAO()),
-          m_pPlaylistTableModel(pModel) {
+          m_pPlaylistTableModel(pModel),
+          m_keepHiddenTracks(keepHiddenTracks) {
     pModel->setParent(this);
 
     initActions();
@@ -165,7 +167,7 @@ void BasePlaylistFeature::connectPlaylistDAO() {
             &BasePlaylistFeature::slotPlaylistTableRenamed);
 }
 
-int BasePlaylistFeature::playlistIdFromIndex(const QModelIndex& index) {
+int BasePlaylistFeature::playlistIdFromIndex(const QModelIndex& index) const {
     TreeItem* item = static_cast<TreeItem*>(index.internalPointer());
     if (item == nullptr) {
         return kInvalidPlaylistId;
@@ -568,7 +570,8 @@ void BasePlaylistFeature::slotExportPlaylist() {
     std::unique_ptr<PlaylistTableModel> pPlaylistTableModel =
             std::make_unique<PlaylistTableModel>(this,
                     m_pLibrary->trackCollectionManager(),
-                    "mixxx.db.model.playlist_export");
+                    "mixxx.db.model.playlist_export",
+                    m_keepHiddenTracks);
 
     emit saveModelState();
     pPlaylistTableModel->selectPlaylist(playlistId);
@@ -802,6 +805,16 @@ void BasePlaylistFeature::markTreeItem(TreeItem* pTreeItem) {
             markTreeItem(children.at(i));
         }
     }
+}
+
+QString BasePlaylistFeature::createPlaylistLabel(const QString& name,
+        int count,
+        int duration) const {
+    return QStringLiteral("%1 (%2) %3")
+            .arg(name,
+                    QString::number(count),
+                    mixxx::Duration::formatTime(
+                            duration, mixxx::Duration::Precision::SECONDS));
 }
 
 void BasePlaylistFeature::slotResetSelectedTrack() {
