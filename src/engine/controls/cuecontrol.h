@@ -98,6 +98,9 @@ class HotcueControl : public QObject {
     void setColor(mixxx::RgbColor::optional_t newColor);
     mixxx::RgbColor::optional_t getColor() const;
 
+    QString getLabel() const;
+    void setLabel(const QString& label);
+
     /// Used for caching the preview state of this hotcue control
     /// for the case the cue is deleted during preview.
     mixxx::CueType getPreviewingType() const {
@@ -139,6 +142,7 @@ class HotcueControl : public QObject {
     void slotHotcueEndPositionChanged(double newPosition);
     void slotHotcuePositionChanged(double newPosition);
     void slotHotcueColorChangeRequest(double newColor);
+    void slotHotcueLabelChangeRequest(double newLabel);
 
   signals:
     void hotcueSet(HotcueControl* pHotcue, double v, HotcueSetMode mode);
@@ -169,6 +173,7 @@ class HotcueControl : public QObject {
     std::unique_ptr<ControlObject> m_hotcueType;
     std::unique_ptr<ControlObject> m_hotcueDirection;
     std::unique_ptr<ControlObject> m_hotcueColor;
+    std::unique_ptr<ControlObject> m_hotcueLabel;
     // Hotcue button controls
     std::unique_ptr<ControlPushButton> m_hotcueSet;
     std::unique_ptr<ControlPushButton> m_hotcueSetCue;
