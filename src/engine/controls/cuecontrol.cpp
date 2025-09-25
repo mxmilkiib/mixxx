@@ -34,6 +34,86 @@ inline mixxx::RgbColor::optional_t doubleToRgbColor(double value) {
     return mixxx::RgbColor::optional(colorCode);
 }
 
+
+// MARK: -- string encoding/decoding for hotcue labels
+
+/// encode string to double for controller compatibility
+/// supports multiple encoding methods:
+/// 1. simple numeric labels (1.0 → "1")
+/// 2. ascii packing for short strings (max 4 chars)
+/// 3. hash fallback for longer strings
+inline double stringToDouble(const QString& label) {
+    if (label.isEmpty()) {
+        return -1.0; // special value for empty label
+    }
+    
+    // method 1: simple numeric labels
+    bool ok;
+    double numericValue = label.toDouble(&ok);
+    if (ok && numericValue >= 0.0) {
+        return numericValue;
+    }
+    
+    // method 2: ascii packing for short strings (4 chars max)
+    QByteArray utf8Bytes = label.toUtf8();
+    if (utf8Bytes.length() <= 4) {
+        uint64_t packed = 0;
+        for (int i = 0; i < utf8Bytes.length(); ++i) {
+            uint8_t byte = static_cast<uint8_t>(utf8Bytes[i]);
+            // use only 7-bit ascii to avoid issues
+            if (byte > 127) {
+                break; // fall through to hash method
+            }
+            packed |= static_cast<uint64_t>(byte) << (8 * i);
+        }
+        if (packed > 0 && packed <= 0x7FFFFF00) { // ensure positive and within range
+            return static_cast<double>(packed + 0x10000000); // offset to avoid numeric range
+        }
+    }
+    
+    // method 3: hash fallback for longer strings or non-ascii
+    uint32_t hash = qHash(label) & 0x7FFFFFFF; // ensure positive
+    return static_cast<double>(hash + 0x80000000); // high range for hashes
+}
+
+/// decode double back to string
+inline QString doubleToString(double value) {
+    if (value < 0.0) {
+        return QString(); // empty label
+    }
+    
+    // method 1: simple numeric labels
+    if (value < 10000.0 && value == std::floor(value)) {
+        return QString::number(static_cast<int>(value));
+    }
+    
+    // method 2: ascii unpacking
+    if (value >= 0x10000000 && value <= 0x7FFFFF00 + 0x10000000) {
+        uint64_t packed = static_cast<uint64_t>(value - 0x10000000);
+        QByteArray bytes;
+        for (int i = 0; i < 4; ++i) {
+            uint8_t byte = static_cast<uint8_t>((packed >> (8 * i)) & 0xFF);
+            if (byte == 0) break;
+            if (byte > 127) break; // safety check
+            bytes.append(static_cast<char>(byte));
+        }
+        if (!bytes.isEmpty()) {
+            return QString::fromUtf8(bytes);
+        }
+    }
+    
+    // method 3: hash fallback - return placeholder
+    if (value >= 0x80000000) {
+        // we can't reconstruct the original string from hash,
+        // so return a placeholder indicating a complex label exists
+        uint32_t hash = static_cast<uint32_t>(value - 0x80000000);
+        return QString("#%1").arg(hash, 8, 16, QChar('0')); // hex representation
+    }
+    
+    // fallback for other values
+    return QString::number(value, 'g', 6);
+}
+
 /// Convert hot cue index to 1-based number
 ///
 /// Works independent of if the hot cue index is either 0-based
@@ -781,6 +861,7 @@ void CueControl::loadCuesFromTrack() {
                 pControl->setPosition(pos.startPosition);
                 pControl->setEndPosition(pos.endPosition);
                 pControl->setColor(pCue->getColor());
+                pControl->setLabel(pCue->getLabel());
                 pControl->setType(pCue->getType());
             }
             // Add the hotcue to the list of active hotcues
@@ -2677,6 +2758,14 @@ HotcueControl::HotcueControl(const QString& group, int hotcueIndex)
             &HotcueControl::slotHotcueColorChangeRequest,
             Qt::DirectConnection);
 
+    // the encoded label of this hotcue
+    m_hotcueLabel = std::make_unique<ControlObject>(keyForControl(QStringLiteral("label")));
+    m_hotcueLabel->connectValueChangeRequest(
+            this,
+            &HotcueControl::slotHotcueLabelChangeRequest,
+            Qt::DirectConnection);
+    m_hotcueLabel->set(-1.0); // empty label initially
+
     m_hotcueSet = std::make_unique<ControlPushButton>(keyForControl(QStringLiteral("set")));
     connect(m_hotcueSet.get(),
             &ControlObject::valueChanged,
@@ -2909,6 +2998,7 @@ void HotcueControl::setCue(const CuePointer& pCue) {
     setEndPosition(pos.endPosition);
     // qDebug() << "HotcueControl::setCue";
     setColor(pCue->getColor());
+    setLabel(pCue->getLabel());
     setStatus((pCue->getType() == mixxx::CueType::Invalid)
                     ? HotcueControl::Status::Empty
                     : HotcueControl::Status::Set);
