@@ -38,41 +38,65 @@ inline mixxx::RgbColor::optional_t doubleToRgbColor(double value) {
 
 /// encode string to double for controller compatibility
 /// supports multiple encoding methods:
-/// 1. simple numeric labels (1.0 → "1")
-/// 2. ascii packing for short strings (max 4 chars)
-/// 3. hash fallback for longer strings
+/// 1. simple numeric labels (including negative numbers)
+/// 2. extended ascii packing for strings (up to 7 chars using 52-bit precision)
+/// 3. lookup table for common DJ terms (8+ chars)
+/// 4. hash fallback for unknown long strings
 inline double stringToDouble(const QString& label) {
     if (label.isEmpty()) {
         return -1.0; // special value for empty label
     }
     
-    // method 1: simple numeric labels
+    // method 1: simple numeric labels (including negative numbers)
     bool ok;
     double numericValue = label.toDouble(&ok);
-    if (ok && numericValue >= 0.0) {
+    if (ok) {
         return numericValue;
     }
     
-    // method 2: ascii packing for short strings (4 chars max)
+    // method 3: lookup table for common DJ terms (before ASCII packing to save space)
+    static const QHash<QString, uint32_t> commonLabels = {
+        // common DJ terms that are longer than 7 characters
+        {"BREAKDOWN", 1001}, {"BUILDUP", 1002}, {"INTRO", 1003}, {"OUTRO", 1004},
+        {"VERSE", 1005}, {"CHORUS", 1006}, {"BRIDGE", 1007}, {"PRE-CHORUS", 1008},
+        {"POST-CHORUS", 1009}, {"INTERLUDE", 1010}, {"INSTRUMENTAL", 1011},
+        {"ACAPELLA", 1012}, {"VOCAL", 1013}, {"MELODY", 1014}, {"BASSLINE", 1015},
+        {"SYNTH", 1016}, {"PIANO", 1017}, {"GUITAR", 1018}, {"DRUMS", 1019},
+        {"PERCUSSION", 1020}, {"CLAP", 1021}, {"SNARE", 1022}, {"KICK", 1023},
+        {"HIHAT", 1024}, {"CYMBAL", 1025}, {"CRASH", 1026}, {"RIDE", 1027},
+        {"minus thirty two", 1028}, {"FILTER", 1029}, {"REVERB", 1030},
+        {"DELAY", 1031}, {"DISTORTION", 1032}, {"PITCHED", 1033}, {"HARMONIC", 1034}
+    };
+    
+    if (commonLabels.contains(label)) {
+        return static_cast<double>(commonLabels[label] + 0x20000000); // range for lookup table
+    }
+    
+    // method 2: extended ascii packing for strings (up to 7 chars using 52-bit precision)
     QByteArray utf8Bytes = label.toUtf8();
-    if (utf8Bytes.length() <= 4) {
+    if (utf8Bytes.length() <= 7) {
         uint64_t packed = 0;
+        bool validAscii = true;
+        
         for (int i = 0; i < utf8Bytes.length(); ++i) {
             uint8_t byte = static_cast<uint8_t>(utf8Bytes[i]);
             // use only 7-bit ascii to avoid issues
             if (byte > 127) {
-                break; // fall through to hash method
+                validAscii = false;
+                break;
             }
-            packed |= static_cast<uint64_t>(byte) << (8 * i);
+            packed |= static_cast<uint64_t>(byte) << (7 * i); // 7 bits per char
         }
-        if (packed > 0 && packed <= 0x7FFFFF00) { // ensure positive and within range
-            return static_cast<double>(packed + 0x10000000); // offset to avoid numeric range
+        
+        // use more of the double's precision (up to ~49 bits for 7 chars)
+        if (validAscii && packed > 0 && packed <= 0x1FFFFFFFFFFFF) {
+            return static_cast<double>(packed + 0x10000000000000LL); // high range for extended packing
         }
     }
     
-    // method 3: hash fallback for longer strings or non-ascii
+    // method 4: hash fallback for unknown long strings or non-ascii
     uint32_t hash = qHash(label) & 0x7FFFFFFF; // ensure positive
-    return static_cast<double>(hash + 0x80000000); // high range for hashes
+    return static_cast<double>(hash + 0x80000000); // range for hashes
 }
 
 /// decode double back to string
@@ -86,7 +110,41 @@ inline QString doubleToString(double value) {
         return QString::number(static_cast<int>(value));
     }
     
-    // method 2: ascii unpacking
+    // method 3: lookup table for common DJ terms
+    if (value >= 0x20000000 && value < 0x21000000) {
+        uint32_t lookupId = static_cast<uint32_t>(value - 0x20000000);
+        static const QHash<uint32_t, QString> lookupTable = {
+            {1001, "BREAKDOWN"}, {1002, "BUILDUP"}, {1003, "INTRO"}, {1004, "OUTRO"},
+            {1005, "VERSE"}, {1006, "CHORUS"}, {1007, "BRIDGE"}, {1008, "PRE-CHORUS"},
+            {1009, "POST-CHORUS"}, {1010, "INTERLUDE"}, {1011, "INSTRUMENTAL"},
+            {1012, "ACAPELLA"}, {1013, "VOCAL"}, {1014, "MELODY"}, {1015, "BASSLINE"},
+            {1016, "SYNTH"}, {1017, "PIANO"}, {1018, "GUITAR"}, {1019, "DRUMS"},
+            {1020, "PERCUSSION"}, {1021, "CLAP"}, {1022, "SNARE"}, {1023, "KICK"},
+            {1024, "HIHAT"}, {1025, "CYMBAL"}, {1026, "CRASH"}, {1027, "RIDE"},
+            {1028, "minus thirty two"}, {1029, "FILTER"}, {1030, "REVERB"},
+            {1031, "DELAY"}, {1032, "DISTORTION"}, {1033, "PITCHED"}, {1034, "HARMONIC"}
+        };
+        if (lookupTable.contains(lookupId)) {
+            return lookupTable[lookupId];
+        }
+    }
+    
+    // method 2: extended ascii unpacking (7 chars, 7 bits each)
+    if (value >= 0x10000000000000LL && value <= 0x11FFFFFFFFFFFF) {
+        uint64_t packed = static_cast<uint64_t>(value - 0x10000000000000LL);
+        QByteArray bytes;
+        for (int i = 0; i < 7; ++i) {
+            uint8_t byte = static_cast<uint8_t>((packed >> (7 * i)) & 0x7F);
+            if (byte == 0) break;
+            if (byte > 127) break; // safety check
+            bytes.append(static_cast<char>(byte));
+        }
+        if (!bytes.isEmpty()) {
+            return QString::fromUtf8(bytes);
+        }
+    }
+    
+    // legacy method 2: old ascii unpacking (4 chars, 8 bits each) - for backward compatibility
     if (value >= 0x10000000 && value <= 0x7FFFFF00 + 0x10000000) {
         uint64_t packed = static_cast<uint64_t>(value - 0x10000000);
         QByteArray bytes;
@@ -101,7 +159,7 @@ inline QString doubleToString(double value) {
         }
     }
     
-    // method 3: hash fallback - return placeholder
+    // method 4: hash fallback - return placeholder
     if (value >= 0x80000000) {
         // we can't reconstruct the original string from hash,
         // so return a placeholder indicating a complex label exists
@@ -2754,13 +2812,14 @@ HotcueControl::HotcueControl(const QString& group, int hotcueIndex)
             &HotcueControl::slotHotcueColorChangeRequest,
             Qt::DirectConnection);
 
-    // the encoded label of this hotcue
+    // the encoded label of this hotcue (for backward compatibility)
     m_hotcueLabel = std::make_unique<ControlObject>(keyForControl(QStringLiteral("label")));
     m_hotcueLabel->connectValueChangeRequest(
             this,
             &HotcueControl::slotHotcueLabelChangeRequest,
             Qt::DirectConnection);
     m_hotcueLabel->set(-1.0); // empty label initially
+
 
     m_hotcueSet = std::make_unique<ControlPushButton>(keyForControl(QStringLiteral("set")));
     connect(m_hotcueSet.get(),
@@ -2969,6 +3028,7 @@ void HotcueControl::slotHotcueLabelChangeRequest(double newLabel) {
     m_hotcueLabel->setAndConfirm(newLabel);
 }
 
+
 mixxx::audio::FramePos HotcueControl::getPosition() const {
     return mixxx::audio::FramePos::fromEngineSamplePosMaybeInvalid(m_hotcuePosition->get());
 }
@@ -3022,7 +3082,7 @@ void HotcueControl::resetCue() {
     setEndPosition(mixxx::audio::kInvalidFramePos);
     setType(mixxx::CueType::Invalid);
     setStatus(Status::Empty);
-    setLabel(QString()); // clear label
+    setLabel(QString()); // clear both label controls
 }
 
 void HotcueControl::setPosition(mixxx::audio::FramePos position) {
