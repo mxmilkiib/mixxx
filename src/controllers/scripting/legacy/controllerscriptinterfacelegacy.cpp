@@ -1,16 +1,16 @@
-#include "controllerscriptinterfacelegacy.h"
+#include "controllers/scripting/legacy/controllerscriptinterfacelegacy.h"
 
-#include <QStringEncoder>
-#include <gsl/pointers>
+#include <QJSEngine>
+#include <QJSValue>
+#include <QtDebug>
 
 #include "control/controlobject.h"
 #include "control/controlobjectscript.h"
-#include "control/controlpotmeter.h"
+#include "control/controlstring.h"
 #include "controllers/scripting/legacy/controllerscriptenginelegacy.h"
-#include "controllers/scripting/legacy/scriptconnectionjsproxy.h"
+#include "mixer/basetrackplayer.h"
 #include "mixer/playermanager.h"
 #include "moc_controllerscriptinterfacelegacy.cpp"
-#include "util/cmdlineargs.h"
 #include "util/fpclassify.h"
 #include "util/make_const_iterator.h"
 #include "util/time.h"
@@ -170,6 +170,31 @@ void ControllerScriptInterfaceLegacy::setValue(
                         pControl, coScript->getParameterForValue(newValue))) {
             coScript->set(newValue);
         }
+    }
+}
+
+QString ControllerScriptInterfaceLegacy::getStringValue(
+        const QString& group, const QString& name) {
+    ConfigKey key = ConfigKey(group, name);
+    if (ControlString::exists(key)) {
+        return ControlString::get(key);
+    }
+    
+    m_pScriptEngineLegacy->logOrThrowError(QStringLiteral(
+            "Script tried to get string value of nonexistent control (%1, %2)")
+                                                   .arg(group, name));
+    return QString();
+}
+
+void ControllerScriptInterfaceLegacy::setStringValue(
+        const QString& group, const QString& name, const QString& newValue) {
+    ConfigKey key = ConfigKey(group, name);
+    if (ControlString::exists(key)) {
+        ControlString::set(key, newValue);
+    } else {
+        m_pScriptEngineLegacy->logOrThrowError(QStringLiteral(
+                "Script tried to set string value of nonexistent control (%1, %2)")
+                                                       .arg(group, name));
     }
 }
 

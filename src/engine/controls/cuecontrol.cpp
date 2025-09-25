@@ -2820,6 +2820,13 @@ HotcueControl::HotcueControl(const QString& group, int hotcueIndex)
             Qt::DirectConnection);
     m_hotcueLabel->set(-1.0); // empty label initially
 
+    // native utf-8 string label control (preferred for new controllers and UI)
+    m_hotcueLabelText = std::make_unique<ControlString>(keyForControl(QStringLiteral("label_text")), true, false, "");
+    m_hotcueLabelText->connectValueChangeRequest(
+            this,
+            &HotcueControl::slotHotcueLabelTextChangeRequest,
+            Qt::DirectConnection);
+
 
     m_hotcueSet = std::make_unique<ControlPushButton>(keyForControl(QStringLiteral("set")));
     connect(m_hotcueSet.get(),
@@ -3026,6 +3033,9 @@ void HotcueControl::slotHotcueLabelChangeRequest(double newLabel) {
     QString label = doubleToString(newLabel);
     m_pCue->setLabel(label);
     m_hotcueLabel->setAndConfirm(newLabel);
+    
+    // keep string control in sync
+    m_hotcueLabelText->setAndConfirm(label);
 }
 
 
@@ -3068,10 +3078,27 @@ QString HotcueControl::getLabel() const {
     return doubleToString(m_hotcueLabel->get());
 }
 
+// New string-based label change handler
+void HotcueControl::slotHotcueLabelTextChangeRequest(const QString& newLabelText) {
+    // qDebug() << "HotcueControl::slotHotcueLabelTextChangeRequest" << newLabelText;
+    if (!m_pCue) {
+        return;
+    }
+
+    // set label directly without encoding limitations
+    m_pCue->setLabel(newLabelText);
+    m_hotcueLabelText->setAndConfirm(newLabelText);
+    
+    // keep encoded control in sync for backward compatibility
+    double encodedLabel = stringToDouble(newLabelText);
+    m_hotcueLabel->setAndConfirm(encodedLabel);
+}
+
 void HotcueControl::setLabel(const QString& label) {
     // qDebug() << "HotcueControl::setLabel()" << label;
     double encodedLabel = stringToDouble(label);
     m_hotcueLabel->setAndConfirm(encodedLabel);
+    m_hotcueLabelText->setAndConfirm(label);
 }
 
 void HotcueControl::resetCue() {

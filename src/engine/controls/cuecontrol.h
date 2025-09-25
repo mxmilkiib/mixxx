@@ -3,15 +3,16 @@
 #include <gtest/gtest_prod.h>
 
 #include <QAtomicInt>
-#include <QAtomicPointer>
-#include <QList>
-
+#include "audio/frame.h"
+#include "audio/types.h"
+#include "control/controlobject.h"
+#include "control/controlpushbutton.h"
+#include "control/controlstring.h"
 #include "engine/controls/enginecontrol.h"
-#include "preferences/colorpalettesettings.h"
 #include "preferences/usersettings.h"
 #include "track/cue.h"
 #include "track/track_decl.h"
-#include "util/compatibility/qmutex.h"
+#include "util/color/rgbcolor.h"
 #include "util/parented_ptr.h"
 
 class ControlObject;
@@ -143,6 +144,7 @@ class HotcueControl : public QObject {
     void slotHotcuePositionChanged(double newPosition);
     void slotHotcueColorChangeRequest(double newColor);
     void slotHotcueLabelChangeRequest(double newLabel);
+    void slotHotcueLabelTextChangeRequest(const QString& newLabelText);
 
   signals:
     void hotcueSet(HotcueControl* pHotcue, double v, HotcueSetMode mode);
@@ -174,6 +176,7 @@ class HotcueControl : public QObject {
     std::unique_ptr<ControlObject> m_hotcueDirection;
     std::unique_ptr<ControlObject> m_hotcueColor;
     std::unique_ptr<ControlObject> m_hotcueLabel;
+    std::unique_ptr<ControlString> m_hotcueLabelText;
     // Hotcue button controls
     std::unique_ptr<ControlPushButton> m_hotcueSet;
     std::unique_ptr<ControlPushButton> m_hotcueSetCue;

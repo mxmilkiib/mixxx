@@ -1115,6 +1115,7 @@ add_library(
   src/control/controllogpotmeter.cpp
   src/control/controlobject.cpp
   src/control/controlobjectscript.cpp
+  src/control/controlstring.cpp
   src/control/controlpotmeter.cpp
   src/control/controlproxy.cpp
   src/control/controlpushbutton.cpp
