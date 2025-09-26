@@ -2794,7 +2794,7 @@ HotcueControl::HotcueControl(const QString& group, int hotcueIndex)
             this,
             &HotcueControl::slotHotcueLabelTextChanged,
             Qt::DirectConnection);
-{{ ... }}
+
     m_previewingType.setValue(mixxx::CueType::Invalid);
     m_previewingPosition.setValue(mixxx::audio::kInvalidFramePos);
 }
