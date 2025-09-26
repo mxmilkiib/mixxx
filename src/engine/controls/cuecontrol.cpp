@@ -3,6 +3,7 @@
 #include "control/controlindicator.h"
 #include "control/controlobject.h"
 #include "control/controlpushbutton.h"
+#include "control/controlstring.h"
 #include "engine/enginebuffer.h"
 #include "mixer/playermanager.h"
 #include "moc_cuecontrol.cpp"
@@ -297,6 +298,9 @@ void CueControl::createControls() {
         HotcueControl* pControl = new HotcueControl(m_group, i);
         m_hotcueControls.append(pControl);
     }
+
+    // Initialize ControlString system with user settings for persistence
+    ControlStringPrivate::setUserConfig(m_pConfig);
 }
 
 void CueControl::connectControls() {
@@ -2775,6 +2779,17 @@ HotcueControl::HotcueControl(const QString& group, int hotcueIndex)
             &HotcueControl::slotHotcueSwap,
             Qt::DirectConnection);
 
+    // UTF-8 string control for hotcue labels
+    m_hotcueLabelText = std::make_unique<ControlString>(
+            keyForControl(QStringLiteral("label_text")),
+            false, // bIgnoreNops
+            true); // bPersist
+    connect(m_hotcueLabelText.get(),
+            &ControlString::valueChanged,
+            this,
+            &HotcueControl::slotHotcueLabelTextChanged,
+            Qt::DirectConnection);
+{{ ... }}
     m_previewingType.setValue(mixxx::CueType::Invalid);
     m_previewingPosition.setValue(mixxx::audio::kInvalidFramePos);
 }
@@ -2864,6 +2879,16 @@ void HotcueControl::slotHotcueColorChangeRequest(double newColor) {
     m_hotcueColor->setAndConfirm(newColor);
 }
 
+void HotcueControl::slotHotcueLabelTextChanged(const QString& newLabelText) {
+    // qDebug() << "HotcueControl::slotHotcueLabelTextChanged" << newLabelText;
+    if (!m_pCue) {
+        return;
+    }
+
+    m_pCue->setLabel(newLabelText);
+    m_hotcueLabelText->setAndConfirm(newLabelText);
+}
+
 mixxx::audio::FramePos HotcueControl::getPosition() const {
     return mixxx::audio::FramePos::fromEngineSamplePosMaybeInvalid(m_hotcuePosition->get());
 }
@@ -2883,6 +2908,8 @@ void HotcueControl::setCue(const CuePointer& pCue) {
                     ? HotcueControl::Status::Empty
                     : HotcueControl::Status::Set);
     setType(pCue->getType());
+    // Sync the label text from the cue
+    m_hotcueLabelText->setAndConfirm(pCue->getLabel());
     // set pCue only if all other data is in place
     // because we have a null check for valid data else where in the code
     m_pCue = pCue;
@@ -2898,6 +2925,14 @@ void HotcueControl::setColor(mixxx::RgbColor::optional_t newColor) {
     }
 }
 
+QString HotcueControl::getLabelText() const {
+    return m_hotcueLabelText->get();
+}
+
+void HotcueControl::setLabelText(const QString& labelText) {
+    m_hotcueLabelText->set(labelText);
+}
+
 void HotcueControl::resetCue() {
     // clear pCue first because we have a null check for valid data else where
     // in the code
@@ -2906,6 +2941,8 @@ void HotcueControl::resetCue() {
     setEndPosition(mixxx::audio::kInvalidFramePos);
     setType(mixxx::CueType::Invalid);
     setStatus(Status::Empty);
+    // Clear the label text
+    m_hotcueLabelText->setAndConfirm(QString());
 }
 
 void HotcueControl::setPosition(mixxx::audio::FramePos position) {
