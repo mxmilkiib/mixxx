@@ -172,34 +172,62 @@ void WSplitter::slotControlValueChanged(double value) {
     value = qBound(0.0, value, 1.0);
 
     // find which control was changed
+    int changedIndex = -1;
     for (size_t i = 0; i < m_paneControls.size(); ++i) {
         if (m_paneControls[i].get() == pSender) {
-            auto currentSizes = sizes();
-            if (i < static_cast<size_t>(currentSizes.size())) {
-                // calculate total available size
-                int totalSize = 0;
-                for (int size : currentSizes) {
-                    totalSize += size;
-                }
-
-                if (totalSize > 0) {
-                    // convert 0-1 proportion to pixel size
-                    currentSizes[i] = static_cast<int>(value * totalSize);
-                    // disconnect to avoid feedback loop
-                    disconnect(m_paneControls[i].get(),
-                            &ControlObject::valueChanged,
-                            this,
-                            &WSplitter::slotControlValueChanged);
-                    setSizes(currentSizes);
-                    // reconnect
-                    connect(m_paneControls[i].get(),
-                            &ControlObject::valueChanged,
-                            this,
-                            &WSplitter::slotControlValueChanged);
-                }
-            }
+            changedIndex = static_cast<int>(i);
             break;
         }
+    }
+
+    if (changedIndex < 0) {
+        return;
+    }
+
+    auto currentSizes = sizes();
+    if (changedIndex >= currentSizes.size()) {
+        return;
+    }
+
+    // calculate total available size
+    int totalSize = 0;
+    for (int size : currentSizes) {
+        totalSize += size;
+    }
+
+    if (totalSize <= 0) {
+        return;
+    }
+
+    // disconnect all controls to avoid feedback loops
+    for (auto& pControl : m_paneControls) {
+        disconnect(pControl.get(),
+                &ControlObject::valueChanged,
+                this,
+                &WSplitter::slotControlValueChanged);
+    }
+
+    // set the changed pane to requested size
+    int requestedSize = static_cast<int>(value * totalSize);
+    requestedSize = qMax(20, requestedSize); // minimum 20 pixels
+    
+    currentSizes[changedIndex] = requestedSize;
+
+    // for 2-pane splitter, adjust the other pane
+    if (currentSizes.size() == 2) {
+        int otherIndex = (changedIndex == 0) ? 1 : 0;
+        currentSizes[otherIndex] = totalSize - requestedSize;
+        currentSizes[otherIndex] = qMax(20, currentSizes[otherIndex]);
+    }
+
+    setSizes(currentSizes);
+
+    // reconnect all controls
+    for (auto& pControl : m_paneControls) {
+        connect(pControl.get(),
+                &ControlObject::valueChanged,
+                this,
+                &WSplitter::slotControlValueChanged);
     }
 }
 
