@@ -98,6 +98,12 @@ void WSplitter::setup(const QDomNode& node, const SkinContext& context) {
             }
         }
     }
+
+    // create control objects for pane sizes if control key prefix specified
+    QString controlKeyPrefix;
+    if (context.hasNodeSelectString(node, "ControlKeyPrefix", &controlKeyPrefix)) {
+        createControls(controlKeyPrefix);
+    }
 }
 
 void WSplitter::slotSplitterMoved() {
@@ -109,6 +115,55 @@ void WSplitter::slotSplitterMoved() {
         }
         QString sizesStr = sizeStrList.join(",");
         m_pConfig->set(m_configKey, ConfigValue(sizesStr));
+    }
+    updateControls();
+}
+
+void WSplitter::createControls(const QString& controlKeyPrefix) {
+    m_paneControls.clear();
+    const int numPanes = count();
+
+    for (int i = 0; i < numPanes; ++i) {
+        QString controlName = QString("%1_%2").arg(controlKeyPrefix).arg(i);
+        auto pControl = std::make_unique<ControlObject>(
+                ConfigKey("[Library]", controlName), false);
+        connect(pControl.get(),
+                &ControlObject::valueChanged,
+                this,
+                &WSplitter::slotControlValueChanged);
+        m_paneControls.push_back(std::move(pControl));
+    }
+
+    updateControls();
+}
+
+void WSplitter::updateControls() {
+    if (m_paneControls.empty()) {
+        return;
+    }
+
+    const auto currentSizes = sizes();
+    for (size_t i = 0; i < m_paneControls.size() && i < static_cast<size_t>(currentSizes.size()); ++i) {
+        m_paneControls[i]->set(currentSizes[i]);
+    }
+}
+
+void WSplitter::slotControlValueChanged(double value) {
+    ControlObject* pSender = qobject_cast<ControlObject*>(sender());
+    if (!pSender) {
+        return;
+    }
+
+    // find which control was changed
+    for (size_t i = 0; i < m_paneControls.size(); ++i) {
+        if (m_paneControls[i].get() == pSender) {
+            auto currentSizes = sizes();
+            if (i < static_cast<size_t>(currentSizes.size())) {
+                currentSizes[i] = static_cast<int>(value);
+                setSizes(currentSizes);
+            }
+            break;
+        }
     }
 }
 
