@@ -20,6 +20,7 @@ class WSplitter : public QSplitter, public WBaseWidget {
 
   protected:
     bool event(QEvent* pEvent) override;
+    void mouseDoubleClickEvent(QMouseEvent* pEvent) override;
 
   private slots:
     void slotSplitterMoved();
@@ -32,4 +33,5 @@ class WSplitter : public QSplitter, public WBaseWidget {
     UserSettingsPointer m_pConfig;
     ConfigKey m_configKey;
     std::vector<std::unique_ptr<ControlObject>> m_paneControls;
+    QList<int> m_savedSizes;
 };
