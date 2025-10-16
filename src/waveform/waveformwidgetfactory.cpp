@@ -789,6 +789,26 @@ void WaveformWidgetFactory::notifyZoomChange(WWaveformViewer* viewer) {
     }
 }
 
+void WaveformWidgetFactory::setWaveformHeight(double height) {
+    // clamp to valid range
+    height = qBound(0.0, height, 1.0);
+    
+    // apply height to all waveform viewers
+    // at 0.0, waveform should be minimized (minimum height)
+    // at 1.0, waveform should be at maximum height
+    const int minHeight = 10; // minimum pixel height to avoid complete collapse
+    const int maxHeight = 2000; // reasonable maximum
+    
+    int pixelHeight = minHeight + static_cast<int>(height * (maxHeight - minHeight));
+    
+    for (const auto& holder : std::as_const(m_waveformWidgetHolders)) {
+        if (holder.m_waveformViewer) {
+            holder.m_waveformViewer->setMinimumHeight(pixelHeight);
+            holder.m_waveformViewer->setMaximumHeight(pixelHeight);
+        }
+    }
+}
+
 void WaveformWidgetFactory::renderSelf() {
     ScopedTimer t(QStringLiteral("WaveformWidgetFactory::render() %1waveforms"),
             static_cast<int>(m_waveformWidgetHolders.size()));

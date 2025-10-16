@@ -14,6 +14,7 @@
 #include "mixer/playermanager.h"
 #include "moc_librarycontrol.cpp"
 #include "util/cmdlineargs.h"
+#include "waveform/waveformwidgetfactory.h"
 #include "widget/wlibrary.h"
 #include "widget/wlibrarysidebar.h"
 #include "widget/wsearchlineedit.h"
@@ -1217,8 +1218,6 @@ void LibraryControl::slotWaveformHeightChanged(double v) {
     // clamp value to 0.0-1.0 range
     double height = qBound(0.0, v, 1.0);
     
-    // TODO: implement waveform height adjustment
-    // this will require accessing the waveform widget factory
-    // and adjusting the height of all active waveform viewers
-    Q_UNUSED(height);
+    // apply height change to all waveform viewers via the factory
+    WaveformWidgetFactory::instance()->setWaveformHeight(height);
 }

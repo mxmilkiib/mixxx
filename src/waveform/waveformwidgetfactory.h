@@ -240,6 +240,8 @@ class WaveformWidgetFactory : public QObject,
 
     void notifyZoomChange(WWaveformViewer *viewer);
 
+    void setWaveformHeight(double height);
+
   signals:
     void waveformUpdateTick();
     void waveformMeasured(float frameRate, int droppedFrames);
