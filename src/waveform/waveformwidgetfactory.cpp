@@ -1,6 +1,13 @@
 #include "waveform/waveformwidgetfactory.h"
 
-#include "waveform/renderers/waveformrendererabstract.h"
+#include <QGLFormat>
+#include <QOpenGLFunctions>
+#include <QSurfaceFormat>
+#include <QtDebug>
+#include <memory>
+
+#include "control/controlobject.h"
+#include "control/controlproxy.h"
 #include "waveform/waveform.h"
 
 #ifdef MIXXX_USE_QOPENGL
@@ -541,6 +548,19 @@ bool WaveformWidgetFactory::setWaveformWidget(WWaveformViewer* viewer,
     waveformWidget->resize(viewer->width(), viewer->height());
     waveformWidget->getWidget()->show();
     viewer->update();
+
+    // apply current waveform height setting to newly created viewer
+    ControlObject* pWaveformHeight = ControlObject::getControl(
+            ConfigKey("[Library]", "waveform_height"));
+    if (pWaveformHeight) {
+        double height = pWaveformHeight->get();
+        height = qBound(0.0, height, 1.0);
+        const int minHeight = 10;
+        const int maxHeight = 2000;
+        int pixelHeight = minHeight + static_cast<int>(height * (maxHeight - minHeight));
+        viewer->setMinimumHeight(pixelHeight);
+        viewer->setMaximumHeight(pixelHeight);
+    }
 
     qDebug() << "WaveformWidgetFactory::setWaveformWidget - waveform widget added in factory, index" << index;
 
