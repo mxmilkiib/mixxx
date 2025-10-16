@@ -124,21 +124,12 @@ void WSplitter::slotSplitterMoved() {
 void WSplitter::createControls(const QString& controlKeyPrefix) {
     m_paneControls.clear();
     const int numPanes = count();
-    const auto currentSizes = sizes();
 
     for (int i = 0; i < numPanes; ++i) {
         QString controlName = QString("%1_%2").arg(controlKeyPrefix).arg(i);
-        // use current size as default, with range 20-2000 pixels
-        double defaultSize = (i < currentSizes.size()) ? currentSizes[i] : 100.0;
-        auto pControl = std::make_unique<ControlPotmeter>(
-                ConfigKey("[Library]", controlName),
-                20.0,    // min pixels
-                2000.0,  // max pixels
-                false,   // allowOutOfBounds
-                true,    // bIgnoreNops
-                false,   // bTrack
-                false,   // bPersist
-                defaultSize);
+        // control range 0.0-1.0 represents proportion of total available space
+        auto pControl = std::make_unique<ControlObject>(
+                ConfigKey("[Library]", controlName), false);
         connect(pControl.get(),
                 &ControlObject::valueChanged,
                 this,
@@ -155,8 +146,19 @@ void WSplitter::updateControls() {
     }
 
     const auto currentSizes = sizes();
+    int totalSize = 0;
+    for (int size : currentSizes) {
+        totalSize += size;
+    }
+
+    if (totalSize == 0) {
+        return;
+    }
+
+    // set each control to proportion of total (0-1)
     for (size_t i = 0; i < m_paneControls.size() && i < static_cast<size_t>(currentSizes.size()); ++i) {
-        m_paneControls[i]->set(currentSizes[i]);
+        double proportion = static_cast<double>(currentSizes[i]) / totalSize;
+        m_paneControls[i]->set(proportion);
     }
 }
 
@@ -166,13 +168,35 @@ void WSplitter::slotControlValueChanged(double value) {
         return;
     }
 
+    // clamp to 0-1 range
+    value = qBound(0.0, value, 1.0);
+
     // find which control was changed
     for (size_t i = 0; i < m_paneControls.size(); ++i) {
         if (m_paneControls[i].get() == pSender) {
             auto currentSizes = sizes();
             if (i < static_cast<size_t>(currentSizes.size())) {
-                currentSizes[i] = static_cast<int>(value);
-                setSizes(currentSizes);
+                // calculate total available size
+                int totalSize = 0;
+                for (int size : currentSizes) {
+                    totalSize += size;
+                }
+
+                if (totalSize > 0) {
+                    // convert 0-1 proportion to pixel size
+                    currentSizes[i] = static_cast<int>(value * totalSize);
+                    // disconnect to avoid feedback loop
+                    disconnect(m_paneControls[i].get(),
+                            &ControlObject::valueChanged,
+                            this,
+                            &WSplitter::slotControlValueChanged);
+                    setSizes(currentSizes);
+                    // reconnect
+                    connect(m_paneControls[i].get(),
+                            &ControlObject::valueChanged,
+                            this,
+                            &WSplitter::slotControlValueChanged);
+                }
             }
             break;
         }
