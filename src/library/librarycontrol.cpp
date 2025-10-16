@@ -371,6 +371,15 @@ LibraryControl::LibraryControl(Library* pLibrary)
                 &ControlPushButton::valueChanged,
                 this,
                 &LibraryControl::slotIncrementFontSize);
+
+        // Waveform height control (0.0 = minimized, 1.0 = maximum)
+        m_pWaveformHeight = std::make_unique<ControlObject>(
+                ConfigKey("[Library]", "waveform_height"));
+        m_pWaveformHeight->set(0.5); // default to middle position
+        connect(m_pWaveformHeight.get(),
+                &ControlObject::valueChanged,
+                this,
+                &LibraryControl::slotWaveformHeightChanged);
     }
 
     // Track Color controls
@@ -1202,4 +1211,14 @@ void LibraryControl::slotTrackColorNext(double v) {
     if (pTrackTableView) {
         pTrackTableView->assignNextTrackColor();
     }
+}
+
+void LibraryControl::slotWaveformHeightChanged(double v) {
+    // clamp value to 0.0-1.0 range
+    double height = qBound(0.0, v, 1.0);
+    
+    // TODO: implement waveform height adjustment
+    // this will require accessing the waveform widget factory
+    // and adjusting the height of all active waveform viewers
+    Q_UNUSED(height);
 }
