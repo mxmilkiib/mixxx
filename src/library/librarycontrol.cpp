@@ -375,8 +375,11 @@ LibraryControl::LibraryControl(Library* pLibrary)
 
         // Waveform height control (0.0 = minimized, 1.0 = maximum)
         m_pWaveformHeight = std::make_unique<ControlObject>(
-                ConfigKey("[Library]", "waveform_height"));
-        m_pWaveformHeight->set(0.5); // default to middle position
+                ConfigKey("[Library]", "waveform_height"),
+                false, // bIgnoreNops
+                false, // bTrack
+                true,  // bPersist - save value across sessions
+                0.5);  // default to middle position
         connect(m_pWaveformHeight.get(),
                 &ControlObject::valueChanged,
                 this,

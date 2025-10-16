@@ -1248,4 +1248,10 @@ void Tooltips::addStandardTooltips() {
     add("configure_input")
             << tr("Select and configure a hardware device for this input");
 
+    add("waveform_height")
+            << tr("Waveform Height")
+            << tr("Adjusts the height of the waveform displays.")
+            << tr("At minimum (0), waveforms are hidden. At maximum (1), waveforms are at full height.")
+            << resetWithRightAndDoubleClick;
+
 }
