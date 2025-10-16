@@ -17,6 +17,7 @@ class WSplitter : public QSplitter, public WBaseWidget {
 
   protected:
     bool event(QEvent* pEvent) override;
+    void mouseDoubleClickEvent(QMouseEvent* pEvent) override;
 
   private slots:
     void slotSplitterMoved();
@@ -24,4 +25,5 @@ class WSplitter : public QSplitter, public WBaseWidget {
   private:
     UserSettingsPointer m_pConfig;
     ConfigKey m_configKey;
+    QList<int> m_savedSizes;
 };

@@ -2,6 +2,8 @@
 
 #include <QEvent>
 #include <QList>
+#include <QMouseEvent>
+#include <QSplitterHandle>
 
 #include "moc_wsplitter.cpp"
 #include "skin/legacy/skincontext.h"
@@ -117,4 +119,42 @@ bool WSplitter::event(QEvent* pEvent) {
         updateTooltip();
     }
     return QSplitter::event(pEvent);
+}
+
+void WSplitter::mouseDoubleClickEvent(QMouseEvent* pEvent) {
+    // check if double-click is on a splitter handle
+    QSplitterHandle* pHandle = qobject_cast<QSplitterHandle*>(childAt(pEvent->pos()));
+    if (!pHandle) {
+        QSplitter::mouseDoubleClickEvent(pEvent);
+        return;
+    }
+
+    // find which handle was clicked
+    int handleIndex = indexOf(pHandle);
+    if (handleIndex < 0) {
+        QSplitter::mouseDoubleClickEvent(pEvent);
+        return;
+    }
+
+    // toggle first pane (index 0) between collapsed and saved size
+    // this is typically the sidebar when used with LibrarySplitter
+    QList<int> currentSizes = sizes();
+    if (currentSizes.isEmpty() || handleIndex >= currentSizes.size()) {
+        QSplitter::mouseDoubleClickEvent(pEvent);
+        return;
+    }
+
+    if (currentSizes[0] == 0) {
+        // restore from saved sizes
+        if (!m_savedSizes.isEmpty() && m_savedSizes[0] > 0) {
+            setSizes(m_savedSizes);
+        }
+    } else {
+        // save current sizes and collapse first pane
+        m_savedSizes = currentSizes;
+        currentSizes[0] = 0;
+        setSizes(currentSizes);
+    }
+
+    pEvent->accept();
 }
