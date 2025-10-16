@@ -139,16 +139,10 @@ void WSplitter::createControls(const QString& controlKeyPrefix) {
         QString controlName = QString("%1_%2").arg(uniquePrefix).arg(i);
         ConfigKey key("[Library]", controlName);
         
-        // check if control already exists (shouldn't happen with unique names)
-        if (ControlObject::getControl(key)) {
-            qWarning() << "WSplitter: Control" << key << "already exists, skipping creation";
-            continue;
-        }
-        
-        // control range 0.0-1.0 represents proportion of total available space
-        auto pControl = std::make_unique<ControlObject>(key, false);
+        // use ControlProxy which handles existing/new controls gracefully
+        auto pControl = std::make_unique<ControlProxy>(key, this);
         connect(pControl.get(),
-                &ControlObject::valueChanged,
+                &ControlProxy::valueChanged,
                 this,
                 &WSplitter::slotControlValueChanged);
         m_paneControls.push_back(std::move(pControl));
@@ -180,7 +174,7 @@ void WSplitter::updateControls() {
 }
 
 void WSplitter::slotControlValueChanged(double value) {
-    ControlObject* pSender = qobject_cast<ControlObject*>(sender());
+    ControlProxy* pSender = qobject_cast<ControlProxy*>(sender());
     if (!pSender) {
         return;
     }
@@ -219,7 +213,7 @@ void WSplitter::slotControlValueChanged(double value) {
     // disconnect all controls to avoid feedback loops
     for (auto& pControl : m_paneControls) {
         disconnect(pControl.get(),
-                &ControlObject::valueChanged,
+                &ControlProxy::valueChanged,
                 this,
                 &WSplitter::slotControlValueChanged);
     }
@@ -242,7 +236,7 @@ void WSplitter::slotControlValueChanged(double value) {
     // reconnect all controls
     for (auto& pControl : m_paneControls) {
         connect(pControl.get(),
-                &ControlObject::valueChanged,
+                &ControlProxy::valueChanged,
                 this,
                 &WSplitter::slotControlValueChanged);
     }
