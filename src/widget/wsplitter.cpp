@@ -122,14 +122,31 @@ void WSplitter::slotSplitterMoved() {
 }
 
 void WSplitter::createControls(const QString& controlKeyPrefix) {
-    m_paneControls.clear();
+    // only create controls once
+    if (!m_paneControls.empty()) {
+        return;
+    }
+
     const int numPanes = count();
+    QString objName = objectName();
+    
+    // make control names unique per splitter instance using object name
+    QString uniquePrefix = objName.isEmpty() 
+            ? controlKeyPrefix 
+            : QString("%1_%2").arg(objName).arg(controlKeyPrefix);
 
     for (int i = 0; i < numPanes; ++i) {
-        QString controlName = QString("%1_%2").arg(controlKeyPrefix).arg(i);
+        QString controlName = QString("%1_%2").arg(uniquePrefix).arg(i);
+        ConfigKey key("[Library]", controlName);
+        
+        // check if control already exists (shouldn't happen with unique names)
+        if (ControlObject::getControl(key)) {
+            qWarning() << "WSplitter: Control" << key << "already exists, skipping creation";
+            continue;
+        }
+        
         // control range 0.0-1.0 represents proportion of total available space
-        auto pControl = std::make_unique<ControlObject>(
-                ConfigKey("[Library]", controlName), false);
+        auto pControl = std::make_unique<ControlObject>(key, false);
         connect(pControl.get(),
                 &ControlObject::valueChanged,
                 this,
