@@ -5023,10 +5023,18 @@ if(OPENMPT)
       "OpenMPT module decoder support requires libopenmpt and its development headers."
     )
   endif()
-  target_sources(mixxx-lib PRIVATE src/sources/soundsourceopenmpt.cpp)
+  target_sources(
+    mixxx-lib
+    PRIVATE
+      src/sources/soundsourceopenmpt.cpp
+      src/sources/soundsourceopenmptstem.cpp
+  )
   target_compile_definitions(mixxx-lib PUBLIC __OPENMPT__)
   target_link_libraries(mixxx-lib PRIVATE OpenMPT::OpenMPT)
-  message(STATUS "using libopenmpt for tracker module support")
+  message(
+    STATUS
+    "using libopenmpt for tracker module support (including stems)"
+  )
 endif()
 
 if(MODPLUG)

@@ -5,6 +5,7 @@
 #include "preferences/usersettings.h"
 #ifdef __OPENMPT__
 #include "sources/soundsourceopenmpt.h"
+#include "sources/soundsourceopenmptstem.h"
 #endif
 #ifdef __MODPLUG__
 #include "sources/soundsourcemodplug.h"
@@ -163,6 +164,7 @@ void DlgPrefModplug::applySettings() {
     dspSettings.noiseReductionEnabled = m_pUi->noiseReduction->isChecked();
 
     mixxx::SoundSourceOpenMPT::configure(bufferSizeLimit, dspSettings);
+    mixxx::SoundSourceOpenMPTStem::configure(bufferSizeLimit, dspSettings);
 #endif
 
 #ifdef __MODPLUG__
