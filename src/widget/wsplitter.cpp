@@ -2,6 +2,8 @@
 
 #include <QEvent>
 #include <QList>
+#include <QMouseEvent>
+#include <QSplitterHandle>
 
 #include "moc_wsplitter.cpp"
 #include "skin/legacy/skincontext.h"
@@ -98,6 +100,12 @@ void WSplitter::setup(const QDomNode& node, const SkinContext& context) {
             }
         }
     }
+
+    // create control objects for pane sizes if control key prefix specified
+    QString controlKeyPrefix;
+    if (context.hasNodeSelectString(node, "ControlKeyPrefix", &controlKeyPrefix)) {
+        createControls(controlKeyPrefix);
+    }
 }
 
 void WSplitter::slotSplitterMoved() {
@@ -110,6 +118,128 @@ void WSplitter::slotSplitterMoved() {
         QString sizesStr = sizeStrList.join(",");
         m_pConfig->set(m_configKey, ConfigValue(sizesStr));
     }
+    updateControls();
+}
+
+void WSplitter::createControls(const QString& controlKeyPrefix) {
+    // only create controls once
+    if (!m_paneControls.empty()) {
+        return;
+    }
+
+    const int numPanes = count();
+    QString objName = objectName();
+    
+    // make control names unique per splitter instance using object name
+    QString uniquePrefix = objName.isEmpty() 
+            ? controlKeyPrefix 
+            : QString("%1_%2").arg(objName).arg(controlKeyPrefix);
+
+    for (int i = 0; i < numPanes; ++i) {
+        QString controlName = QString("%1_%2").arg(uniquePrefix).arg(i);
+        ConfigKey key("[Library]", controlName);
+        
+        // use ControlProxy which handles existing/new controls gracefully
+        auto pControl = std::make_unique<ControlProxy>(key, this);
+        connect(pControl.get(),
+                &ControlProxy::valueChanged,
+                this,
+                &WSplitter::slotControlValueChanged);
+        m_paneControls.push_back(std::move(pControl));
+    }
+
+    updateControls();
+}
+
+void WSplitter::updateControls() {
+    if (m_paneControls.empty()) {
+        return;
+    }
+
+    const auto currentSizes = sizes();
+    int totalSize = 0;
+    for (int size : currentSizes) {
+        totalSize += size;
+    }
+
+    if (totalSize == 0) {
+        return;
+    }
+
+    // set each control to proportion of total (0-1)
+    for (size_t i = 0; i < m_paneControls.size() && i < static_cast<size_t>(currentSizes.size()); ++i) {
+        double proportion = static_cast<double>(currentSizes[i]) / totalSize;
+        m_paneControls[i]->set(proportion);
+    }
+}
+
+void WSplitter::slotControlValueChanged(double value) {
+    ControlProxy* pSender = qobject_cast<ControlProxy*>(sender());
+    if (!pSender) {
+        return;
+    }
+
+    // clamp to 0-1 range
+    value = qBound(0.0, value, 1.0);
+
+    // find which control was changed
+    int changedIndex = -1;
+    for (size_t i = 0; i < m_paneControls.size(); ++i) {
+        if (m_paneControls[i].get() == pSender) {
+            changedIndex = static_cast<int>(i);
+            break;
+        }
+    }
+
+    if (changedIndex < 0) {
+        return;
+    }
+
+    auto currentSizes = sizes();
+    if (changedIndex >= currentSizes.size()) {
+        return;
+    }
+
+    // calculate total available size
+    int totalSize = 0;
+    for (int size : currentSizes) {
+        totalSize += size;
+    }
+
+    if (totalSize <= 0) {
+        return;
+    }
+
+    // disconnect all controls to avoid feedback loops
+    for (auto& pControl : m_paneControls) {
+        disconnect(pControl.get(),
+                &ControlProxy::valueChanged,
+                this,
+                &WSplitter::slotControlValueChanged);
+    }
+
+    // set the changed pane to requested size
+    int requestedSize = static_cast<int>(value * totalSize);
+    requestedSize = qMax(20, requestedSize); // minimum 20 pixels
+    
+    currentSizes[changedIndex] = requestedSize;
+
+    // for 2-pane splitter, adjust the other pane
+    if (currentSizes.size() == 2) {
+        int otherIndex = (changedIndex == 0) ? 1 : 0;
+        currentSizes[otherIndex] = totalSize - requestedSize;
+        currentSizes[otherIndex] = qMax(20, currentSizes[otherIndex]);
+    }
+
+    setSizes(currentSizes);
+
+    // reconnect all controls
+    for (auto& pControl : m_paneControls) {
+        connect(pControl.get(),
+                &ControlProxy::valueChanged,
+                this,
+                &WSplitter::slotControlValueChanged);
+    }
 }
 
 bool WSplitter::event(QEvent* pEvent) {
@@ -117,4 +247,42 @@ bool WSplitter::event(QEvent* pEvent) {
         updateTooltip();
     }
     return QSplitter::event(pEvent);
+}
+
+void WSplitter::mouseDoubleClickEvent(QMouseEvent* pEvent) {
+    // check if double-click is on a splitter handle
+    QSplitterHandle* pHandle = qobject_cast<QSplitterHandle*>(childAt(pEvent->pos()));
+    if (!pHandle) {
+        QSplitter::mouseDoubleClickEvent(pEvent);
+        return;
+    }
+
+    // find which handle was clicked
+    int handleIndex = indexOf(pHandle);
+    if (handleIndex < 0) {
+        QSplitter::mouseDoubleClickEvent(pEvent);
+        return;
+    }
+
+    // toggle first pane (index 0) between collapsed and saved size
+    // this is typically the sidebar when used with LibrarySplitter
+    QList<int> currentSizes = sizes();
+    if (currentSizes.isEmpty() || handleIndex >= currentSizes.size()) {
+        QSplitter::mouseDoubleClickEvent(pEvent);
+        return;
+    }
+
+    if (currentSizes[0] == 0) {
+        // restore from saved sizes
+        if (!m_savedSizes.isEmpty() && m_savedSizes[0] > 0) {
+            setSizes(m_savedSizes);
+        }
+    } else {
+        // save current sizes and collapse first pane
+        m_savedSizes = currentSizes;
+        currentSizes[0] = 0;
+        setSizes(currentSizes);
+    }
+
+    pEvent->accept();
 }

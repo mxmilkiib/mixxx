@@ -1,7 +1,10 @@
 #pragma once
 
 #include <QSplitter>
+#include <memory>
+#include <vector>
 
+#include "control/controlproxy.h"
 #include "preferences/usersettings.h"
 #include "widget/wbasewidget.h"
 
@@ -17,11 +20,18 @@ class WSplitter : public QSplitter, public WBaseWidget {
 
   protected:
     bool event(QEvent* pEvent) override;
+    void mouseDoubleClickEvent(QMouseEvent* pEvent) override;
 
   private slots:
     void slotSplitterMoved();
+    void slotControlValueChanged(double value);
 
   private:
+    void createControls(const QString& controlKeyPrefix);
+    void updateControls();
+
     UserSettingsPointer m_pConfig;
     ConfigKey m_configKey;
+    std::vector<std::unique_ptr<ControlProxy>> m_paneControls;
+    QList<int> m_savedSizes;
 };
