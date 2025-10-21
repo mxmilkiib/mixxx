@@ -1,11 +1,5 @@
 #include "waveform/waveformwidgetfactory.h"
 
-#include <QGLFormat>
-#include <QOpenGLFunctions>
-#include <QSurfaceFormat>
-#include <QtDebug>
-#include <memory>
-
 #include "control/controlobject.h"
 #include "control/controlproxy.h"
 #include "waveform/waveform.h"
