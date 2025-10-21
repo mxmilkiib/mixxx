@@ -135,6 +135,8 @@ class LibraryControl : public QObject {
     void slotIncrementFontSize(double v);
     void slotDecrementFontSize(double v);
 
+    void slotWaveformHeightChanged(double v);
+
   private:
     Library* m_pLibrary;
 
@@ -205,6 +207,9 @@ class LibraryControl : public QObject {
     std::unique_ptr<ControlPushButton> m_pFontSizeIncrement;
     std::unique_ptr<ControlPushButton> m_pFontSizeDecrement;
     std::unique_ptr<ControlObject> m_pFontSizeKnob;
+
+    // Waveform height control (0.0 = minimized, 1.0 = maximum)
+    std::unique_ptr<ControlObject> m_pWaveformHeight;
 
     // Direct navigation controls for specific widgets (deprecated)
     std::unique_ptr<ControlObject> m_pSelectNextTrack;

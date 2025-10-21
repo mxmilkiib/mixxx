@@ -14,6 +14,7 @@
 #include "mixer/playermanager.h"
 #include "moc_librarycontrol.cpp"
 #include "util/cmdlineargs.h"
+#include "waveform/waveformwidgetfactory.h"
 #include "widget/wlibrary.h"
 #include "widget/wlibrarysidebar.h"
 #include "widget/wsearchlineedit.h"
@@ -371,6 +372,18 @@ LibraryControl::LibraryControl(Library* pLibrary)
                 &ControlPushButton::valueChanged,
                 this,
                 &LibraryControl::slotIncrementFontSize);
+
+        // Waveform height control (0.0 = minimized, 1.0 = maximum)
+        m_pWaveformHeight = std::make_unique<ControlObject>(
+                ConfigKey("[Library]", "waveform_height"),
+                false, // bIgnoreNops
+                false, // bTrack
+                true,  // bPersist - save value across sessions
+                0.5);  // default to middle position
+        connect(m_pWaveformHeight.get(),
+                &ControlObject::valueChanged,
+                this,
+                &LibraryControl::slotWaveformHeightChanged);
     }
 
     // Track Color controls
@@ -1202,4 +1215,12 @@ void LibraryControl::slotTrackColorNext(double v) {
     if (pTrackTableView) {
         pTrackTableView->assignNextTrackColor();
     }
+}
+
+void LibraryControl::slotWaveformHeightChanged(double v) {
+    // clamp value to 0.0-1.0 range
+    double height = qBound(0.0, v, 1.0);
+    
+    // apply height change to all waveform viewers via the factory
+    WaveformWidgetFactory::instance()->setWaveformHeight(height);
 }
