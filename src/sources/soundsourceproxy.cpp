@@ -25,6 +25,7 @@
 #endif
 #ifdef __OPENMPT__
 #include "sources/soundsourceopenmpt.h"
+#include "sources/soundsourceopenmptstem.h"
 #endif
 #ifdef __MODPLUG__
 #include "sources/soundsourcemodplug.h"
@@ -224,6 +225,11 @@ bool SoundSourceProxy::registerProviders() {
             std::make_shared<mixxx::SoundSourceProviderMp3>());
 #endif
 #ifdef __OPENMPT__
+    // register stem provider first (higher priority for .stem.* files)
+    registerSoundSourceProvider(
+            &s_soundSourceProviders,
+            std::make_shared<mixxx::SoundSourceProviderOpenMPTStem>());
+    // register regular openmpt provider
     registerSoundSourceProvider(
             &s_soundSourceProviders,
             std::make_shared<mixxx::SoundSourceProviderOpenMPT>());
