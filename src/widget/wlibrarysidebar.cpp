@@ -392,6 +392,10 @@ void WLibrarySidebar::selectIndex(const QModelIndex& index, bool scrollToIndex) 
 
     if (index.parent().isValid()) {
         expand(index.parent());
+    } else if (model()->hasChildren(index)) {
+        // if this is a root item with children (e.g., Crates, Playlists),
+        // expand it so children become visible
+        expand(index);
     }
     setSelectionModel(pModel);
     setCurrentIndex(index);

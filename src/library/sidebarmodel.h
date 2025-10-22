@@ -108,6 +108,7 @@ class SidebarModel : public QAbstractItemModel {
     QTimer* const m_pressedUntilClickedTimer;
     QModelIndex m_pressedIndex;
     UserSettingsPointer m_pConfig;
+    bool m_bPendingChildRestore;
 
     void startPressedUntilClickedTimer(const QModelIndex& pressedIndex);
     void stopPressedUntilClickedTimer();

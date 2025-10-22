@@ -27,7 +27,8 @@ SidebarModel::SidebarModel(
         QObject* parent)
         : QAbstractItemModel(parent),
           m_iDefaultSelectedIndex(0),
-          m_pressedUntilClickedTimer(new QTimer(this)) {
+          m_pressedUntilClickedTimer(new QTimer(this)),
+          m_bPendingChildRestore(false) {
     m_pressedUntilClickedTimer->setSingleShot(true);
     connect(m_pressedUntilClickedTimer,
             &QTimer::timeout,
@@ -605,6 +606,19 @@ void SidebarModel::slotFeatureIsLoading(LibraryFeature* pFeature, bool selectFea
  */
 void SidebarModel::slotFeatureLoadingFinished(LibraryFeature* pFeature) {
     featureRenamed(pFeature);
+
+    // if we're waiting to restore a child selection after loading, retry now
+    if (m_bPendingChildRestore) {
+        m_bPendingChildRestore = false;
+        qDebug() << "SidebarModel::slotFeatureLoadingFinished: retrying child selection";
+        QModelIndex childIndex = restoreSavedSelection();
+        if (childIndex.isValid()) {
+            emit selectIndex(childIndex, false /* scrollTo */);
+            clicked(childIndex);
+            return;
+        }
+    }
+
     slotFeatureSelect(pFeature);
 }
 
@@ -706,59 +720,75 @@ QModelIndex SidebarModel::restoreSavedSelection() {
 
     // search for matching child by data using QAbstractItemModel::match()
     QAbstractItemModel* pChildModel = m_sFeatures[featureRow]->sidebarModel();
-    if (pChildModel && pChildModel->rowCount() > 0) {
-        // the model items' data type may be int (playlist, crate) or
-        // QString (Missing, Quick Links).
-        // get the model's data type, then create the appropriate QVariant.
-        // note: assumes the model uses only one data type!
-        const QVariant dataVar = pChildModel->data(
-                pChildModel->index(0, 0), TreeItemModel::kDataRole);
-        auto dataType = dataVar.metaType();
-        QVariant childData;
-        switch (dataType.id()) {
-        case QMetaType::QString: {
-            childData = QVariant::fromValue(savedChildName);
-            break;
-        }
-        case QMetaType::Int: {
-            bool convertedToInt = false;
-            int intValue = savedChildName.toInt(&convertedToInt);
-            if (convertedToInt) {
-                childData = QVariant::fromValue(intValue);
-            } else {
-                qWarning() << "SidebarModel::restoreSavedSelection: could not "
-                              "convert stored child data to int";
-            }
-            break;
-        }
-        default:
-            qWarning() << "SidebarModel::restoreSavedSelection: "
-                          "model uses unexpected data type"
-                       << dataType.name();
-            qWarning() << "select feature root";
-        }
+    if (!pChildModel) {
+        // no child model, return feature root
+        return index(featureRow, 0);
+    }
 
-        if (!childData.isValid()) {
-            return {};
+    // if child model is empty, activate the feature to trigger loading
+    // then return the feature root so it gets expanded
+    if (pChildModel->rowCount() == 0) {
+        qDebug() << "SidebarModel::restoreSavedSelection: child model empty, "
+                    "activating feature to trigger loading";
+        m_sFeatures[featureRow]->activate();
+        // set flag to retry child selection when loading finishes
+        m_bPendingChildRestore = true;
+        // return feature root - it will be expanded by selectIndex(),
+        // triggering the load, and child will be restored when loading finishes
+        return index(featureRow, 0);
+    }
+
+    // the model items' data type may be int (playlist, crate) or
+    // QString (Missing, Quick Links).
+    // get the model's data type, then create the appropriate QVariant.
+    // note: assumes the model uses only one data type!
+    const QVariant dataVar = pChildModel->data(
+            pChildModel->index(0, 0), TreeItemModel::kDataRole);
+    auto dataType = dataVar.metaType();
+    QVariant childData;
+    switch (dataType.id()) {
+    case QMetaType::QString: {
+        childData = QVariant::fromValue(savedChildName);
+        break;
+    }
+    case QMetaType::Int: {
+        bool convertedToInt = false;
+        int intValue = savedChildName.toInt(&convertedToInt);
+        if (convertedToInt) {
+            childData = QVariant::fromValue(intValue);
+        } else {
+            qWarning() << "SidebarModel::restoreSavedSelection: could not "
+                          "convert stored child data to int";
         }
+        break;
+    }
+    default:
+        qWarning() << "SidebarModel::restoreSavedSelection: "
+                      "model uses unexpected data type"
+                   << dataType.name();
+        qWarning() << "select feature root";
+    }
 
-        const QModelIndexList matches = pChildModel->match(
-                pChildModel->index(0, 0),
-                TreeItemModel::kDataRole,
-                childData,
-                1, // stop at first match
-                Qt::MatchExactly | Qt::MatchRecursive);
+    if (!childData.isValid()) {
+        return index(featureRow, 0);
+    }
 
-        if (!matches.isEmpty() && matches.first().isValid()) {
-            // translate child model index to sidebar model index
-            const QModelIndex childIndex = matches.first();
-            TreeItem* pTreeItem = static_cast<TreeItem*>(childIndex.internalPointer());
-            if (pTreeItem) {
-                return createIndex(childIndex.row(), childIndex.column(), pTreeItem);
-            }
+    const QModelIndexList matches = pChildModel->match(
+            pChildModel->index(0, 0),
+            TreeItemModel::kDataRole,
+            childData,
+            1, // stop at first match
+            Qt::MatchExactly | Qt::MatchRecursive);
+
+    if (!matches.isEmpty() && matches.first().isValid()) {
+        // translate child model index to sidebar model index
+        const QModelIndex childIndex = matches.first();
+        TreeItem* pTreeItem = static_cast<TreeItem*>(childIndex.internalPointer());
+        if (pTreeItem) {
+            return createIndex(childIndex.row(), childIndex.column(), pTreeItem);
         }
     }
 
-    // child not found, return feature root or invalid index if feature was not found.
+    // child not found, return feature root
     return index(featureRow, 0);
 }
