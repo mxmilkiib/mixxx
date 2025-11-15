@@ -2,6 +2,9 @@
 
 #include <memory>
 
+#ifdef __HID__
+#include "controllers/controllerhidreporttabsmanager.h"
+#endif
 #include "controllers/controllermappinginfo.h"
 #include "controllers/midi/midimessage.h"
 #include "controllers/ui_dlgprefcontrollerdlg.h"
@@ -34,6 +37,13 @@ class DlgPrefController : public DlgPreferencePage {
 
     QUrl helpUrl() const override;
     void keyPressEvent(QKeyEvent* pEvent) override;
+
+    Controller* controller() const {
+        return m_pController;
+    }
+
+    // Open the MIDI learning wizard for this controller
+    void showLearningWizard();
 
   public slots:
     /// Called when the preference dialog (not this page) is shown to the user.
@@ -75,7 +85,6 @@ class DlgPrefController : public DlgPreferencePage {
 
     // Input mappings
     void addInputMapping();
-    void showLearningWizard();
     void removeInputMappings();
     void clearAllInputMappings();
 
@@ -147,4 +156,8 @@ class DlgPrefController : public DlgPreferencePage {
     int m_settingsTabIndex;       // Index of the settings tab
     int m_screensTabIndex;        // Index of the screens tab
     QHash<QString, bool> m_settingsCollapsedStates;
+
+#ifdef __HID__
+    std::unique_ptr<ControllerHidReportTabsManager> m_hidReportTabsManager;
+#endif
 };

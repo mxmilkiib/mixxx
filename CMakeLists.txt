@@ -2806,6 +2806,13 @@ if(BUILD_TESTING)
 
   add_executable(mixxx-test ${src-mixxx-test})
 
+  if(HID)
+    target_sources(
+      mixxx-test
+      PRIVATE src/test/controller_hid_reportdescriptor_test.cpp
+    )
+  endif()
+
   if(QML)
     target_sources(
       mixxx-test
@@ -3522,6 +3529,10 @@ if(QT6)
   list(APPEND QT_EXTRA_COMPONENTS "ShaderTools")
   list(APPEND QT_EXTRA_COMPONENTS "SvgWidgets")
   list(APPEND QT_EXTRA_COMPONENTS "Core5Compat")
+  if(QT_VERSION VERSION_GREATER_EQUAL 6.10)
+    # from Qt 6.10 GuiPrivate required for QShader/rendergraph (rhi/qshader.h)
+    list(APPEND QT_EXTRA_COMPONENTS "GuiPrivate")
+  endif()
 else()
   find_package(QT 5.12 NAMES Qt5 COMPONENTS Core REQUIRED)
 endif()
@@ -4889,12 +4900,14 @@ if(HID)
   target_sources(
     mixxx-lib
     PRIVATE
+      src/controllers/controllerhidreporttabsmanager.cpp
       src/controllers/hid/hidcontroller.cpp
       src/controllers/hid/hidiothread.cpp
       src/controllers/hid/hidioglobaloutputreportfifo.cpp
       src/controllers/hid/hidiooutputreport.cpp
       src/controllers/hid/hiddevice.cpp
       src/controllers/hid/hidenumerator.cpp
+      src/controllers/hid/hidreportdescriptor.cpp
       src/controllers/hid/hidusagetables.cpp
       src/controllers/hid/legacyhidcontrollermapping.cpp
       src/controllers/hid/legacyhidcontrollermappingfilehandler.cpp
