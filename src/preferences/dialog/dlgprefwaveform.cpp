@@ -1,6 +1,5 @@
 #include "preferences/dialog/dlgprefwaveform.h"
 
-#include <QLocale>
 #include <QMetaEnum>
 
 #include "control/controlpushbutton.h"
@@ -770,7 +769,10 @@ void DlgPrefWaveform::calculateCachedWaveformDiskUsage() {
     size_t numBytes = analysisDao.getDiskUsageInBytes(dbConnection, AnalysisDao::TYPE_WAVEFORM) +
             analysisDao.getDiskUsageInBytes(dbConnection, AnalysisDao::TYPE_WAVESUMMARY);
 
-    QString sizeText = QLocale().formattedDataSize(numBytes);
+    // Display total cached waveform size in mebibytes with 2 decimals.
+    QString sizeMebibytes = QString::number(
+            numBytes / (1024.0 * 1024.0), 'f', 2);
+
     waveformDiskUsage->setText(
-            tr("Cached waveforms occupy %1 on disk.").arg(sizeText));
+            tr("Cached waveforms occupy %1 MiB on disk.").arg(sizeMebibytes));
 }
