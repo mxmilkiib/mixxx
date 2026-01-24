@@ -24,7 +24,9 @@ The last time this was updated was on 2026-01-24
 
 ## Todo
 - rebuild integrated branch with all feature branches
-- address PR #15516 redundant stacked functions feedback
+- address PR #15516 CHANGES_REQUESTED (redundant stacked functions)
+- address PR #15577 CHANGES_REQUESTED (controller wizard)
+- address PR #15460 CHANGES_REQUESTED (restore library selection)
 - PR #15574 merged (fx routing persistence fix)
 
 ## Branches
@@ -35,13 +37,13 @@ The last time this was updated was on 2026-01-24
   - local only, 2025-11-17, 2025-11-17
 - [ ] feature/2025.11nov.16-playback-position-control
   - https://github.com/mixxxdj/mixxx/pull/15617
-  - clean branch for upstream, 2025-11-16, 2025-11-16
+  - draft PR, 2025-11-16, 2025-11-16
 - [ ] feature/2025.11nov.16-catalogue-number-column
   - https://github.com/mixxxdj/mixxx/pull/15616
-  - clean branch for upstream, 2025-11-16, 2025-11-16
+  - draft PR, 2025-11-16, 2025-11-16
 - [ ] bugfix/2025.11nov.16-reloop-beatmix-mk2-naming
   - https://github.com/mixxxdj/mixxx/pull/15615
-  - clean branch for upstream, 2025-11-16, 2025-11-16
+  - draft PR, 2025-11-16, 2025-11-16
 - [ ] feature/2025.11nov.16-immediate-metadata-save
   - draft, 2025-11-16, 2025-11-16
 - [x] feature/2025.11nov.05-hide-unenabled-controllers
@@ -64,13 +66,13 @@ The last time this was updated was on 2026-01-24
   - used by: hotcue-labelling, hotcue-label-options
 - [x] feature/2025.10oct.21-stacked-overview-waveform
   - https://github.com/mixxxdj/mixxx/pull/15516
-  - merged to integration, 2025-10-21, 2025-10-21
+  - draft PR, CHANGES_REQUESTED, merged to integration, 2025-10-21, 2025-10-21
 - [x] feature/2025.10oct.21-replace-libmodplug-with-libopenmpt
   - https://github.com/mixxxdj/mixxx/pull/15519
-  - merged to integration, 2025-10-25, 2025-11-22
+  - draft PR, merged to integration, 2025-10-25, 2025-11-22
 - [x] feature/2025.10oct.20-hotcues-on-overview-waveform
   - https://github.com/mixxxdj/mixxx/pull/15514
-  - merged to integration, 2025-10-20, 2026-01-19
+  - draft PR, merged to integration, 2025-10-20, 2026-01-19
 - [x] feature/2025.10oct.17-library-column-hotcue-count
   - https://github.com/mixxxdj/mixxx/pull/15462
   - merged to integration, 2025-10-17, 2026-01-17
@@ -85,7 +87,7 @@ The last time this was updated was on 2026-01-24
   - merged to integration, 2025-10-24, 2025-10-24
 - [ ] feature/2025.05may.14-fivefourths
   - https://github.com/mixxxdj/mixxx/pull/14780
-  - active development, 2025-11-13, 2025-11-13
+  - draft PR, active development, 2025-11-13, 2025-11-13
 - [ ] draft/2025.10oct.21-tracker-module-stems
   - draft, 2025-11-13, 2025-11-13
 - [ ] draft/2025.10oct.16-waveform-height-control
