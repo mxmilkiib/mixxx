@@ -5,6 +5,8 @@
 #include <QModelIndex>
 #include <QVariant>
 
+#include "preferences/usersettings.h"
+
 class LibraryFeature;
 class QTimer;
 
@@ -22,6 +24,7 @@ class SidebarModel : public QAbstractItemModel {
     Q_ENUM(Roles);
 
     explicit SidebarModel(
+            UserSettingsPointer pConfig,
             QObject* parent = nullptr);
     ~SidebarModel() override = default;
 
@@ -29,6 +32,9 @@ class SidebarModel : public QAbstractItemModel {
     QModelIndex getDefaultSelection();
     void setDefaultSelection(unsigned int index);
     void activateDefaultSelection();
+    
+    void restoreLastSelection();
+    void scheduleSelectionSave(const QModelIndex& index);
 
     // Required for QAbstractItemModel
     QModelIndex index(int row, int column,
@@ -82,9 +88,11 @@ class SidebarModel : public QAbstractItemModel {
 
   signals:
     void selectIndex(const QModelIndex& index, bool scrollTo);
+    void saveScrollPosition();
 
   private slots:
     void slotPressedUntilClickedTimeout();
+    void performSave();
 
   protected:
     QList<LibraryFeature*> m_sFeatures;
@@ -93,10 +101,14 @@ class SidebarModel : public QAbstractItemModel {
     QModelIndex translateSourceIndex(const QModelIndex& parent);
     QModelIndex translateIndex(const QModelIndex& index, const QAbstractItemModel* model);
     void featureRenamed(LibraryFeature*);
+    void saveSelectionToConfig(const QModelIndex& index);
     unsigned int m_iDefaultSelectedIndex; /** Index of the item in the sidebar model to select at startup. */
 
+    UserSettingsPointer m_pConfig;
     QTimer* const m_pressedUntilClickedTimer;
+    QTimer* m_saveTimer;
     QModelIndex m_pressedIndex;
+    QModelIndex m_pendingSelection;
 
     void startPressedUntilClickedTimer(const QModelIndex& pressedIndex);
     void stopPressedUntilClickedTimer();
