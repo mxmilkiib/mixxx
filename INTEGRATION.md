@@ -54,7 +54,7 @@ This document tracks Milkii's personal Mixxx development setup for the creation 
 - 🔴 **Needs Attention (CHANGES_REQUESTED)**
   - [x] **feature/2025.11nov.04-controller-wizard-quick-access** - [#15577](https://github.com/mixxxdj/mixxx/pull/15577)
     - Issue: [#12262](https://github.com/mixxxdj/mixxx/issues/12262)
-    - Created: 2025-11-04, Last comment: none, Rebased: 2026-01-30, Updated: 2026-01-30
+    - Created: 2025-11-04, Last comment: none, Rebased: 2026-02-08, Updated: 2026-01-30
     - Next: Address ronso0 review feedback
     - Specific:
       - `devicesChanged` signal doesn't update menu after startup — try connecting to `ControllerManager::mappingApplied` instead (see #15524)
@@ -63,7 +63,7 @@ This document tracks Milkii's personal Mixxx development setup for the creation 
       - Review comments on `dlgprefcontrollers.cpp` and `wmainmenubar.cpp`
   - [x] **feature/2025.10oct.21-stacked-overview-waveform** - [#15516](https://github.com/mixxxdj/mixxx/pull/15516)
     - Issue: [#13265](https://github.com/mixxxdj/mixxx/issues/13265)
-    - Created: 2025-10-21, Last comment: 2025-10-21, Rebased: 2026-01-30, Updated: 2026-01-30
+    - Created: 2025-10-21, Last comment: 2025-10-21, Rebased: 2026-02-08, Updated: 2026-01-30
     - Next: Remove redundant HSV and LMH renderers (ronso0 feedback)
     - Specific:
       - Remove redundant Stacked HSV and Stacked LMH renderers — existing HSV/LMH already stack bands, nearly identical code
@@ -72,7 +72,7 @@ This document tracks Milkii's personal Mixxx development setup for the creation 
       - Keep only Stacked RGB which ronso0 said "almost LGTM"
   - [x] **feature/2025.10oct.20-restore-last-library-selection** - [#15460](https://github.com/mixxxdj/mixxx/pull/15460)
     - Issue: [#10125](https://github.com/mixxxdj/mixxx/issues/10125)
-    - Created: 2025-10-08, Last comment: 2025-11-14, Rebased: 2026-01-30, Updated: 2026-01-30
+    - Created: 2025-10-08, Last comment: 2025-11-14, Rebased: 2026-02-08, Updated: 2026-01-30
     - Next: Separate bugfix commits with explanations (ronso0 feedback)
     - Specific:
       - Separate minor bugfixes into individual commits with explanations of what was wrong
@@ -86,7 +86,7 @@ This document tracks Milkii's personal Mixxx development setup for the creation 
 - 🟡 **Open PRs (REVIEW_REQUIRED)**
   - [x] **feature/2025.11nov.05-hide-unenabled-controllers** - [#15580](https://github.com/mixxxdj/mixxx/pull/15580)
     - Issue: [#14275](https://github.com/mixxxdj/mixxx/issues/14275)
-    - Created: 2025-11-05, Last comment: none, Rebased: 2026-01-30, Updated: 2026-02-08
+    - Created: 2025-11-05, Last comment: none, Rebased: 2026-02-08, Updated: 2026-02-08
     - Next: Await review
     - Specific:
       - ~~Rename "unenabled" to "disabled" everywhere — config keys, function names, and UI text (ronso0)~~ done
@@ -94,19 +94,19 @@ This document tracks Milkii's personal Mixxx development setup for the creation 
       - ~~Apply consistent naming across all touched files~~ done
   - [x] **feature/2025.11nov.05-waveform-cache-size-format** - [#15578](https://github.com/mixxxdj/mixxx/pull/15578)
     - Issue: [#14874](https://github.com/mixxxdj/mixxx/issues/14874)
-    - Created: 2025-11-06, Last comment: 2025-11-05, Rebased: 2026-01-30, Updated: 2026-02-08
+    - Created: 2025-11-06, Last comment: 2025-11-05, Rebased: 2026-02-08, Updated: 2026-02-08
     - Next: Await review
     - Specific:
       - ~~Squash three commits into a single commit (Swiftb0y: "Would you mind squashing the three commits into a single one?")~~ done
   - [x] **bugfix/2025.11nov.04-reloop-shift-jog-seek** - [#15575](https://github.com/mixxxdj/mixxx/pull/15575)
     - Issue: [#12334](https://github.com/mixxxdj/mixxx/issues/12334)
-    - Created: 2025-11-04, Last comment: none, Rebased: 2026-01-30, Updated: 2026-02-08
+    - Created: 2025-11-04, Last comment: none, Rebased: 2026-02-08, Updated: 2026-02-08
     - Next: Await review
     - Specific:
       - ~~Use `engine.getValue(group, "track_loaded")` instead of current track check method (ronso0)~~ done
   - [x] **feature/2025.10oct.21-replace-libmodplug-with-libopenmpt** - [#15519](https://github.com/mixxxdj/mixxx/pull/15519)
     - Issue: [#9862](https://github.com/mixxxdj/mixxx/issues/9862)
-    - Created: 2025-10-25, Last comment: 2025-10-25, Rebased: 2026-01-30, Updated: 2026-01-30
+    - Created: 2025-10-25, Last comment: 2025-10-25, Rebased: 2026-02-08, Updated: 2026-01-30
     - Next: Address daschuer architecture feedback
     - Specific:
       - DSP in SoundSource is "foreign to Mixxx" — daschuer wants bit-perfect decode, move DSP to effect rack instead
@@ -116,7 +116,7 @@ This document tracks Milkii's personal Mixxx development setup for the creation 
       - Windows CI test failure (`screenWillSentRawDataIfConfigured` timeout) — may be flaky or platform-specific `QImage` behavior
   - [x] **feature/2025.10oct.20-hotcues-on-overview-waveform** - [#15514](https://github.com/mixxxdj/mixxx/pull/15514)
     - Issue: [#14994](https://github.com/mixxxdj/mixxx/issues/14994)
-    - Created: 2025-10-20, Last comment: 2026-01-19, Rebased: 2026-01-30, Updated: 2026-01-30
+    - Created: 2025-10-20, Last comment: 2026-01-19, Rebased: 2026-02-08, Updated: 2026-01-30
     - Next: Check recent comment, await review
     - Specific:
       - PR marked stale (Jan 19 2026) — needs activity to unstale
@@ -126,7 +126,7 @@ This document tracks Milkii's personal Mixxx development setup for the creation 
       - Review feedback from ronso0 on marker rendering approach
   - [x] **feature/2025.10oct.17-library-column-hotcue-count** - [#15462](https://github.com/mixxxdj/mixxx/pull/15462)
     - Issue: [#15461](https://github.com/mixxxdj/mixxx/issues/15461)
-    - Created: 2025-10-17, Last comment: 2026-01-17, Rebased: 2026-01-30, Updated: 2026-01-30
+    - Created: 2025-10-17, Last comment: 2026-01-17, Rebased: 2026-02-08, Updated: 2026-01-30
     - Next: Check recent comment, await review
     - Specific:
       - PR marked stale (Jan 17 2026) — needs activity to unstale
@@ -136,7 +136,7 @@ This document tracks Milkii's personal Mixxx development setup for the creation 
       - Schema change v39→v40 — will conflict with other schema changes
   - [ ] **feature/2025.11nov.17-deere-channel-mute-buttons** - [#15624](https://github.com/mixxxdj/mixxx/pull/15624)
     - Issue: [#15623](https://github.com/mixxxdj/mixxx/issues/15623)
-    - Created: 2025-11-17, Last comment: 2025-11-20, Rebased: 2026-01-30, Updated: 2026-01-30
+    - Created: 2025-11-17, Last comment: 2025-11-20, Rebased: 2026-02-08, Updated: 2026-01-30
     - Next: Merge to integration, consider broader approach
     - Specific:
       - ronso0 questions necessity — "Why is the Vol fader not sufficient?"
@@ -145,7 +145,7 @@ This document tracks Milkii's personal Mixxx development setup for the creation 
       - Needs stronger justification or pivot to the broader knob-with-kill approach
   - [ ] **feature/2025.11nov.16-playback-position-control** - [#15617](https://github.com/mixxxdj/mixxx/pull/15617)
     - Issue: [#14288](https://github.com/mixxxdj/mixxx/issues/14288)
-    - Created: 2025-11-16, Last comment: none, Rebased: 2026-01-30, Updated: 2026-01-30
+    - Created: 2025-11-16, Last comment: none, Rebased: 2026-02-08, Updated: 2026-01-30
     - Next: Merge to integration, await review
     - Specific:
       - No review comments yet
@@ -153,21 +153,21 @@ This document tracks Milkii's personal Mixxx development setup for the creation 
       - Clean PR, just needs reviewer attention
   - [ ] **feature/2025.11nov.16-catalogue-number-column** - [#15616](https://github.com/mixxxdj/mixxx/pull/15616)
     - Issue: [#12583](https://github.com/mixxxdj/mixxx/issues/12583)
-    - Created: 2025-11-16, Last comment: none, Rebased: 2026-01-30, Updated: 2026-01-30
+    - Created: 2025-11-16, Last comment: none, Rebased: 2026-02-08, Updated: 2026-01-30
     - Next: Merge to integration, await review
     - Specific:
       - No review comments yet
       - Schema migration revision 40 — will conflict with hotcue-count branch (also schema change)
       - Uses MusicBrainz Picard tag mapping conventions
   - [ ] **bugfix/2025.11nov.16-reloop-beatmix-mk2-naming** - [#15615](https://github.com/mixxxdj/mixxx/pull/15615)
-    - Created: 2025-11-16, Last comment: none, Rebased: 2026-01-30, Updated: 2026-01-30
+    - Created: 2025-11-16, Last comment: none, Rebased: 2026-02-08, Updated: 2026-01-30
     - Next: Merge to integration, await review
     - Specific:
       - No review comments yet
       - Simple file rename PR, related to #12422 (MK1 support discussion)
   - [ ] **feature/2025.05may.14-fivefourths** - [#14780](https://github.com/mixxxdj/mixxx/pull/14780)
     - Issue: [#14686](https://github.com/mixxxdj/mixxx/issues/14686)
-    - Created: 2025-05-14, Last comment: 2025-05-16, Rebased: 2026-01-30, Updated: 2026-01-30
+    - Created: 2025-05-14, Last comment: 2025-05-16, Rebased: 2026-02-08, Updated: 2026-01-30
     - Next: Fix tests, update manual, merge to integration
     - Specific:
       - Fix failing tests (Swiftb0y: "Next step would be to actually get the tests to pass")
@@ -176,20 +176,20 @@ This document tracks Milkii's personal Mixxx development setup for the creation 
       - Swiftb0y confirmed no performance implications from new COs
 - 🔵 **Local Only (No PR)**
   - [x] **feature/2025.10oct.14-waveform-hotcue-label-options**
-    - Created: 2025-10-14, Rebased: 2026-01-30, Updated: 2026-01-30
+    - Created: 2025-10-14, Rebased: 2026-02-08, Updated: 2026-01-30
     - Next: Maintain for personal use
   - [x] **feature/2025.10oct.08-utf8-string-controls**
     - Dependency for: hotcue-labelling, hotcue-label-options
-    - Created: 2025-10-08, Rebased: 2026-01-30, Updated: 2026-01-30
+    - Created: 2025-10-08, Rebased: 2026-02-08, Updated: 2026-01-30
     - Next: Maintain for personal use (not for upstream)
   - [x] **feature/2025.09sep.25-hotcue-labelling**
-    - Created: 2025-09-25, Rebased: 2026-01-30, Updated: 2026-01-30
+    - Created: 2025-09-25, Rebased: 2026-02-08, Updated: 2026-01-30
     - Next: Maintain for personal use
   - [x] **feature/2025.06jun.08-deere-deck-bg-colour**
-    - Created: 2025-06-08, Rebased: 2026-01-30, Updated: 2026-01-30
+    - Created: 2025-06-08, Rebased: 2026-02-08, Updated: 2026-01-30
     - Next: Maintain for personal use
   - [ ] **feature/2025.11nov.05-deere-waveform-zoom-deck-colors**
-    - Created: 2025-11-05, Rebased: 2026-01-30, Updated: 2026-01-30
+    - Created: 2025-11-05, Rebased: 2026-02-08, Updated: 2026-01-30
     - Next: Merge to integration, decide if PR-worthy
     - Specific:
       - Evaluate if the Deere-specific waveform zoom deck color change is worth a PR or remains personal use
@@ -203,7 +203,7 @@ This document tracks Milkii's personal Mixxx development setup for the creation 
       - Not rebased — needs rebase before any work
   - [ ] **bugfix/qt6-guiprivate-missing-component**
     - Qt6 build fix
-    - Created: unknown, Rebased: 2026-01-30, Updated: 2026-01-30
+    - Created: unknown, Rebased: 2026-02-08, Updated: 2026-01-30
     - Next: Test if still needed, submit PR or delete
     - Specific:
       - Build with Qt6 to verify if `Qt6::GuiPrivate` component is still missing
@@ -212,7 +212,7 @@ This document tracks Milkii's personal Mixxx development setup for the creation 
 - ✅ **Merged to Upstream**
   - [x] ~~**bugfix/2025.11nov.04-fx-routing-persistence**~~ - [#15574](https://github.com/mixxxdj/mixxx/pull/15574)
     - Issue: [#14917](https://github.com/mixxxdj/mixxx/issues/14917)
-    - Created: 2025-11-04, Last comment: 2025-11-14, Rebased: 2026-01-30, Updated: 2026-01-30
+    - Created: 2025-11-04, Last comment: 2025-11-14, Rebased: 2026-02-08, Updated: 2026-01-30
     - Next: Delete local branch
     - Specific:
       - Run `git worktree remove` if worktree exists
