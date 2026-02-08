@@ -4,7 +4,7 @@ INTEGRATION.md
 
 # Mixxx Integration Branch Configuration
 
-> Last updated: 2026-02-06
+> Last updated: 2026-02-08
 > URL: https://gist.github.com/mxmilkiib/5fb35c401736efed47ad7d78268c80b6
 > [RFC 2119](https://datatracker.ietf.org/doc/html/rfc2119)
 
@@ -37,6 +37,7 @@ This document tracks Milkii's personal Mixxx development setup for the creation 
 - PRs SHOULD be submitted to `mxmilkiib/mixxx`, and Milkii will create a further PR from there to `mixxxdj/mixxx`.
 - Once the PR is accepted into `mixxxdj/mixxx`, the branch MUST be removed from integration tracking.
 - If this file is updated, then it MUST be sent back to Gist by using `gh`.
+- Commit messages must not be to verbose, and should be concise and descriptive.
 
 ## Directory Structure
 | Path               | Purpose                                                 |
@@ -85,24 +86,24 @@ This document tracks Milkii's personal Mixxx development setup for the creation 
 - 🟡 **Open PRs (REVIEW_REQUIRED)**
   - [x] **feature/2025.11nov.05-hide-unenabled-controllers** - [#15580](https://github.com/mixxxdj/mixxx/pull/15580)
     - Issue: [#14275](https://github.com/mixxxdj/mixxx/issues/14275)
-    - Created: 2025-11-05, Last comment: none, Rebased: 2026-01-30, Updated: 2026-01-30
-    - Next: Address ronso0 review feedback
+    - Created: 2025-11-05, Last comment: none, Rebased: 2026-01-30, Updated: 2026-02-08
+    - Next: Await review
     - Specific:
-      - Rename "unenabled" to "disabled" everywhere — config keys, function names, and UI text (ronso0)
-      - Remove unnecessary null check on `Controller*` — `DlgPrefController` ctor already asserts validity (ronso0)
-      - Apply consistent naming across all touched files
+      - ~~Rename "unenabled" to "disabled" everywhere — config keys, function names, and UI text (ronso0)~~ done
+      - ~~Remove unnecessary null check on `Controller*` — `DlgPrefController` ctor already asserts validity (ronso0)~~ done
+      - ~~Apply consistent naming across all touched files~~ done
   - [x] **feature/2025.11nov.05-waveform-cache-size-format** - [#15578](https://github.com/mixxxdj/mixxx/pull/15578)
     - Issue: [#14874](https://github.com/mixxxdj/mixxx/issues/14874)
-    - Created: 2025-11-06, Last comment: 2025-11-05, Rebased: 2026-01-30, Updated: 2026-01-30
-    - Next: Squash commits per Swiftb0y request
+    - Created: 2025-11-06, Last comment: 2025-11-05, Rebased: 2026-01-30, Updated: 2026-02-08
+    - Next: Await review
     - Specific:
-      - Squash three commits into a single commit (Swiftb0y: "Would you mind squashing the three commits into a single one?")
+      - ~~Squash three commits into a single commit (Swiftb0y: "Would you mind squashing the three commits into a single one?")~~ done
   - [x] **bugfix/2025.11nov.04-reloop-shift-jog-seek** - [#15575](https://github.com/mixxxdj/mixxx/pull/15575)
     - Issue: [#12334](https://github.com/mixxxdj/mixxx/issues/12334)
-    - Created: 2025-11-04, Last comment: none, Rebased: 2026-01-30, Updated: 2026-01-30
-    - Next: Address ronso0 review feedback
+    - Created: 2025-11-04, Last comment: none, Rebased: 2026-01-30, Updated: 2026-02-08
+    - Next: Await review
     - Specific:
-      - Use `engine.getValue(group, "track_loaded")` instead of current track check method (ronso0)
+      - ~~Use `engine.getValue(group, "track_loaded")` instead of current track check method (ronso0)~~ done
   - [x] **feature/2025.10oct.21-replace-libmodplug-with-libopenmpt** - [#15519](https://github.com/mixxxdj/mixxx/pull/15519)
     - Issue: [#9862](https://github.com/mixxxdj/mixxx/issues/9862)
     - Created: 2025-10-25, Last comment: 2025-10-25, Rebased: 2026-01-30, Updated: 2026-01-30
