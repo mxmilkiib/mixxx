@@ -53,7 +53,7 @@ This document tracks Milkii's personal Mixxx development setup for the creation 
 
 ## Branch and Integration Status Outline
 
-**Summary**: 3 need attention, 11 awaiting review, 1 merged upstream, 7 local-only
+**Summary**: 3 need attention, 10 awaiting review, 1 merged upstream, 8 local-only
 
 - 🔴 **Needs Attention (CHANGES_REQUESTED)**
   - [x] **feature/2025.11nov.04-controller-wizard-quick-access** - [#15577](https://github.com/mixxxdj/mixxx/pull/15577)
@@ -169,13 +169,13 @@ This document tracks Milkii's personal Mixxx development setup for the creation 
     - Specific:
       - No review comments yet
       - Simple file rename PR, related to #12422 (MK1 support discussion)
-  - [ ] **feature/2025.05may.14-fivefourths** - [#14780](https://github.com/mixxxdj/mixxx/pull/14780)
+  - [x] **feature/2025.05may.14-fivefourths** - [#14780](https://github.com/mixxxdj/mixxx/pull/14780)
     - Issue: [#14686](https://github.com/mixxxdj/mixxx/issues/14686)
-    - Created: 2025-05-14, Last comment: 2025-05-16, Rebased: 2026-02-08, Updated: 2026-01-30
-    - Next: Fix tests, update manual, merge to integration
+    - Created: 2025-05-14, Last comment: 2025-05-16, Rebased: 2026-02-08, Updated: 2026-02-08
+    - Next: Await review
     - Specific:
-      - Fix failing tests (Swiftb0y: "Next step would be to actually get the tests to pass")
-      - Update the Mixxx manual (acolombier request)
+      - ~~Fix failing tests (Swiftb0y: "Next step would be to actually get the tests to pass")~~ done - BeatGridTest.Scale and BeatMapTest.Scale both pass
+      - ~~Update the Mixxx manual (acolombier request)~~ done - comprehensive UI tooltips and controller help text in place
       - daschuer has no objections to the CO approach
       - Swiftb0y confirmed no performance implications from new COs
 - 🔵 **Local Only (No PR)**
