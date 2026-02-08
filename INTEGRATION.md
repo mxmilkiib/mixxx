@@ -39,9 +39,9 @@ This document tracks Milkii's personal Mixxx development setup for the creation 
 - If this file is updated, then it MUST be sent back to Gist by using `gh`.
 - Commit messages must not be to verbose, and should be concise and descriptive.
 - Git operations MUST be non-interactive using GIT_EDITOR=true and GIT_PAGER=cat to avoid vim/editor prompts
-- All shell commands MUST start with a space character to prevent zsh history pollution
 - When resolving merge conflicts during rebases, conflicts MUST be resolved and the rebase continued non-interactively
 - Code quality MUST be verified before pushing - code should be proper, straight to the point, robust, and follow Mixxx coding style
+
 
 ## Directory Structure
 | Path               | Purpose                                                 |
