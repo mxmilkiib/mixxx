@@ -38,7 +38,7 @@ SidebarModel::SidebarModel(UserSettingsPointer pConfig, QObject* parent)
             &QTimer::timeout,
             this,
             &SidebarModel::slotPressedUntilClickedTimeout);
-    
+
     m_saveTimer->setSingleShot(true);
     connect(m_saveTimer,
             &QTimer::timeout,
@@ -715,7 +715,7 @@ void SidebarModel::restoreLastSelection() {
     }
 
     QModelIndex targetIndex = index(featureIndex, 0);
-    
+
     // If we have child data, try to find the matching child
     if (savedChildData.isValid() && pTargetFeature->sidebarModel()) {
         QAbstractItemModel* pChildModel = pTargetFeature->sidebarModel();
@@ -725,13 +725,13 @@ void SidebarModel::restoreLastSelection() {
                 savedChildData,
                 1,
                 Qt::MatchExactly);
-        
+
         VERIFY_OR_DEBUG_ASSERT(!matches.isEmpty() && matches.first().isValid()) {
             // Child not found, select feature root
             emit selectIndex(targetIndex, true);
             return;
         }
-        
+
         // Translate child index to sidebar index
         QModelIndex childIndex = matches.first();
         TreeItem* pTreeItem = static_cast<TreeItem*>(childIndex.internalPointer());

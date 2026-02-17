@@ -100,7 +100,7 @@ class SidebarModel : public QAbstractItemModel {
 
     QTimer* const m_pressedUntilClickedTimer;
     QModelIndex m_pressedIndex;
-    
+
     UserSettingsPointer m_pConfig;
     QTimer* const m_saveTimer;
     QPersistentModelIndex m_pendingSelection;
