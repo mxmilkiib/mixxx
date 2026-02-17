@@ -84,6 +84,13 @@ Select from different types of displays for the waveform, which differ primarily
          </property>
         </widget>
        </item>
+       <item>
+        <widget class="QCheckBox" name="monoSignalCheckBox">
+         <property name="text">
+          <string>Mono signal</string>
+         </property>
+        </widget>
+       </item>
       </layout>
      </item>
 
@@ -888,6 +895,7 @@ Select from different types of displays for the waveform overview, which differ 
   <tabstop>useAccelerationCheckBox</tabstop>
   <tabstop>splitLeftRightCheckBox</tabstop>
   <tabstop>highDetailCheckBox</tabstop>
+  <tabstop>monoSignalCheckBox</tabstop>
   <tabstop>frameRateSlider</tabstop>
   <tabstop>frameRateSpinBox</tabstop>
   <tabstop>endOfTrackWarningTimeSlider</tabstop>

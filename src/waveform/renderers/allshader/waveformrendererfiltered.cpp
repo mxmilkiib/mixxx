@@ -86,6 +86,7 @@ bool WaveformRendererFiltered::preprocessInner() {
 
     const float breadth = static_cast<float>(m_waveformRenderer->getBreadth());
     const float halfBreadth = breadth / 2.0f;
+    const bool monoSignal = m_options & ::WaveformRendererSignalBase::Option::MonoSignal;
 
     const float heightFactor = allGain * halfBreadth / m_maxValue;
 
@@ -156,18 +157,44 @@ bool WaveformRendererFiltered::preprocessInner() {
         // 3 bands, 2 channels
         float max[3][2]{};
         uchar u8max[3][2]{};
-        for (int chn = 0; chn < 2; chn++) {
-            for (int i = visualIndexStart + chn; i < visualIndexStop + chn; i += 2) {
-                const WaveformData& waveformData = data[i];
-
-                u8max[0][chn] = math_max(u8max[0][chn], waveformData.filtered.low);
-                u8max[1][chn] = math_max(u8max[1][chn], waveformData.filtered.mid);
-                u8max[2][chn] = math_max(u8max[2][chn], waveformData.filtered.high);
+        
+        if (monoSignal) {
+            // Mono signal: sum L+R channels
+            for (int i = visualIndexStart; i < visualIndexStop; i += 2) {
+                const WaveformData& waveformDataL = data[i];
+                const WaveformData& waveformDataR = data[i + 1];
+                
+                u8max[0][0] = math_max(u8max[0][0],
+                        static_cast<uchar>(std::min(255,
+                        static_cast<int>(waveformDataL.filtered.low) +
+                        static_cast<int>(waveformDataR.filtered.low))));
+                u8max[1][0] = math_max(u8max[1][0],
+                        static_cast<uchar>(std::min(255,
+                        static_cast<int>(waveformDataL.filtered.mid) +
+                        static_cast<int>(waveformDataR.filtered.mid))));
+                u8max[2][0] = math_max(u8max[2][0],
+                        static_cast<uchar>(std::min(255,
+                        static_cast<int>(waveformDataL.filtered.high) +
+                        static_cast<int>(waveformDataR.filtered.high))));
             }
             // Cast to float
-            max[0][chn] = static_cast<float>(u8max[0][chn]);
-            max[1][chn] = static_cast<float>(u8max[1][chn]);
-            max[2][chn] = static_cast<float>(u8max[2][chn]);
+            max[0][0] = static_cast<float>(u8max[0][0]);
+            max[1][0] = static_cast<float>(u8max[1][0]);
+            max[2][0] = static_cast<float>(u8max[2][0]);
+        } else {
+            for (int chn = 0; chn < 2; chn++) {
+                for (int i = visualIndexStart + chn; i < visualIndexStop + chn; i += 2) {
+                    const WaveformData& waveformData = data[i];
+
+                    u8max[0][chn] = math_max(u8max[0][chn], waveformData.filtered.low);
+                    u8max[1][chn] = math_max(u8max[1][chn], waveformData.filtered.mid);
+                    u8max[2][chn] = math_max(u8max[2][chn], waveformData.filtered.high);
+                }
+                // Cast to float
+                max[0][chn] = static_cast<float>(u8max[0][chn]);
+                max[1][chn] = static_cast<float>(u8max[1][chn]);
+                max[2][chn] = static_cast<float>(u8max[2][chn]);
+            }
         }
 
         // TODO: this can be optimized by using one geometrynode per band
@@ -178,12 +205,21 @@ bool WaveformRendererFiltered::preprocessInner() {
             max[bandIndex][0] *= bandGain[bandIndex];
             max[bandIndex][1] *= bandGain[bandIndex];
 
-            vertexUpdater[bandIndex].addRectangle(
-                    {fpos - halfPixelSize,
-                            halfBreadth - heightFactor * max[bandIndex][0]},
-                    {fpos + halfPixelSize,
-                            halfBreadth + heightFactor * max[bandIndex][1]},
-                    {rgb[bandIndex]});
+            if (monoSignal) {
+                // Mono mode: render from bottom to top
+                vertexUpdater[bandIndex].addRectangle(
+                        {fpos - halfPixelSize, breadth},
+                        {fpos + halfPixelSize,
+                                breadth - heightFactor * max[bandIndex][0]},
+                        {rgb[bandIndex]});
+            } else {
+                vertexUpdater[bandIndex].addRectangle(
+                        {fpos - halfPixelSize,
+                                halfBreadth - heightFactor * max[bandIndex][0]},
+                        {fpos + halfPixelSize,
+                                halfBreadth + heightFactor * max[bandIndex][1]},
+                        {rgb[bandIndex]});
+            }
         }
 
         xVisualFrame += visualIncrementPerPixel;

@@ -18,7 +18,8 @@ class WaveformRendererSignalBase : public QObject, public WaveformRendererAbstra
         None = 0b0,
         SplitStereoSignal = 0b1,
         HighDetail = 0b10,
-        AllOptionsCombined = SplitStereoSignal | HighDetail,
+        MonoSignal = 0b100,
+        AllOptionsCombined = SplitStereoSignal | HighDetail | MonoSignal,
     };
     Q_DECLARE_FLAGS(Options, Option)
 

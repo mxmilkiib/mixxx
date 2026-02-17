@@ -87,6 +87,7 @@ bool WaveformRendererHSV::preprocessInner() {
     float h = m_signalColor_h;
     const float breadth = static_cast<float>(m_waveformRenderer->getBreadth());
     const float halfBreadth = breadth / 2.0f;
+    const bool monoSignal = m_options & ::WaveformRendererSignalBase::Option::MonoSignal;
 
     const float heightFactor = allGain * halfBreadth / m_maxValue;
 
@@ -130,36 +131,72 @@ bool WaveformRendererHSV::preprocessInner() {
         float maxAll[2]{};
         float eqGain[2] = {1.0f, 1.0f};
 
-        for (int chn = 0; chn < 2; chn++) {
-            // Find the max values for low, mid, high and all in the waveform data
+        if (monoSignal) {
+            // Mono signal: sum L+R channels
             float maxLowU = 0.0f;
             float maxMidU = 0.0f;
             float maxHighU = 0.0f;
             float maxAllU = 0.0f;
-            // data is interleaved left / right
-            for (int i = visualIndexStart + chn; i < visualIndexStop + chn; i += 2) {
-                const WaveformData& waveformData = data[i];
-
+            
+            for (int i = visualIndexStart; i < visualIndexStop; i += 2) {
+                const WaveformData& waveformDataL = data[i];
+                const WaveformData& waveformDataR = data[i + 1];
+                
                 maxLowU = math_max(maxLowU,
-                        static_cast<float>(
-                                waveformData.filtered.low));
+                        static_cast<float>(waveformDataL.filtered.low) +
+                        static_cast<float>(waveformDataR.filtered.low));
                 maxMidU = math_max(maxMidU,
-                        static_cast<float>(
-                                waveformData.filtered.mid));
+                        static_cast<float>(waveformDataL.filtered.mid) +
+                        static_cast<float>(waveformDataR.filtered.mid));
                 maxHighU = math_max(maxHighU,
-                        static_cast<float>(
-                                waveformData.filtered.high));
-                maxAllU = math_max(maxAllU, static_cast<float>(waveformData.filtered.all));
+                        static_cast<float>(waveformDataL.filtered.high) +
+                        static_cast<float>(waveformDataR.filtered.high));
+                maxAllU = math_max(maxAllU,
+                        static_cast<float>(waveformDataL.filtered.all) +
+                        static_cast<float>(waveformDataR.filtered.all));
             }
-
-            maxLow[chn] = maxLowU * lowGain;
-            maxMid[chn] = maxMidU * midGain;
-            maxHigh[chn] = maxHighU * highGain;
-            maxAll[chn] = maxAllU;
-
+            
+            maxLow[0] = maxLowU * lowGain;
+            maxMid[0] = maxMidU * midGain;
+            maxHigh[0] = maxHighU * highGain;
+            maxAll[0] = maxAllU;
+            
             float allUnscaled = maxLowU + maxMidU + maxHighU;
             if (allUnscaled > 0.0f) {
-                eqGain[chn] = (maxLow[chn] + maxMid[chn] + maxHigh[chn]) / allUnscaled;
+                eqGain[0] = (maxLow[0] + maxMid[0] + maxHigh[0]) / allUnscaled;
+            }
+        } else {
+            for (int chn = 0; chn < 2; chn++) {
+                // Find the max values for low, mid, high and all in the waveform data
+                float maxLowU = 0.0f;
+                float maxMidU = 0.0f;
+                float maxHighU = 0.0f;
+                float maxAllU = 0.0f;
+                // data is interleaved left / right
+                for (int i = visualIndexStart + chn; i < visualIndexStop + chn; i += 2) {
+                    const WaveformData& waveformData = data[i];
+
+                    maxLowU = math_max(maxLowU,
+                            static_cast<float>(
+                                    waveformData.filtered.low));
+                    maxMidU = math_max(maxMidU,
+                            static_cast<float>(
+                                    waveformData.filtered.mid));
+                    maxHighU = math_max(maxHighU,
+                            static_cast<float>(
+                                    waveformData.filtered.high));
+                    maxAllU = math_max(maxAllU, static_cast<float>(waveformData.filtered.all));
+                }
+
+                maxLow[chn] = maxLowU * lowGain;
+                maxMid[chn] = maxMidU * midGain;
+                maxHigh[chn] = maxHighU * highGain;
+                maxAll[chn] = maxAllU;
+
+                float allUnscaled = maxLowU + maxMidU + maxHighU;
+                if (allUnscaled > 0.0f) {
+                    eqGain[chn] = (maxLow[chn] + maxMid[chn] + maxHigh[chn]) / allUnscaled;
+                }
             }
         }
 
@@ -187,14 +224,24 @@ bool WaveformRendererHSV::preprocessInner() {
         color.setHsvF(h, 1.0f - hi, 1.0f - lo);
 
         // Lines are thin rectangles
-        // maxAll[0] is for left channel, maxAll[1] is for right channel
-        vertexUpdater.addRectangle({fpos - halfPixelSize,
-                                           halfBreadth - heightFactor * eqGain[0] * maxAll[0]},
-                {fpos + halfPixelSize,
-                        halfBreadth + heightFactor * eqGain[1] * maxAll[1]},
-                {static_cast<float>(color.redF()),
-                        static_cast<float>(color.greenF()),
-                        static_cast<float>(color.blueF())});
+        if (monoSignal) {
+            // Mono mode: render from bottom to top
+            vertexUpdater.addRectangle({fpos - halfPixelSize, breadth},
+                    {fpos + halfPixelSize,
+                            breadth - heightFactor * eqGain[0] * maxAll[0]},
+                    {static_cast<float>(color.redF()),
+                            static_cast<float>(color.greenF()),
+                            static_cast<float>(color.blueF())});
+        } else {
+            // maxAll[0] is for left channel, maxAll[1] is for right channel
+            vertexUpdater.addRectangle({fpos - halfPixelSize,
+                                               halfBreadth - heightFactor * eqGain[0] * maxAll[0]},
+                    {fpos + halfPixelSize,
+                            halfBreadth + heightFactor * eqGain[1] * maxAll[1]},
+                    {static_cast<float>(color.redF()),
+                            static_cast<float>(color.greenF()),
+                            static_cast<float>(color.blueF())});
+        }
 
         xVisualFrame += visualIncrementPerPixel;
     }

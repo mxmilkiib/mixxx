@@ -166,6 +166,10 @@ DlgPrefWaveform::DlgPrefWaveform(
             &QCheckBox::clicked,
             this,
             &DlgPrefWaveform::slotSetWaveformOptionHighDetail);
+    connect(monoSignalCheckBox,
+            &QCheckBox::clicked,
+            this,
+            &DlgPrefWaveform::slotSetWaveformOptionMonoSignal);
     connect(defaultZoomComboBox,
             QOverload<int>::of(&QComboBox::currentIndexChanged),
             this,
@@ -579,6 +583,7 @@ void DlgPrefWaveform::updateWaveformTypeOptions(bool useWaveform,
         WaveformRendererSignalBase::Options currentOptions) {
     splitLeftRightCheckBox->blockSignals(true);
     highDetailCheckBox->blockSignals(true);
+    monoSignalCheckBox->blockSignals(true);
 
 #ifdef MIXXX_USE_QOPENGL
     WaveformWidgetFactory* factory = WaveformWidgetFactory::instance();
@@ -597,18 +602,25 @@ void DlgPrefWaveform::updateWaveformTypeOptions(bool useWaveform,
     highDetailCheckBox->setEnabled(useWaveform &&
             (supportedOptions &
                     allshader::WaveformRendererSignalBase::Option::HighDetail));
+    monoSignalCheckBox->setEnabled(useWaveform &&
+            (supportedOptions &
+                    allshader::WaveformRendererSignalBase::Option::MonoSignal));
     splitLeftRightCheckBox->setChecked(splitLeftRightCheckBox->isEnabled() &&
             (currentOptions &
                     allshader::WaveformRendererSignalBase::Option::SplitStereoSignal));
     highDetailCheckBox->setChecked(highDetailCheckBox->isEnabled() &&
             (currentOptions & allshader::WaveformRendererSignalBase::Option::HighDetail));
+    monoSignalCheckBox->setChecked(monoSignalCheckBox->isEnabled() &&
+            (currentOptions & allshader::WaveformRendererSignalBase::Option::MonoSignal));
 #else
     splitLeftRightCheckBox->setVisible(false);
     highDetailCheckBox->setVisible(false);
+    monoSignalCheckBox->setVisible(false);
 #endif
 
     splitLeftRightCheckBox->blockSignals(false);
     highDetailCheckBox->blockSignals(false);
+    monoSignalCheckBox->blockSignals(false);
 }
 
 void DlgPrefWaveform::updateEnableUntilMark() {

@@ -101,6 +101,7 @@ bool WaveformRendererRGB::preprocessInner() {
     const float heightFactorAbs = allGain * halfBreadth / m_maxValue;
     const float heightFactor[2] = {-heightFactorAbs, heightFactorAbs};
     const bool splitLeftRight = m_options & ::WaveformRendererSignalBase::Option::SplitStereoSignal;
+    const bool monoSignal = m_options & ::WaveformRendererSignalBase::Option::MonoSignal;
 
     const float low_r = static_cast<float>(m_rgbLowColor_r);
     const float mid_r = static_cast<float>(m_rgbMidColor_r);
@@ -154,19 +155,45 @@ bool WaveformRendererRGB::preprocessInner() {
         uchar u8maxHigh[2]{};
         // - Per channel
         uchar u8maxAllChn[2]{};
-        for (int chn = 0; chn < 2; chn++) {
-            // In case we don't render individual color per channel, we use only
-            // the first field of the arrays to perform signal max
-            int signalChn = splitLeftRight ? chn : 0;
-            // data is interleaved left / right
-            for (int i = visualIndexStart + chn; i < visualIndexStop + chn; i += 2) {
-                const WaveformData& waveformData = data[i];
+        
+        if (monoSignal) {
+            // Mono signal: sum L+R channels
+            for (int i = visualIndexStart; i < visualIndexStop; i += 2) {
+                const WaveformData& waveformDataL = data[i];
+                const WaveformData& waveformDataR = data[i + 1];
+                
+                u8maxLow[0] = math_max(u8maxLow[0], 
+                        static_cast<uchar>(std::min(255, 
+                        static_cast<int>(waveformDataL.filtered.low) + 
+                        static_cast<int>(waveformDataR.filtered.low))));
+                u8maxMid[0] = math_max(u8maxMid[0], 
+                        static_cast<uchar>(std::min(255, 
+                        static_cast<int>(waveformDataL.filtered.mid) + 
+                        static_cast<int>(waveformDataR.filtered.mid))));
+                u8maxHigh[0] = math_max(u8maxHigh[0], 
+                        static_cast<uchar>(std::min(255, 
+                        static_cast<int>(waveformDataL.filtered.high) + 
+                        static_cast<int>(waveformDataR.filtered.high))));
+                u8maxAllChn[0] = math_max(u8maxAllChn[0], 
+                        static_cast<uchar>(std::min(255, 
+                        static_cast<int>(waveformDataL.filtered.all) + 
+                        static_cast<int>(waveformDataR.filtered.all))));
+            }
+        } else {
+            for (int chn = 0; chn < 2; chn++) {
+                // In case we don't render individual color per channel, we use only
+                // the first field of the arrays to perform signal max
+                int signalChn = splitLeftRight ? chn : 0;
+                // data is interleaved left / right
+                for (int i = visualIndexStart + chn; i < visualIndexStop + chn; i += 2) {
+                    const WaveformData& waveformData = data[i];
 
-                u8maxLow[signalChn] = math_max(u8maxLow[signalChn], waveformData.filtered.low);
-                u8maxMid[signalChn] = math_max(u8maxMid[signalChn], waveformData.filtered.mid);
-                u8maxHigh[signalChn] = math_max(u8maxHigh[signalChn], waveformData.filtered.high);
-                u8maxAllChn[signalChn] = math_max(
-                        u8maxAllChn[signalChn], waveformData.filtered.all);
+                    u8maxLow[signalChn] = math_max(u8maxLow[signalChn], waveformData.filtered.low);
+                    u8maxMid[signalChn] = math_max(u8maxMid[signalChn], waveformData.filtered.mid);
+                    u8maxHigh[signalChn] = math_max(u8maxHigh[signalChn], waveformData.filtered.high);
+                    u8maxAllChn[signalChn] = math_max(
+                            u8maxAllChn[signalChn], waveformData.filtered.all);
+                }
             }
         }
         float maxAllChn[2]{static_cast<float>(u8maxAllChn[0]), static_cast<float>(u8maxAllChn[1])};
@@ -214,7 +241,14 @@ bool WaveformRendererRGB::preprocessInner() {
             }
 
             // Lines are thin rectangles
-            if (!splitLeftRight) {
+            if (monoSignal) {
+                // Mono mode: render from bottom to top (similar to overview mono mode)
+                vertexUpdater.addRectangle(
+                        {fpos - halfPixelSize, breadth},
+                        {fpos + halfPixelSize,
+                                breadth - heightFactorAbs * eqGain * maxAllChn[chn]},
+                        {red, green, blue});
+            } else if (!splitLeftRight) {
                 vertexUpdater.addRectangle(
                         {fpos - halfPixelSize,
                                 halfBreadth -
