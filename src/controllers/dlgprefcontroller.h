@@ -49,7 +49,6 @@ class DlgPrefController : public DlgPreferencePage {
     // Open the MIDI learning wizard for this controller
     // suppressPrefsDialogOnClose: if true, don't show preferences dialog when wizard closes
     void showLearningWizard(bool suppressPrefsDialogOnClose = false);
-
   public slots:
     /// Called when the preference dialog (not this page) is shown to the user.
     void slotUpdate() override;
