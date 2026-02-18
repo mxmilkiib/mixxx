@@ -8,6 +8,7 @@
 #include "library/dao/playlistdao.h"
 #include "library/trackmodel.h" // Can't forward declare enums
 #include "preferences/usersettings.h"
+#include "track/trackid.h"
 #include "util/duration.h"
 #include "util/parented_ptr.h"
 #include "widget/wlibrarytableview.h"
@@ -66,6 +67,7 @@ class WTrackTableView : public WLibraryTableView {
     void addToAutoDJTop();
     void addToAutoDJReplace();
     void selectTrack(const TrackId&);
+    void scheduleRestoreLastSelectedTrack();
 
     void removeSelectedTracks();
     void cutSelectedTracks();
@@ -216,4 +218,7 @@ class WTrackTableView : public WLibraryTableView {
     ControlProxy* m_pSortOrder;
 
     int m_dropRow;
+
+    void saveLastSelectedTrackId(const TrackId& trackId);
+    TrackId m_pendingRestoreTrackId;
 };

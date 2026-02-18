@@ -39,6 +39,10 @@ const ConfigKey kVScrollBarPosConfigKey{
         QStringLiteral("[Library]"),
         QStringLiteral("VScrollBarPos")};
 
+const ConfigKey kLastSelectedTrackIdConfigKey{
+        QStringLiteral("[Library]"),
+        QStringLiteral("last_selected_track_id")};
+
 } // anonymous namespace
 
 WTrackTableView::WTrackTableView(QWidget* pParent,
@@ -168,6 +172,7 @@ void WTrackTableView::slotGuiTick50ms(double /*unused*/) {
                     if (pTrack) {
                         emit trackSelected(pTrack);
                     }
+                    saveLastSelectedTrackId(pTrackModel->getTrackId(indices.first()));
                 }
             } else {
                 // None or multiple tracks have been selected
@@ -378,6 +383,14 @@ void WTrackTableView::loadTrackModel(QAbstractItemModel* pNewModel, bool restore
     if (restoreState) {
         restoreCurrentViewState();
     }
+
+    // Restore the last selected track if one was scheduled (e.g. on startup)
+    if (m_pendingRestoreTrackId.isValid()) {
+        TrackId restoreId = m_pendingRestoreTrackId;
+        m_pendingRestoreTrackId = TrackId();
+        selectTrack(restoreId);
+    }
+
     initTrackMenu();
 }
 
@@ -1659,6 +1672,22 @@ void WTrackTableView::addToAutoDJTop() {
 
 void WTrackTableView::addToAutoDJReplace() {
     addToAutoDJ(PlaylistDAO::AutoDJSendLoc::REPLACE);
+}
+
+void WTrackTableView::saveLastSelectedTrackId(const TrackId& trackId) {
+    if (trackId.isValid()) {
+        m_pConfig->setValue(kLastSelectedTrackIdConfigKey, trackId.toString());
+    }
+}
+
+void WTrackTableView::scheduleRestoreLastSelectedTrack() {
+    QString savedStr = m_pConfig->getValue(kLastSelectedTrackIdConfigKey);
+    if (!savedStr.isEmpty()) {
+        TrackId id{QVariant(savedStr)};
+        if (id.isValid()) {
+            m_pendingRestoreTrackId = id;
+        }
+    }
 }
 
 void WTrackTableView::selectTrack(const TrackId& trackId) {

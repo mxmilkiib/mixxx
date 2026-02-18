@@ -69,7 +69,7 @@ Library::Library(
           m_pConfig(pConfig),
           m_pDbConnectionPool(std::move(pDbConnectionPool)),
           m_pTrackCollectionManager(pTrackCollectionManager),
-          m_pSidebarModel(make_parented<SidebarModel>(this)),
+          m_pSidebarModel(make_parented<SidebarModel>(pConfig, this)),
           m_pLibraryControl(make_parented<LibraryControl>(this)),
           m_pLibraryWidget(nullptr),
           m_pKeyNotation(std::make_unique<ControlObject>(
@@ -341,12 +341,16 @@ void Library::bindSearchboxWidget(WSearchLineEdit* pSearchboxWidget) {
 void Library::bindSidebarWidget(WLibrarySidebar* pSidebarWidget) {
     m_pLibraryControl->bindSidebarWidget(pSidebarWidget);
 
-    // Setup the sources view
+    pSidebarWidget->setup(m_pConfig);
     pSidebarWidget->setModel(m_pSidebarModel);
     connect(m_pSidebarModel,
             &SidebarModel::selectIndex,
             pSidebarWidget,
             &WLibrarySidebar::selectIndex);
+    connect(m_pSidebarModel,
+            &SidebarModel::saveScrollPosition,
+            pSidebarWidget,
+            &WLibrarySidebar::saveScrollPosition);
     connect(pSidebarWidget,
             &WLibrarySidebar::pressed,
             m_pSidebarModel,
@@ -601,8 +605,17 @@ void Library::slotCreateCrate() {
 }
 
 void Library::onSkinLoadFinished() {
-    // Enable the default selection when a new skin is loaded.
-    m_pSidebarModel->activateDefaultSelection();
+    // Prime the track table to restore the last selected track when the model loads
+    if (m_pLibraryWidget) {
+        WTrackTableView* pTrackTableView = m_pLibraryWidget->getCurrentTrackTableView();
+        if (pTrackTableView) {
+            pTrackTableView->scheduleRestoreLastSelectedTrack();
+        }
+    }
+    // Restore last selection; fall back to default if none was saved
+    if (!m_pSidebarModel->restoreLastSelection()) {
+        m_pSidebarModel->activateDefaultSelection();
+    }
 }
 
 bool Library::requestAddDir(const QString& dir) {
