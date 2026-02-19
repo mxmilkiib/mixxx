@@ -4,7 +4,7 @@ INTEGRATION.md
 
 # Mixxx Integration Branch Configuration
 
-> Last updated: 2026-02-19 18:57
+> Last updated: 2026-02-19 22:24
 > URL: https://gist.github.com/mxmilkiib/5fb35c401736efed47ad7d78268c80b6
 > [RFC 2119](https://datatracker.ietf.org/doc/html/rfc2119)
 
@@ -24,13 +24,10 @@ INTEGRATION.md
 - This dual setup SHOULD provide consistency for a stable bleeding-edge build without interference from local development.
 - The integration merge process MUST follow the steps in the **Integration Merge Process** section below.
 - Changes to `mixxxdj/mixxx` PRs MUST be incremental so as to be easy to review, and MUST NOT completely reformulate a system in a single commit.
-- The integration status outline, i.e. the indented list below, MUST reflect the state of the various branches, related issues and PRs, and dates, and MUST be updated after changes are committed.
-- Most branches MAY have related upstream issues.
-- Related issues SHOULD be listed in the integration outline below
+- The integration status outline MUST reflect the state of all branches, related issues, PRs, and dates, and MUST be updated after changes are committed — PR URLs SHOULD be checked first to catch new feedback
+- Most branches MAY have related upstream issues; related issues SHOULD be listed in the outline
 - Feature and fix branches should be in the correct outline sections
-- PR urls SHOULD be checked before any new changes to ensure no new feedback or todo items
 - Dates for branch creation, last PR comment, and last update MUST be recorded in the status outline
-- Updates to PR status MUST be reflected in the integration outline below
 - Each feature/fix branch SHOULD work standalone without depending on other local branches (except where noted)
 - Feature/fix branch history MUST NOT be rewritten unless the feature/fix is complete
 - Ask Milkii for permission to squash/rebase; integration branch can have merge commits.
@@ -38,8 +35,8 @@ INTEGRATION.md
 - Some features (UTF-8 string controls) MUST NOT be submitted to `mixxxdj/mixxx` upstream as they are local-only/personal use
 - PRs SHOULD be submitted to `mxmilkiib/mixxx`, and Milkii will create a further PR from there to `mixxxdj/mixxx`.
 - Once the PR is fully merged into `mixxxdj/mixxx`, the branch MUST be removed from integration tracking.
-- If this file is updated, then it MUST be sent back to Gist by using `gh gist edit 5fb35c401736efed47ad7d78268c80b6 --filename INTEGRATION.md INTEGRATION.md`
-- This MUST be run from `~/src/mixxx/` and is non-interactive: `--filename` targets the gist file, the positional arg supplies the local file content.
+- The "Last updated" date at the top of this file MUST be updated whenever this file is edited
+- If this file is updated, it MUST be synced to Gist: run `gh gist edit 5fb35c401736efed47ad7d78268c80b6 --filename INTEGRATION.md INTEGRATION.md` from `~/src/mixxx/` (`--filename` targets the gist file, the positional arg supplies the local content)
 - Commit messages must not be to verbose, and should be concise and descriptive.
 - Git operations MUST be non-interactive using `GIT_EDITOR=true` and `GIT_PAGER=cat` to avoid vim/editor prompts
 - When resolving merge conflicts during rebases, conflicts MUST be resolved and the rebase continued non-interactively
@@ -214,7 +211,7 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
       - Removed from integration: schema change; keeping integration at upstream schema v40 until schema branches are stable
       - Uses MusicBrainz Picard tag mapping conventions
     - Tested?: no
-  - [ ] **feature/2025.05may.14-fivefourths** - [#14780](https://github.com/mixxxdj/mixxx/pull/14780) - DRAFT - REVIEW_REQUIRED
+  - [x] **feature/2025.05may.14-fivefourths** - [#14780](https://github.com/mixxxdj/mixxx/pull/14780) - DRAFT - REVIEW_REQUIRED
     - Issue: [#14686](https://github.com/mixxxdj/mixxx/issues/14686)
     - Created: 2025-05-14, Last comment: 2025-05-16, Rebased: 2026-02-08, Updated: 2026-02-08
     - Next: Update external manual, then await review
@@ -277,22 +274,19 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
 ---
 
 ## TODO Summary
-**Needs Attention (0 branches):**
-- *(none)*
-**Awaiting Review (13 branches):**
-- **Feedback addressed, awaiting re-review**: restore-last-library-selection, controller-wizard-quick-access, stacked-overview-waveform, hide-unenabled-controllers
-- **Architecture changes needed**: replace-libmodplug-with-libopenmpt (daschuer wants DSP moved to effect rack)
-- **On hold (DRAFT)**: deere-channel-mute-buttons (marked draft Feb 9, needs broader plan)
-- **Recent activity**: hotcues-on-overview-waveform (stale Jan 19), library-column-hotcue-count (stale Jan 17)
-- **Clean PRs**: playback-position-control, catalogue-number-column, fivefourths (manual update needed), midi-makeinputhandler-null-engine
-- **Abandoned (no PR)**: wglwidget-xcb-resize-gap (WA_PaintOnScreen causes heap corruption; gap is inherent)
 
-**Local Development (2 branches):**
-- **Decide PR-worthiness**: deere-waveform-zoom-deck-colors
-- **Continue or archive**: tracker-module-stems
+**Needs Attention (0 branches):** *(none)*
 
-**Cleanup:**
-- Delete merged branch: fx-routing-persistence
+- **Awaiting Review (13 branches):**
+  - **Feedback addressed, awaiting re-review**: restore-last-library-selection, controller-wizard-quick-access, stacked-overview-waveform, hide-unenabled-controllers
+  - **Architecture changes needed**: replace-libmodplug-with-libopenmpt (daschuer wants DSP moved to effect rack)
+  - **On hold (DRAFT)**: deere-channel-mute-buttons (marked draft Feb 9, needs broader plan)
+  - **Recent activity**: hotcues-on-overview-waveform (stale Jan 19), library-column-hotcue-count (stale Jan 17)
+  - **Clean PRs**: playback-position-control, catalogue-number-column, fivefourths (manual update needed), midi-makeinputhandler-null-engine
+  - **Abandoned (no PR)**: wglwidget-xcb-resize-gap (WA_PaintOnScreen causes heap corruption; gap is inherent)
+- **Local Development (2 branches):**
+  - **Decide PR-worthiness**: deere-waveform-zoom-deck-colors
+  - **Continue or archive**: tracker-module-stems
 
 ---
 
@@ -408,5 +402,5 @@ Branch naming convention: feature/YYYY.MMmon.DD-thing-descriptive-title
 
 Update the summary line at the top when adding/removing branches:
 ```markdown
-**Summary**: X PRs need attention, Y open PRs awaiting review, Z merged upstream, W local-only branches
+**Summary**: X need attention, Y awaiting review, Z merged upstream, W local-only
 ```
