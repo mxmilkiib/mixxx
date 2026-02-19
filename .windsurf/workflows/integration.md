@@ -90,6 +90,7 @@ Full reconfigure (only needed for new branches that add CMakeLists changes or ne
 
 - Feature/fix branch history MUST NOT be rewritten unless complete and permission granted
 - Integration branch can have merge commits
+- **ALWAYS use `git merge` to bring branches into integration, never `git cherry-pick`** — cherry-picking creates duplicate commits with different SHAs, severs the branch relationship, makes bisect/revert unreliable, and hides what is actually in the build from `git log`
 - Changes to upstream PRs MUST be incremental and easy to review
 - UTF-8 string controls are LOCAL ONLY, never for upstream
 - PRs go to mxmilkiib/mixxx first, then to mixxxdj/mixxx
