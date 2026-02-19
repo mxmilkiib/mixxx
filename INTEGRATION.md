@@ -76,24 +76,24 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
 - 🔴 **Needs Attention (CHANGES_REQUESTED)**
   - *(none)*
 - 🟡 **BUG FIXES - Open PRs (REVIEW_REQUIRED)**
-  - [x] **bugfix/2026.02feb.18-midi-makeinputhandler-null-engine** - [#16003](https://github.com/mixxxdj/mixxx/pull/16003)
+  - [x] **bugfix/2026.02feb.18-midi-makeinputhandler-null-engine** - [#16003](https://github.com/mixxxdj/mixxx/pull/16003) - REVIEW_REQUIRED
     - Created: 2026-02-18, Last comment: none, Rebased: 2026-02-18, Updated: 2026-02-18
     - Next: Await review
     - Tested?: yes
-  - [x] **bugfix/2026.02feb.19-textured-waveform-fbo-resize** - [#16010](https://github.com/mixxxdj/mixxx/pull/16010)
+  - [x] **bugfix/2026.02feb.19-textured-waveform-fbo-resize** - [#16010](https://github.com/mixxxdj/mixxx/pull/16010) - REVIEW_REQUIRED
     - Created: 2026-02-19, Last comment: none, Updated: 2026-02-19
     - Next: Await review
     - Specifics:
       - Improved: defer FBO reallocation to paintGL via m_pendingResize flag
     - Tested?: yes
-  - [x] **bugfix/2026.02feb.19-openglwindow-resize-repaint** - [#16012](https://github.com/mixxxdj/mixxx/pull/16012)
+  - [x] **bugfix/2026.02feb.19-openglwindow-resize-repaint** - [#16012](https://github.com/mixxxdj/mixxx/pull/16012) - REVIEW_REQUIRED
     - Created: 2026-02-19, Last comment: none, Updated: 2026-02-19
     - Next: Await review
     - Specifics:
       - Restores m_dirty flag: defers extra paintGL+swapBuffers from resizeGL to next vsync
       - Does not fix Wayland resize lag (compositor-level issue)
     - Tested?: yes
-  - [x] **bugfix/2026.02feb.19-wayland-opengl-resize-warning** - [#16014](https://github.com/mixxxdj/mixxx/pull/16014)
+  - [x] **bugfix/2026.02feb.19-wayland-opengl-resize-warning** - [#16014](https://github.com/mixxxdj/mixxx/pull/16014) - DRAFT - REVIEW_REQUIRED
     - Issue: [#16013](https://github.com/mixxxdj/mixxx/issues/16013)
     - Created: 2026-02-19, Last comment: none, Updated: 2026-02-19
     - Next: Await review
@@ -103,9 +103,8 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
       - Adds qWarning at startup when Wayland detected with OpenGL waveforms
     - Tested?: yes
 - 🟡 **NEW FEATURES - Open PRs (REVIEW_REQUIRED)**
-  - [x] **feature/2025.10oct.20-restore-last-library-selection** - [#15460](https://github.com/mixxxdj/mixxx/pull/15460)
+  - [x] **feature/2025.10oct.20-restore-last-library-selection** - [#15460](https://github.com/mixxxdj/mixxx/pull/15460) - DRAFT - REVIEW_REQUIRED
     - Issue: [#10125](https://github.com/mixxxdj/mixxx/issues/10125)
-    - DRAFT - REVIEW_REQUIRED
     - Created: 2025-10-08, Last comment: 2026-02-18, Rebased: 2026-02-18, Updated: 2026-02-18
     - Next: Await review
     - Specifics:
@@ -119,9 +118,8 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
       - ~~Feature not activated on restore~~ fixed — activate()/activateChild() called
       - Track row selection save/restore added via WTrackTableView
     - Tested?: yes
-  - [x] **feature/2025.11nov.04-controller-wizard-quick-access** - [#15577](https://github.com/mixxxdj/mixxx/pull/15577)
+  - [x] **feature/2025.11nov.04-controller-wizard-quick-access** - [#15577](https://github.com/mixxxdj/mixxx/pull/15577) - REVIEW_REQUIRED
     - Issue: [#12262](https://github.com/mixxxdj/mixxx/issues/12262)
-    - REVIEW_REQUIRED
     - Created: 2025-11-04, Last comment: 2026-02-18, Rebased: 2026-02-18, Updated: 2026-02-18
     - Next: Await review
     - Specifics:
@@ -138,9 +136,8 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
       - ~~Rename "Stacked (RGB)" to "Stacked"~~ done
       - All feedback addressed
     - Tested?: yes
-  - [x] **feature/2025.11nov.05-hide-unenabled-controllers** - [#15580](https://github.com/mixxxdj/mixxx/pull/15580)
+  - [x] **feature/2025.11nov.05-hide-unenabled-controllers** - [#15580](https://github.com/mixxxdj/mixxx/pull/15580) - REVIEW_REQUIRED
     - Issue: [#14275](https://github.com/mixxxdj/mixxx/issues/14275)
-    - REVIEW_REQUIRED
     - Created: 2025-11-05, Last comment: none, Rebased: 2026-02-08, Updated: 2026-02-08
     - Next: Await review
     - Specifics:
