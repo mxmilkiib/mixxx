@@ -100,7 +100,8 @@ Full reconfigure (only needed for new branches that add CMakeLists changes or ne
 **CRITICAL**: `mixxx-dev/` worktrees MUST only contain commits belonging to their named feature.
 
 - NEVER commit INTEGRATION.md, integration merge commits, or unrelated fixups into a feature worktree
-- INTEGRATION.md is local-only (gist is prime source); it MUST NOT be committed to any branch
+- INTEGRATION.md is tracked on the `integration` branch only; the gist is the prime source and must be kept in sync
+- INTEGRATION.md MUST NOT be committed to any feature branch in `mixxx-dev/`
 - Before making any edit in `mixxx-dev/`, confirm the active worktree matches the intended branch:
   ```bash
    git -C /home/milkii/src/mixxx-dev/<worktree>/ branch --show-current
