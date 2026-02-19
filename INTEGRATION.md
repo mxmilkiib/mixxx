@@ -65,7 +65,7 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
 
 ## Branch and Integration Status Outline
 
-**Summary**: 0 need attention, 15 awaiting review, 5 merged upstream, 7 local-only
+**Summary**: 0 need attention, 15 awaiting review, 5 merged upstream, 8 local-only
 
 > Integration rebuilt 2026-02-19: applied waveform FBO + openglwindow resize fixes; fixed hotcue-labelling merge (missing setLabel/slotHotcueLabelChangeRequest); merged midi-makeinputhandler-null-engine bugfix (was missing, caused SIGSEGV/SIGABRT on controller shutdown)
 > Integration rebuilt 2026-02-19 (second time): removed hotcue-count and catalogue-number branches — both require schema changes (v41, v42) that caused a cross-thread SQLite crash (SIGSEGV in BaseTrackCache::updateIndexWithQuery via Qt::DirectConnection on engine thread). Schema kept at upstream v40.
@@ -158,6 +158,7 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
       - Remove VS Code minimap `// MARK:` comments
       - Review comments on `trackerdsp.cpp` and `trackerdsp.h`
       - Windows CI test failure (`screenWillSentRawDataIfConfigured` timeout) — may be flaky or platform-specific `QImage` behavior
+      - Test fix 2026-02-19: `taglibStringToEnumFileType` now excludes all openmpt tracker formats (mod, s3m, xm, it, mptm, 669, amf, ams, dbm, dmf, dsm, far, mdl, med, mtm, mt2, psm, ptm, ult, umx) — none are taglib formats
     - Tested?: no
   - [x] **feature/2025.10oct.20-hotcues-on-overview-waveform** - [#15514](https://github.com/mixxxdj/mixxx/pull/15514) - DRAFT - REVIEW_REQUIRED
     - Issue: [#14994](https://github.com/mixxxdj/mixxx/issues/14994)
@@ -261,6 +262,13 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
       - Depends on replace-libmodplug-with-libopenmpt (#15519) being accepted first
       - Adds stem support for tracker modules using libopenmpt
       - Not rebased — needs rebase before any work
+  - [ ] **bugfix/2026.02feb.19-wglwidget-xcb-resize-gap** — ABANDONED
+    - Created: 2026-02-19, Updated: 2026-02-19
+    - Next: Archive or delete branch
+    - Specifics:
+      - Attempted WA_PaintOnScreen on WGLWidget to reduce XCB resize gap
+      - Abandoned: WGLWidget lacks paintEngine(), WA_PaintOnScreen causes heap corruption abort
+      - Gap is inherent to QOpenGLWindow+createWindowContainer; no viable fix
 - ✅ **Merged to Upstream**
   - [x] ~~**bugfix/qt6-guiprivate-missing-component**~~ **RESOLVED** 2026-02-19 — fixed upstream, branch deleted
   - [x] ~~**feature/2025.11nov.05-waveform-cache-size-format**~~ - [#15578](https://github.com/mixxxdj/mixxx/pull/15578) **MERGED** 2026-02-16
@@ -278,7 +286,8 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
 - **Architecture changes needed**: replace-libmodplug-with-libopenmpt (daschuer wants DSP moved to effect rack)
 - **On hold (DRAFT)**: deere-channel-mute-buttons (marked draft Feb 9, needs broader plan)
 - **Recent activity**: hotcues-on-overview-waveform (stale Jan 19), library-column-hotcue-count (stale Jan 17)
-- **Clean PRs**: playback-position-control, catalogue-number-column, fivefourths (manual update needed), midi-makeinputhandler-null-engine, wglwidget-xcb-resize-gap
+- **Clean PRs**: playback-position-control, catalogue-number-column, fivefourths (manual update needed), midi-makeinputhandler-null-engine
+- **Abandoned (no PR)**: wglwidget-xcb-resize-gap (WA_PaintOnScreen causes heap corruption; gap is inherent)
 
 **Local Development (2 branches):**
 - **Decide PR-worthiness**: deere-waveform-zoom-deck-colors
