@@ -69,6 +69,7 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
 
 > Integration rebuilt 2026-02-19: applied waveform FBO + openglwindow resize fixes; fixed hotcue-labelling merge (missing setLabel/slotHotcueLabelChangeRequest); merged midi-makeinputhandler-null-engine bugfix (was missing, caused SIGSEGV/SIGABRT on controller shutdown)
 > Integration rebuilt 2026-02-19 (second time): removed hotcue-count and catalogue-number branches — both require schema changes (v41, v42) that caused a cross-thread SQLite crash (SIGSEGV in BaseTrackCache::updateIndexWithQuery via Qt::DirectConnection on engine thread). Schema kept at upstream v40.
+> Integration patched 2026-02-19: midi-makeinputhandler-null-engine fix was missing from the rebuild — caused repeated SIGSEGV/SIGABRT on controller shutdown (MidiControllerJSProxy::makeInputHandler null shared_ptr). Re-merged.
 > Wayland root cause identified 2026-02-19: QOpenGLWindow subsurface resize blocks on compositor buffer realloc; workaround QT_QPA_PLATFORM=xcb
 > XCB resize gap 2026-02-19: WA_PaintOnScreen approach abandoned — WGLWidget lacks paintEngine(), causes heap corruption abort; gap is inherent to QOpenGLWindow+createWindowContainer
 
