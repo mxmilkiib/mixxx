@@ -4,7 +4,7 @@ INTEGRATION.md
 
 # Mixxx Integration Branch Configuration
 
-> Last updated: 2026-02-19 18:23
+> Last updated: 2026-02-19 18:45
 > URL: https://gist.github.com/mxmilkiib/5fb35c401736efed47ad7d78268c80b6
 > [RFC 2119](https://datatracker.ietf.org/doc/html/rfc2119)
 
@@ -67,7 +67,8 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
 
 **Summary**: 0 need attention, 15 awaiting review, 5 merged upstream, 7 local-only
 
-> Integration rebuilt 2026-02-19: applied waveform FBO + openglwindow resize fixes; fixed hotcue-labelling merge (missing setLabel/slotHotcueLabelChangeRequest); merged midi-makeinputhandler-null-engine bugfix (was missing, caused SIGSEGV/SIGABRT on controller shutdown); bumped kRequiredSchemaVersion to 42 (catalogue_number migration was unreachable at 41)
+> Integration rebuilt 2026-02-19: applied waveform FBO + openglwindow resize fixes; fixed hotcue-labelling merge (missing setLabel/slotHotcueLabelChangeRequest); merged midi-makeinputhandler-null-engine bugfix (was missing, caused SIGSEGV/SIGABRT on controller shutdown)
+> Integration rebuilt 2026-02-19 (second time): removed hotcue-count and catalogue-number branches — both require schema changes (v41, v42) that caused a cross-thread SQLite crash (SIGSEGV in BaseTrackCache::updateIndexWithQuery via Qt::DirectConnection on engine thread). Schema kept at upstream v40.
 > Wayland root cause identified 2026-02-19: QOpenGLWindow subsurface resize blocks on compositor buffer realloc; workaround QT_QPA_PLATFORM=xcb
 > XCB resize gap 2026-02-19: WA_PaintOnScreen approach abandoned — WGLWidget lacks paintEngine(), causes heap corruption abort; gap is inherent to QOpenGLWindow+createWindowContainer
 
@@ -159,7 +160,7 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
       - Remove `// MARK:` comments
       - Get cue data from delegate columns instead of SQL queries (done)
       - Review feedback from ronso0 on marker rendering approach
-  - [x] **feature/2025.10oct.17-library-column-hotcue-count** - [#15462](https://github.com/mixxxdj/mixxx/pull/15462) - REVIEW_REQUIRED
+  - [ ] **feature/2025.10oct.17-library-column-hotcue-count** - [#15462](https://github.com/mixxxdj/mixxx/pull/15462) - REVIEW_REQUIRED
     - Issue: [#15461](https://github.com/mixxxdj/mixxx/issues/15461)
     - Created: 2025-10-17, Last comment: 2026-01-17, Rebased: 2026-02-08, Updated: 2026-01-30
     - Next: Check recent comment, await review
@@ -169,6 +170,7 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
       - Potential pie chart icon instead of plain number (daschuer suggestion)
       - Related to hotcues-on-overview-waveform PR #15514 (acolombier suggested rendering hotcues in overview column instead)
       - Schema change v39→v40 — will conflict with other schema changes
+      - Removed from integration: cross-thread SQLite crash (Qt::DirectConnection cuesUpdated lambda runs updateTrackHotcueCount on engine thread)
   - [x] **feature/2025.11nov.17-deere-channel-mute-buttons** - [#15624](https://github.com/mixxxdj/mixxx/pull/15624) - DRAFT - REVIEW_REQUIRED
     - Issue: [#15623](https://github.com/mixxxdj/mixxx/issues/15623)
     - Created: 2025-11-17, Last comment: 2026-02-14, Rebased: 2026-02-08, Updated: 2026-02-14
@@ -189,13 +191,14 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
       - No review comments yet
       - Adds `[Waveform],PlayMarkerPosition` ControlPotmeter (0.0–1.0)
       - Clean PR, just needs reviewer attention
-  - [x] **feature/2025.11nov.16-catalogue-number-column** - [#15616](https://github.com/mixxxdj/mixxx/pull/15616) - REVIEW_REQUIRED
+  - [ ] **feature/2025.11nov.16-catalogue-number-column** - [#15616](https://github.com/mixxxdj/mixxx/pull/15616) - REVIEW_REQUIRED
     - Issue: [#12583](https://github.com/mixxxdj/mixxx/issues/12583)
     - Created: 2025-11-16, Last comment: none, Rebased: 2026-02-08, Updated: 2026-01-30
     - Next: Await review
     - Specifics:
       - No review comments yet
       - Schema migration revision 40 — will conflict with hotcue-count branch (also schema change)
+      - Removed from integration: schema change; keeping integration at upstream schema v40 until schema branches are stable
       - Uses MusicBrainz Picard tag mapping conventions
   - [ ] **feature/2025.05may.14-fivefourths** - [#14780](https://github.com/mixxxdj/mixxx/pull/14780) - DRAFT - REVIEW_REQUIRED
     - Issue: [#14686](https://github.com/mixxxdj/mixxx/issues/14686)
