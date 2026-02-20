@@ -4,7 +4,7 @@ INTEGRATION.md
 
 # Mixxx Integration Branch Configuration
 
-> Last updated: 2026-02-20 22:00
+> Last updated: 2026-02-20 22:15
 > URL: https://gist.github.com/mxmilkiib/5fb35c401736efed47ad7d78268c80b6
 > [RFC 2119](https://datatracker.ietf.org/doc/html/rfc2119)
 
@@ -62,7 +62,7 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
 
 ## Branch and Integration Status Outline
 
-**Summary**: 0 need attention, 16 awaiting review, 5 merged upstream, 8 local-only
+**Summary**: 0 need attention, 17 awaiting review, 5 merged upstream, 8 local-only
 
 > Integration rebuilt 2026-02-19: applied waveform FBO + openglwindow resize fixes; fixed hotcue-labelling merge (missing setLabel/slotHotcueLabelChangeRequest); merged midi-makeinputhandler-null-engine bugfix (was missing, caused SIGSEGV/SIGABRT on controller shutdown)
 > Integration rebuilt 2026-02-19 (second time): removed hotcue-count and catalogue-number branches — both require schema changes (v41, v42) that caused a cross-thread SQLite crash (SIGSEGV in BaseTrackCache::updateIndexWithQuery via Qt::DirectConnection on engine thread). Schema kept at upstream v40.
@@ -73,6 +73,14 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
 - 🔴 **Needs Attention (CHANGES_REQUESTED)**
   - *(none)*
 - 🟡 **BUG FIXES - Open PRs (REVIEW_REQUIRED)**
+  - [x] **bugfix/2026.02feb.20-controlpickermenu-quickfx-deck-offset** - REVIEW_REQUIRED
+    - Issue: [#16017](https://github.com/mixxxdj/mixxx/issues/16017)
+    - Created: 2026-02-20, Last comment: none, Rebased: 2026-02-20, Updated: 2026-02-20
+    - Next: Track upstream PR #16019 (ronso0), submit own PR or drop when merged
+    - Specifics:
+      - `groupForDeck(i)` should be `groupForDeck(i - 1)` — loop is 1-indexed, function is 0-indexed
+      - Upstream PR #16019 by ronso0 targets 2.6; this branch applies same fix to main
+    - Tested?: no
   - [x] **bugfix/2026.02feb.20-fix-learning-wizard-from-prefs-button** - REVIEW_REQUIRED
     - Created: 2026-02-20, Last comment: none, Rebased: 2026-02-20, Updated: 2026-02-20
     - Next: Submit PR, await review
@@ -286,12 +294,12 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
 
 **Needs Attention (0 branches):** *(none)*
 
-- **Awaiting Review (14 branches):**
+- **Awaiting Review (15 branches):**
   - **Feedback addressed, awaiting re-review**: restore-last-library-selection, controller-wizard-quick-access, stacked-overview-waveform, hide-unenabled-controllers
   - **Architecture changes needed**: replace-libmodplug-with-libopenmpt (daschuer wants DSP moved to effect rack)
   - **On hold (DRAFT)**: deere-channel-mute-buttons (marked draft Feb 9, needs broader plan)
   - **Recent activity**: hotcues-on-overview-waveform (stale Jan 19), library-column-hotcue-count (stale Jan 17)
-  - **Clean PRs**: playback-position-control, catalogue-number-column, fivefourths (manual update needed), midi-makeinputhandler-null-engine, fix-learning-wizard-from-prefs-button (no PR yet)
+  - **Clean PRs**: playback-position-control, catalogue-number-column, fivefourths (manual update needed), midi-makeinputhandler-null-engine, fix-learning-wizard-from-prefs-button (no PR yet), controlpickermenu-quickfx-deck-offset (track #16019)
   - **Abandoned (no PR)**: wglwidget-xcb-resize-gap (WA_PaintOnScreen causes heap corruption; gap is inherent)
 - **Local Development (2 branches):**
   - **Decide PR-worthiness**: deere-waveform-zoom-deck-colors
