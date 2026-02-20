@@ -101,6 +101,7 @@ class HotcueControl : public QObject {
 
     QString getLabelText() const;
     void setLabelText(const QString& labelText);
+    void setLabel(const QString& label);
 
     /// Used for caching the preview state of this hotcue control
     /// for the case the cue is deleted during preview.
@@ -144,6 +145,7 @@ class HotcueControl : public QObject {
     void slotHotcuePositionChanged(double newPosition);
     void slotHotcueColorChangeRequest(double newColor);
     void slotHotcueLabelTextChanged(const QString& newLabelText);
+    void slotHotcueLabelChangeRequest(double newValue);
 
   signals:
     void hotcueSet(HotcueControl* pHotcue, double v, HotcueSetMode mode);
