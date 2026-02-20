@@ -2983,6 +2983,23 @@ void HotcueControl::slotHotcueLabelTextChanged(const QString& newLabelText) {
     m_hotcueLabelText->setAndConfirm(newLabelText);
 }
 
+void HotcueControl::setLabel(const QString& label) {
+    m_hotcueLabel->setAndConfirm(stringToDouble(label));
+    m_hotcueLabelText->set(label);
+}
+
+void HotcueControl::slotHotcueLabelChangeRequest(double newValue) {
+    if (!m_pCue) {
+        return;
+    }
+
+    QString label = doubleToString(newValue);
+    m_pCue->setLabel(label);
+    m_hotcueLabel->setAndConfirm(newValue);
+    m_hotcueLabelText->set(label);
+}
+
+
 mixxx::audio::FramePos HotcueControl::getPosition() const {
     return mixxx::audio::FramePos::fromEngineSamplePosMaybeInvalid(m_hotcuePosition->get());
 }
