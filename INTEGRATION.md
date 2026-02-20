@@ -4,7 +4,7 @@ INTEGRATION.md
 
 # Mixxx Integration Branch Configuration
 
-> Last updated: 2026-02-20 02:30
+> Last updated: 2026-02-20 22:00
 > URL: https://gist.github.com/mxmilkiib/5fb35c401736efed47ad7d78268c80b6
 > [RFC 2119](https://datatracker.ietf.org/doc/html/rfc2119)
 
@@ -62,7 +62,7 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
 
 ## Branch and Integration Status Outline
 
-**Summary**: 0 need attention, 15 awaiting review, 5 merged upstream, 8 local-only
+**Summary**: 0 need attention, 16 awaiting review, 5 merged upstream, 8 local-only
 
 > Integration rebuilt 2026-02-19: applied waveform FBO + openglwindow resize fixes; fixed hotcue-labelling merge (missing setLabel/slotHotcueLabelChangeRequest); merged midi-makeinputhandler-null-engine bugfix (was missing, caused SIGSEGV/SIGABRT on controller shutdown)
 > Integration rebuilt 2026-02-19 (second time): removed hotcue-count and catalogue-number branches — both require schema changes (v41, v42) that caused a cross-thread SQLite crash (SIGSEGV in BaseTrackCache::updateIndexWithQuery via Qt::DirectConnection on engine thread). Schema kept at upstream v40.
@@ -73,8 +73,16 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
 - 🔴 **Needs Attention (CHANGES_REQUESTED)**
   - *(none)*
 - 🟡 **BUG FIXES - Open PRs (REVIEW_REQUIRED)**
+  - [x] **bugfix/2026.02feb.20-fix-learning-wizard-from-prefs-button** - REVIEW_REQUIRED
+    - Created: 2026-02-20, Last comment: none, Rebased: 2026-02-20, Updated: 2026-02-20
+    - Next: Submit PR, await review
+    - Specifics:
+      - DlgControllerLearning is parented to DlgPrefController (child of DlgPreferences)
+      - Previously mappingStarted() emitted after show(), causing prefs dialog to cascade-hide the wizard
+      - Fix: emit mappingStarted() before creating and showing the wizard
+    - Tested?: yes
   - [x] **bugfix/2026.02feb.18-midi-makeinputhandler-null-engine** - [#16003](https://github.com/mixxxdj/mixxx/pull/16003) - REVIEW_REQUIRED
-    - Created: 2026-02-18, Last comment: none, Rebased: 2026-02-18, Updated: 2026-02-18
+    - Created: 2026-02-18, Last comment: none, Rebased: 2026-02-20, Updated: 2026-02-18
     - Next: Await review
     - Tested?: yes
   - [x] **bugfix/2026.02feb.19-textured-waveform-fbo-resize** - [#16010](https://github.com/mixxxdj/mixxx/pull/16010) - REVIEW_REQUIRED
@@ -102,7 +110,7 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
 - 🟡 **NEW FEATURES - Open PRs (REVIEW_REQUIRED)**
   - [x] **feature/2025.10oct.20-restore-last-library-selection** - [#15460](https://github.com/mixxxdj/mixxx/pull/15460) - DRAFT - REVIEW_REQUIRED
     - Issue: [#10125](https://github.com/mixxxdj/mixxx/issues/10125)
-    - Created: 2025-10-08, Last comment: 2026-02-18, Rebased: 2026-02-18, Updated: 2026-02-19
+    - Created: 2025-10-08, Last comment: 2026-02-18, Rebased: 2026-02-20, Updated: 2026-02-19
     - Next: Await re-review — ronso0 CHANGES_REQUESTED (Nov 17) addressed in Feb 18 rebase
     - Specifics:
       - ~~Separate commits for changes~~ done - 4 commits with explanations
@@ -117,7 +125,7 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
     - Tested?: yes
   - [x] **feature/2025.11nov.04-controller-wizard-quick-access** - [#15577](https://github.com/mixxxdj/mixxx/pull/15577) - REVIEW_REQUIRED
     - Issue: [#12262](https://github.com/mixxxdj/mixxx/issues/12262)
-    - Created: 2025-11-04, Last comment: 2026-02-18, Rebased: 2026-02-18, Updated: 2026-02-18
+    - Created: 2025-11-04, Last comment: 2026-02-18, Rebased: 2026-02-20, Updated: 2026-02-18
     - Next: Await review
     - Specifics:
       - ~~devicesChanged not updating menu post-startup~~ fixed — connected to mappingApplied
@@ -125,7 +133,7 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
     - Tested?: yes
   - [x] **feature/2025.10oct.21-stacked-overview-waveform** - [#15516](https://github.com/mixxxdj/mixxx/pull/15516) - DRAFT - REVIEW_REQUIRED
     - Issue: [#13265](https://github.com/mixxxdj/mixxx/issues/13265)
-    - Created: 2025-10-21, Last comment: 2026-02-17, Rebased: 2026-02-18, Updated: 2026-02-18
+    - Created: 2025-10-21, Last comment: 2026-02-17, Rebased: 2026-02-20, Updated: 2026-02-18
     - Next: Await review
     - Specifics:
       - ~~Remove redundant Stacked HSV and Stacked LMH renderers~~ done
@@ -136,7 +144,7 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
     - Tested?: yes
   - [x] **feature/2025.11nov.05-hide-unenabled-controllers** - [#15580](https://github.com/mixxxdj/mixxx/pull/15580) - REVIEW_REQUIRED
     - Issue: [#14275](https://github.com/mixxxdj/mixxx/issues/14275)
-    - Created: 2025-11-05, Last comment: none, Rebased: 2026-02-08, Updated: 2026-02-08
+    - Created: 2025-11-05, Last comment: none, Rebased: 2026-02-20, Updated: 2026-02-08
     - Next: Await review
     - Specifics:
       - ~~Rename "unenabled" to "disabled" everywhere — config keys, function names, and UI text (ronso0)~~ done
@@ -146,7 +154,7 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
     - Tested?: yes
   - [x] **feature/2025.10oct.21-replace-libmodplug-with-libopenmpt** - [#15519](https://github.com/mixxxdj/mixxx/pull/15519) - DRAFT - REVIEW_REQUIRED
     - Issue: [#9862](https://github.com/mixxxdj/mixxx/issues/9862)
-    - Created: 2025-10-25, Last comment: 2025-11-22, Rebased: 2026-02-08, Updated: 2026-01-30
+    - Created: 2025-10-25, Last comment: 2025-11-22, Rebased: 2026-02-20, Updated: 2026-01-30
     - Next: Address daschuer architecture feedback
     - Specifics:
       - DSP in SoundSource is "foreign to Mixxx" — daschuer wants bit-perfect decode, move DSP to effect rack instead
@@ -158,7 +166,7 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
     - Tested?: no
   - [x] **feature/2025.10oct.20-hotcues-on-overview-waveform** - [#15514](https://github.com/mixxxdj/mixxx/pull/15514) - DRAFT - REVIEW_REQUIRED
     - Issue: [#14994](https://github.com/mixxxdj/mixxx/issues/14994)
-    - Created: 2025-10-20, Last comment: 2026-01-19, Rebased: 2026-02-08, Updated: 2026-01-30
+    - Created: 2025-10-20, Last comment: 2026-01-19, Rebased: 2026-02-20, Updated: 2026-01-30
     - Next: Check recent comment, await review
     - Specifics:
       - PR marked stale (Jan 19 2026) — needs activity to unstale
@@ -169,7 +177,7 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
     - Tested?: no
   - [ ] **feature/2025.10oct.17-library-column-hotcue-count** - [#15462](https://github.com/mixxxdj/mixxx/pull/15462) - REVIEW_REQUIRED
     - Issue: [#15461](https://github.com/mixxxdj/mixxx/issues/15461)
-    - Created: 2025-10-17, Last comment: 2026-01-17, Rebased: 2026-02-08, Updated: 2026-01-30
+    - Created: 2025-10-17, Last comment: 2026-01-17, Rebased: 2026-02-20, Updated: 2026-01-30
     - Next: Check recent comment, await review
     - Specifics:
       - PR marked stale (Jan 17 2026) — needs activity to unstale
@@ -182,7 +190,7 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
     - Tested?: no
   - [x] **feature/2025.11nov.17-deere-channel-mute-buttons** - [#15624](https://github.com/mixxxdj/mixxx/pull/15624) - DRAFT - REVIEW_REQUIRED
     - Issue: [#15623](https://github.com/mixxxdj/mixxx/issues/15623)
-    - Created: 2025-11-17, Last comment: 2026-02-15, Rebased: 2026-02-08, Updated: 2026-02-15
+    - Created: 2025-11-17, Last comment: 2026-02-15, Rebased: 2026-02-20, Updated: 2026-02-15
     - Next: On hold - marked as DRAFT by ronso0
     - Specifics:
       - Marked as DRAFT by ronso0 (Feb 9)
@@ -195,7 +203,7 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
     - Tested?: yes
   - [x] **feature/2025.11nov.16-playback-position-control** - [#15617](https://github.com/mixxxdj/mixxx/pull/15617) - DRAFT - REVIEW_REQUIRED
     - Issue: [#14288](https://github.com/mixxxdj/mixxx/issues/14288)
-    - Created: 2025-11-16, Last comment: 2026-02-09, Rebased: 2026-02-08, Updated: 2026-02-09
+    - Created: 2025-11-16, Last comment: 2026-02-09, Rebased: 2026-02-20, Updated: 2026-02-09
     - Next: Await review — clarified scope with daschuer/ronso0
     - Specifics:
       - daschuer (Feb 9): "this feature already exists" (pref option) — clarified: pref has no CO for runtime control
@@ -204,7 +212,7 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
     - Tested?: no
   - [ ] **feature/2025.11nov.16-catalogue-number-column** - [#15616](https://github.com/mixxxdj/mixxx/pull/15616) - REVIEW_REQUIRED
     - Issue: [#12583](https://github.com/mixxxdj/mixxx/issues/12583)
-    - Created: 2025-11-16, Last comment: 2026-02-15, Rebased: 2026-02-08, Updated: 2026-02-15
+    - Created: 2025-11-16, Last comment: 2026-02-15, Rebased: 2026-02-20, Updated: 2026-02-15
     - Next: Await review
     - Specifics:
       - acolombier left review comment 2026-02-14; replied 2026-02-15
@@ -214,7 +222,7 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
     - Tested?: no
   - [x] **feature/2025.05may.14-fivefourths** - [#14780](https://github.com/mixxxdj/mixxx/pull/14780) - DRAFT - REVIEW_REQUIRED
     - Issue: [#14686](https://github.com/mixxxdj/mixxx/issues/14686)
-    - Created: 2025-05-14, Last comment: 2025-05-16, Rebased: 2026-02-08, Updated: 2026-02-08
+    - Created: 2025-05-14, Last comment: 2025-05-16, Rebased: 2026-02-20, Updated: 2026-02-08
     - Next: Update external manual, then await review
     - Specifics:
       - ~~Fix failing tests (Swiftb0y: "Next step would be to actually get the tests to pass")~~ done - BeatGridTest.Scale and BeatMapTest.Scale both pass
@@ -233,20 +241,20 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
       - Implement mono parameter in main waveform renderers
     - Tested?: no
   - [x] **feature/2025.10oct.14-waveform-hotcue-label-options**
-    - Created: 2025-10-14, Rebased: 2026-02-08, Updated: 2026-01-30
+    - Created: 2025-10-14, Rebased: 2026-02-20, Updated: 2026-01-30
     - Next: Maintain for personal use
   - [x] **feature/2025.10oct.08-utf8-string-controls**
     - Dependency for: hotcue-labelling, hotcue-label-options
-    - Created: 2025-10-08, Rebased: 2026-02-08, Updated: 2026-01-30
+    - Created: 2025-10-08, Rebased: 2026-02-20, Updated: 2026-01-30
     - Next: Maintain for personal use (not for upstream)
   - [x] **feature/2025.09sep.25-hotcue-labelling**
-    - Created: 2025-09-25, Rebased: 2026-02-08, Updated: 2026-01-30
+    - Created: 2025-09-25, Rebased: 2026-02-20, Updated: 2026-01-30
     - Next: Maintain for personal use
   - [x] **feature/2025.06jun.08-deere-deck-bg-colour**
-    - Created: 2025-06-08, Rebased: 2026-02-08, Updated: 2026-01-30
+    - Created: 2025-06-08, Rebased: 2026-02-20, Updated: 2026-01-30
     - Next: Maintain for personal use
   - [ ] **feature/2025.11nov.05-deere-waveform-zoom-deck-colors**
-    - Created: 2025-11-05, Rebased: 2026-02-08, Updated: 2026-01-30
+    - Created: 2025-11-05, Rebased: 2026-02-20, Updated: 2026-01-30
     - Next: Merge to integration, decide if PR-worthy
     - Specifics:
       - Evaluate if the Deere-specific waveform zoom deck color change is worth a PR or remains personal use
@@ -278,12 +286,12 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
 
 **Needs Attention (0 branches):** *(none)*
 
-- **Awaiting Review (13 branches):**
+- **Awaiting Review (14 branches):**
   - **Feedback addressed, awaiting re-review**: restore-last-library-selection, controller-wizard-quick-access, stacked-overview-waveform, hide-unenabled-controllers
   - **Architecture changes needed**: replace-libmodplug-with-libopenmpt (daschuer wants DSP moved to effect rack)
   - **On hold (DRAFT)**: deere-channel-mute-buttons (marked draft Feb 9, needs broader plan)
   - **Recent activity**: hotcues-on-overview-waveform (stale Jan 19), library-column-hotcue-count (stale Jan 17)
-  - **Clean PRs**: playback-position-control, catalogue-number-column, fivefourths (manual update needed), midi-makeinputhandler-null-engine
+  - **Clean PRs**: playback-position-control, catalogue-number-column, fivefourths (manual update needed), midi-makeinputhandler-null-engine, fix-learning-wizard-from-prefs-button (no PR yet)
   - **Abandoned (no PR)**: wglwidget-xcb-resize-gap (WA_PaintOnScreen causes heap corruption; gap is inherent)
 - **Local Development (2 branches):**
   - **Decide PR-worthiness**: deere-waveform-zoom-deck-colors
