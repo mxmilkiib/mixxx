@@ -4,7 +4,7 @@ INTEGRATION.md
 
 # Mixxx Integration Branch Configuration
 
-> Last updated: 2026-02-19 22:24
+> Last updated: 2026-02-20 02:30
 > URL: https://gist.github.com/mxmilkiib/5fb35c401736efed47ad7d78268c80b6
 > [RFC 2119](https://datatracker.ietf.org/doc/html/rfc2119)
 
@@ -102,8 +102,8 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
 - 🟡 **NEW FEATURES - Open PRs (REVIEW_REQUIRED)**
   - [x] **feature/2025.10oct.20-restore-last-library-selection** - [#15460](https://github.com/mixxxdj/mixxx/pull/15460) - DRAFT - REVIEW_REQUIRED
     - Issue: [#10125](https://github.com/mixxxdj/mixxx/issues/10125)
-    - Created: 2025-10-08, Last comment: 2026-02-18, Rebased: 2026-02-18, Updated: 2026-02-18
-    - Next: Await review
+    - Created: 2025-10-08, Last comment: 2026-02-18, Rebased: 2026-02-18, Updated: 2026-02-19
+    - Next: Await re-review — ronso0 CHANGES_REQUESTED (Nov 17) addressed in Feb 18 rebase
     - Specifics:
       - ~~Separate commits for changes~~ done - 4 commits with explanations
       - ~~Store selection with debounced saves~~ done - 3 second debounce timer
@@ -125,13 +125,14 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
     - Tested?: yes
   - [x] **feature/2025.10oct.21-stacked-overview-waveform** - [#15516](https://github.com/mixxxdj/mixxx/pull/15516) - DRAFT - REVIEW_REQUIRED
     - Issue: [#13265](https://github.com/mixxxdj/mixxx/issues/13265)
-    - Created: 2025-10-21, Last comment: 2025-10-27, Rebased: 2026-02-18, Updated: 2026-02-18
+    - Created: 2025-10-21, Last comment: 2026-02-17, Rebased: 2026-02-18, Updated: 2026-02-18
     - Next: Await review
     - Specifics:
       - ~~Remove redundant Stacked HSV and Stacked LMH renderers~~ done
       - ~~Remove unnecessary static_cast<int>~~ done
       - ~~Rename "Stacked (RGB)" to "Stacked"~~ done
       - All feedback addressed
+      - Left comment 2026-02-17 re: Filtered/Stacked naming confusion — see #15996
     - Tested?: yes
   - [x] **feature/2025.11nov.05-hide-unenabled-controllers** - [#15580](https://github.com/mixxxdj/mixxx/pull/15580) - REVIEW_REQUIRED
     - Issue: [#14275](https://github.com/mixxxdj/mixxx/issues/14275)
@@ -145,7 +146,7 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
     - Tested?: yes
   - [x] **feature/2025.10oct.21-replace-libmodplug-with-libopenmpt** - [#15519](https://github.com/mixxxdj/mixxx/pull/15519) - DRAFT - REVIEW_REQUIRED
     - Issue: [#9862](https://github.com/mixxxdj/mixxx/issues/9862)
-    - Created: 2025-10-25, Last comment: 2025-10-25, Rebased: 2026-02-08, Updated: 2026-01-30
+    - Created: 2025-10-25, Last comment: 2025-11-22, Rebased: 2026-02-08, Updated: 2026-01-30
     - Next: Address daschuer architecture feedback
     - Specifics:
       - DSP in SoundSource is "foreign to Mixxx" — daschuer wants bit-perfect decode, move DSP to effect rack instead
@@ -181,7 +182,7 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
     - Tested?: no
   - [x] **feature/2025.11nov.17-deere-channel-mute-buttons** - [#15624](https://github.com/mixxxdj/mixxx/pull/15624) - DRAFT - REVIEW_REQUIRED
     - Issue: [#15623](https://github.com/mixxxdj/mixxx/issues/15623)
-    - Created: 2025-11-17, Last comment: 2026-02-14, Rebased: 2026-02-08, Updated: 2026-02-14
+    - Created: 2025-11-17, Last comment: 2026-02-15, Rebased: 2026-02-08, Updated: 2026-02-15
     - Next: On hold - marked as DRAFT by ronso0
     - Specifics:
       - Marked as DRAFT by ronso0 (Feb 9)
@@ -194,19 +195,19 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
     - Tested?: yes
   - [x] **feature/2025.11nov.16-playback-position-control** - [#15617](https://github.com/mixxxdj/mixxx/pull/15617) - DRAFT - REVIEW_REQUIRED
     - Issue: [#14288](https://github.com/mixxxdj/mixxx/issues/14288)
-    - Created: 2025-11-16, Last comment: none, Rebased: 2026-02-08, Updated: 2026-01-30
-    - Next: Await review
+    - Created: 2025-11-16, Last comment: 2026-02-09, Rebased: 2026-02-08, Updated: 2026-02-09
+    - Next: Await review — clarified scope with daschuer/ronso0
     - Specifics:
-      - No review comments yet
-      - Adds `[Waveform],PlayMarkerPosition` ControlPotmeter (0.0–1.0)
-      - Clean PR, just needs reviewer attention
+      - daschuer (Feb 9): "this feature already exists" (pref option) — clarified: pref has no CO for runtime control
+      - ronso0 confirmed: if it's about changing marker pos on the fly, the pref option has no CO
+      - Adds `[Waveform],PlayMarkerPosition` ControlPotmeter (0.0–1.0) for runtime control
     - Tested?: no
   - [ ] **feature/2025.11nov.16-catalogue-number-column** - [#15616](https://github.com/mixxxdj/mixxx/pull/15616) - REVIEW_REQUIRED
     - Issue: [#12583](https://github.com/mixxxdj/mixxx/issues/12583)
-    - Created: 2025-11-16, Last comment: none, Rebased: 2026-02-08, Updated: 2026-01-30
+    - Created: 2025-11-16, Last comment: 2026-02-15, Rebased: 2026-02-08, Updated: 2026-02-15
     - Next: Await review
     - Specifics:
-      - No review comments yet
+      - acolombier left review comment 2026-02-14; replied 2026-02-15
       - Schema migration revision 40 — will conflict with hotcue-count branch (also schema change)
       - Removed from integration: schema change; keeping integration at upstream schema v40 until schema branches are stable
       - Uses MusicBrainz Picard tag mapping conventions
