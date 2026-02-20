@@ -4,7 +4,7 @@ INTEGRATION.md
 
 # Mixxx Integration Branch Configuration
 
-> Last updated: 2026-02-20 22:15
+> Last updated: 2026-02-20 22:30
 > URL: https://gist.github.com/mxmilkiib/5fb35c401736efed47ad7d78268c80b6
 > [RFC 2119](https://datatracker.ietf.org/doc/html/rfc2119)
 
@@ -69,6 +69,7 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
 > Integration patched 2026-02-19: midi-makeinputhandler-null-engine fix was missing from the rebuild — caused repeated SIGSEGV/SIGABRT on controller shutdown (MidiControllerJSProxy::makeInputHandler null shared_ptr). Re-merged.
 > Wayland root cause identified 2026-02-19: QOpenGLWindow subsurface resize blocks on compositor buffer realloc; workaround QT_QPA_PLATFORM=xcb
 > XCB resize gap 2026-02-19: WA_PaintOnScreen approach abandoned — WGLWidget lacks paintEngine(), causes heap corruption abort; gap is inherent to QOpenGLWindow+createWindowContainer
+> Integration updated 2026-02-20: added controlpickermenu-quickfx-deck-offset (#16019), fix-learning-wizard-from-prefs-button; fixed hotcue-labelling missing setLabel/slotHotcueLabelChangeRequest; build clean
 
 - 🔴 **Needs Attention (CHANGES_REQUESTED)**
   - *(none)*
@@ -256,7 +257,7 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
     - Created: 2025-10-08, Rebased: 2026-02-20, Updated: 2026-01-30
     - Next: Maintain for personal use (not for upstream)
   - [x] **feature/2025.09sep.25-hotcue-labelling**
-    - Created: 2025-09-25, Rebased: 2026-02-20, Updated: 2026-01-30
+    - Created: 2025-09-25, Rebased: 2026-02-20, Updated: 2026-02-20
     - Next: Maintain for personal use
   - [x] **feature/2025.06jun.08-deere-deck-bg-colour**
     - Created: 2025-06-08, Rebased: 2026-02-20, Updated: 2026-01-30
