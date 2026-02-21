@@ -50,6 +50,13 @@ QImage render(ConstWaveformPointer pWaveform,
                 dataSize,
                 signalColors,
                 mono);
+    } else if (type == mixxx::OverviewType::Simple) {
+        drawWaveformPartSimple(&painter,
+                pWaveform,
+                nullptr,
+                dataSize,
+                signalColors,
+                mono);
     } else {
         drawWaveformPartRGB(&painter,
                 pWaveform,
@@ -524,6 +531,50 @@ void drawWaveformPartStackedRGB(
             if (high > 0) {
                 pPainter->setPen(highColor);
                 pPainter->drawLine(x, 0, x, high);
+            }
+        }
+    }
+
+    if (start) {
+        *start = end;
+    }
+}
+
+void drawWaveformPartSimple(
+        QPainter* pPainter,
+        ConstWaveformPointer pWaveform,
+        int* start,
+        int end,
+        const WaveformSignalColors& signalColors,
+        bool mono) {
+    ScopedTimer t(QStringLiteral("waveformOverviewRenderer::drawNextPixmapPartSimple"));
+    int startVal = 0;
+    if (start) {
+        startVal = *start;
+    }
+
+    const QColor color = signalColors.getSignalColor();
+
+    if (mono) {
+        const qreal dy = pPainter->deviceTransform().dy();
+        pPainter->resetTransform();
+        pPainter->translate(0, 2 * dy);
+        pPainter->scale(1, -1);
+
+        pPainter->setPen(color);
+        for (int i = startVal, x = startVal / 2; i < end; i += 2, ++x) {
+            int all = pWaveform->getAll(i) + pWaveform->getAll(i + 1);
+            if (all > 0) {
+                pPainter->drawLine(x, 0, x, all);
+            }
+        }
+    } else {
+        pPainter->setPen(color);
+        for (int i = startVal, x = startVal / 2; i < end; i += 2, ++x) {
+            int allLeft = pWaveform->getAll(i);
+            int allRight = pWaveform->getAll(i + 1);
+            if (allLeft > 0 || allRight > 0) {
+                pPainter->drawLine(x, -allLeft, x, allRight);
             }
         }
     }

@@ -1,0 +1,64 @@
+#!/bin/bash
+
+# Mixxx GDB runner with UX enhancements and datetime logging
+# Usage: mixxx-gdb-run [additional mixxx args]
+# Gist: https://gist.github.com/mxmilkiib/da0d174d1bf80bd6d3f182d5e62186ec
+
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+USERNAME=$(id -un)
+LOG_FILE="${SCRIPT_DIR}/mixxx_gdb-${USERNAME}_${TIMESTAMP}.log"
+MIXXX_ARGS="--developer --controller-debug --debug-assert-break"
+
+MIXXX_EXE=""
+if [ -x "${SCRIPT_DIR}/build/mixxx" ]; then
+    MIXXX_EXE="${SCRIPT_DIR}/build/mixxx"
+elif [ -x "${PWD}/mixxx" ]; then
+    MIXXX_EXE="${PWD}/mixxx"
+elif [ -x "${HOME}/src/mixxx/build/mixxx" ]; then
+    MIXXX_EXE="${HOME}/src/mixxx/build/mixxx"
+fi
+
+if [ -z "${MIXXX_EXE}" ]; then
+    echo "Error: Could not find mixxx executable in ${SCRIPT_DIR}/build, current dir, or ${HOME}/src/mixxx/build." >&2
+    exit 1
+fi
+
+GDB_OPTS=(
+    -ex 'set pagination off'
+    -ex 'set print pretty on'
+    -ex 'set print frame-arguments scalars'
+    -ex 'set print thread-events off'
+    -ex 'set confirm off'
+    -ex 'set debuginfod enabled on'
+    -ex 'handle SIG32 nostop noprint'
+    -ex 'handle SIGPIPE nostop noprint'
+    -ex 'handle SIGUSR1 nostop noprint'
+    -ex 'handle SIGUSR2 nostop noprint'
+    -ex run
+    -ex 'bt full'
+    -ex 'info registers'
+    -ex 'thread apply all bt'
+)
+
+# Log alternatives: rr (record/replay), lldb (modern CLI), pwndbg/gef (GDB plugins), gdb-dashboard, Qt Creator, VS Code+Native Debug, gdbgui
+
+printf -v CMD '%q ' gdb --batch "${GDB_OPTS[@]}" --args "${MIXXX_EXE}" ${MIXXX_ARGS}
+CMD="${CMD% }"
+echo "Logging to: ${LOG_FILE}"
+
+{
+    echo "# ${CMD}"
+    echo ""
+    gdb --batch "${GDB_OPTS[@]}" --args "${MIXXX_EXE}" ${MIXXX_ARGS} 2>&1
+} | tee "$LOG_FILE"
+EXIT_CODE=${PIPESTATUS[0]}
+
+if [ "$EXIT_CODE" -eq 0 ]; then
+    rm -f "$LOG_FILE"
+    echo "Clean exit, log discarded."
+else
+    echo "Exit code ${EXIT_CODE}, log saved to: ${LOG_FILE}"
+fi
