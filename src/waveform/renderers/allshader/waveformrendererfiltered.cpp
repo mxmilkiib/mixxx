@@ -14,9 +14,11 @@ namespace allshader {
 WaveformRendererFiltered::WaveformRendererFiltered(
         WaveformWidgetRenderer* waveformWidget,
         bool bRgbStacked,
-        ::WaveformRendererSignalBase::Options options)
+        ::WaveformRendererSignalBase::Options options,
+        bool bLayered)
         : WaveformRendererSignalBase(waveformWidget, options),
-          m_bRgbStacked(bRgbStacked) {
+          m_bRgbStacked(bRgbStacked),
+          m_bLayered(bLayered) {
     initForRectangles<RGBMaterial>(0);
     setUsePreprocess(true);
 }
@@ -174,16 +176,35 @@ bool WaveformRendererFiltered::preprocessInner() {
         // + one for the horizontal axis, and uniform color materials,
         // instead of passing constant color as vertex.
 
-        for (int bandIndex = 0; bandIndex < 3; bandIndex++) {
-            max[bandIndex][0] *= bandGain[bandIndex];
-            max[bandIndex][1] *= bandGain[bandIndex];
+        if (m_bLayered) {
+            // Tail-to-tail: bands stacked outward from centre, no overlap.
+            // Each band starts where the previous one ended.
+            float topL = halfBreadth;
+            float topR = halfBreadth;
+            for (int bandIndex = 0; bandIndex < 3; bandIndex++) {
+                max[bandIndex][0] *= bandGain[bandIndex];
+                max[bandIndex][1] *= bandGain[bandIndex];
+                const float h0 = heightFactor * max[bandIndex][0];
+                const float h1 = heightFactor * max[bandIndex][1];
+                vertexUpdater[bandIndex].addRectangle(
+                        {fpos - halfPixelSize, topL - h0},
+                        {fpos + halfPixelSize, topR + h1},
+                        {rgb[bandIndex]});
+                topL -= h0;
+                topR += h1;
+            }
+        } else {
+            for (int bandIndex = 0; bandIndex < 3; bandIndex++) {
+                max[bandIndex][0] *= bandGain[bandIndex];
+                max[bandIndex][1] *= bandGain[bandIndex];
 
-            vertexUpdater[bandIndex].addRectangle(
-                    {fpos - halfPixelSize,
-                            halfBreadth - heightFactor * max[bandIndex][0]},
-                    {fpos + halfPixelSize,
-                            halfBreadth + heightFactor * max[bandIndex][1]},
-                    {rgb[bandIndex]});
+                vertexUpdater[bandIndex].addRectangle(
+                        {fpos - halfPixelSize,
+                                halfBreadth - heightFactor * max[bandIndex][0]},
+                        {fpos + halfPixelSize,
+                                halfBreadth + heightFactor * max[bandIndex][1]},
+                        {rgb[bandIndex]});
+            }
         }
 
         xVisualFrame += visualIncrementPerPixel;

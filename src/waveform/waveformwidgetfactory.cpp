@@ -597,6 +597,8 @@ bool WaveformWidgetFactory::widgetTypeSupportsUntilMark() const {
     case WaveformWidgetType::Simple:
     case WaveformWidgetType::HSV:
     case WaveformWidgetType::Stacked:
+    case WaveformWidgetType::Layered:
+    case WaveformWidgetType::Stems:
         return true;
     default:
         break;
@@ -611,6 +613,8 @@ bool WaveformWidgetFactory::widgetTypeSupportsStems() const {
     case WaveformWidgetType::Simple:
     case WaveformWidgetType::HSV:
     case WaveformWidgetType::Stacked:
+    case WaveformWidgetType::Layered:
+    case WaveformWidgetType::Stems:
         return true;
     default:
         break;
@@ -1055,6 +1059,18 @@ void WaveformWidgetFactory::evaluateWidgets() {
             supportedOptions[type] = allshader::WaveformWidget::supportedOptions(type);
 #endif
             break;
+        case WaveformWidgetType::Layered:
+#ifdef MIXXX_USE_QOPENGL
+            addHandle(collectedHandles, type, allshader::WaveformWidget::vars());
+            supportedOptions[type] = allshader::WaveformWidget::supportedOptions(type);
+#endif
+            break;
+        case WaveformWidgetType::Stems:
+#if defined(MIXXX_USE_QOPENGL) && defined(__STEM__)
+            addHandle(collectedHandles, type, allshader::WaveformWidget::vars());
+            supportedOptions[type] = allshader::WaveformWidget::supportedOptions(type);
+#endif
+            break;
         default:
             DEBUG_ASSERT(!"Unexpected WaveformWidgetType");
             continue;
@@ -1143,6 +1159,32 @@ WaveformWidgetAbstract* WaveformWidgetFactory::createStackedWaveformWidget(
     }
 }
 
+WaveformWidgetAbstract* WaveformWidgetFactory::createLayeredWaveformWidget(
+        WWaveformViewer* viewer, WaveformRendererSignalBase::Options options) {
+#ifdef MIXXX_USE_QOPENGL
+    WaveformWidgetBackend backend = getBackendFromConfig();
+    switch (backend) {
+    case WaveformWidgetBackend::AllShader:
+        return createAllshaderWaveformWidget(WaveformWidgetType::Type::Layered, viewer, options);
+#endif
+    default:
+        return new EmptyWaveformWidget(viewer->getGroup(), viewer);
+    }
+}
+
+WaveformWidgetAbstract* WaveformWidgetFactory::createStemsWaveformWidget(
+        WWaveformViewer* viewer, WaveformRendererSignalBase::Options options) {
+#if defined(MIXXX_USE_QOPENGL) && defined(__STEM__)
+    WaveformWidgetBackend backend = getBackendFromConfig();
+    if (backend == WaveformWidgetBackend::AllShader) {
+        return createAllshaderWaveformWidget(WaveformWidgetType::Type::Stems, viewer, options);
+    }
+#else
+    Q_UNUSED(options);
+#endif
+    return new EmptyWaveformWidget(viewer->getGroup(), viewer);
+}
+
 WaveformWidgetAbstract* WaveformWidgetFactory::createSimpleWaveformWidget(
         WWaveformViewer* viewer, WaveformRendererSignalBase::Options options) {
     WaveformWidgetBackend backend = getBackendFromConfig();
@@ -1196,6 +1238,12 @@ WaveformWidgetAbstract* WaveformWidgetFactory::createWaveformWidget(
             break;
         case WaveformWidgetType::Stacked:
             widget = createStackedWaveformWidget(viewer, options);
+            break;
+        case WaveformWidgetType::Layered:
+            widget = createLayeredWaveformWidget(viewer, options);
+            break;
+        case WaveformWidgetType::Stems:
+            widget = createStemsWaveformWidget(viewer, options);
             break;
         default:
             widget = new EmptyWaveformWidget(viewer->getGroup(), viewer);
@@ -1358,6 +1406,10 @@ QString WaveformWidgetAbstractHandle::getDisplayName(WaveformWidgetType::Type ty
         return QObject::tr("RGB");
     case WaveformWidgetType::Stacked:
         return QObject::tr("Stacked");
+    case WaveformWidgetType::Layered:
+        return QObject::tr("Layered");
+    case WaveformWidgetType::Stems:
+        return QObject::tr("Stems");
     default:
         return QObject::tr("Unknown");
     }
