@@ -4,7 +4,7 @@ INTEGRATION.md
 
 # Mixxx Integration Branch Configuration
 
-> Last updated: 2026-02-20 22:30
+> Last updated: 2026-02-21 00:03
 > URL: https://gist.github.com/mxmilkiib/5fb35c401736efed47ad7d78268c80b6
 > [RFC 2119](https://datatracker.ietf.org/doc/html/rfc2119)
 
@@ -62,7 +62,7 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
 
 ## Branch and Integration Status Outline
 
-**Summary**: 0 need attention, 17 awaiting review, 5 merged upstream, 8 local-only
+**Summary**: 0 need attention, 17 awaiting review, 5 merged upstream, 9 local-only
 
 > Integration rebuilt 2026-02-19: applied waveform FBO + openglwindow resize fixes; fixed hotcue-labelling merge (missing setLabel/slotHotcueLabelChangeRequest); merged midi-makeinputhandler-null-engine bugfix (was missing, caused SIGSEGV/SIGABRT on controller shutdown)
 > Integration rebuilt 2026-02-19 (second time): removed hotcue-count and catalogue-number branches — both require schema changes (v41, v42) that caused a cross-thread SQLite crash (SIGSEGV in BaseTrackCache::updateIndexWithQuery via Qt::DirectConnection on engine thread). Schema kept at upstream v40.
@@ -70,6 +70,7 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
 > Wayland root cause identified 2026-02-19: QOpenGLWindow subsurface resize blocks on compositor buffer realloc; workaround QT_QPA_PLATFORM=xcb
 > XCB resize gap 2026-02-19: WA_PaintOnScreen approach abandoned — WGLWidget lacks paintEngine(), causes heap corruption abort; gap is inherent to QOpenGLWindow+createWindowContainer
 > Integration updated 2026-02-20: added controlpickermenu-quickfx-deck-offset (#16019), fix-learning-wizard-from-prefs-button; fixed hotcue-labelling missing setLabel/slotHotcueLabelChangeRequest; build clean
+> Integration updated 2026-02-21: merged simple-waveform-top-and-overview (Simple to top of main waveform list; Simple overview type)
 
 - 🔴 **Needs Attention (CHANGES_REQUESTED)**
   - *(none)*
@@ -240,6 +241,13 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
       - Swiftb0y confirmed no performance implications from new COs
     - Tested?: yes
 - 🔵 **Local Only (No PR)**
+  - [x] **feature/2026.02feb.20-simple-waveform-top-and-overview**
+    - Created: 2026-02-20, Rebased: 2026-02-20, Updated: 2026-02-21
+    - Next: Evaluate PR-worthiness
+    - Specifics:
+      - Moves Simple to top of main waveform type combobox (after alphabetical sort)
+      - Adds Simple as an overview waveform type (amplitude envelope, signal color)
+    - Tested?: no
   - [ ] **feature/2026.02feb.17-mono-waveform-option**
     - Created: 2026-02-17, Rebased: none, Updated: 2026-02-17
     - Next: Implement mono waveform option for main deck waveforms
