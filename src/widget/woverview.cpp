@@ -1480,6 +1480,13 @@ bool WOverview::drawNextPixmapPart() {
                 &m_actualCompletion,
                 nextCompletion,
                 m_signalColors);
+    } else if (m_type == OverviewType::Simple) {
+        waveformOverviewRenderer::drawWaveformPartSimple(
+                &painter,
+                pWaveform,
+                &m_actualCompletion,
+                nextCompletion,
+                m_signalColors);
     } else { // OverviewType::RGB:
         waveformOverviewRenderer::drawWaveformPartRGB(
                 &painter,
