@@ -43,6 +43,16 @@ DlgPrefWaveform::DlgPrefWaveform(
     waveformOverviewComboBox->addItem(
             tr("Stacked"), QVariant::fromValue(OverviewType::StackedRGB));
     waveformOverviewComboBox->addItem(tr("Simple"), QVariant::fromValue(OverviewType::Simple));
+    {
+        int simpleIdx = waveformOverviewComboBox->findData(
+                QVariant::fromValue(OverviewType::Simple));
+        if (simpleIdx > 0) {
+            QString simpleName = waveformOverviewComboBox->itemText(simpleIdx);
+            QVariant simpleData = waveformOverviewComboBox->itemData(simpleIdx);
+            waveformOverviewComboBox->removeItem(simpleIdx);
+            waveformOverviewComboBox->insertItem(0, simpleName, simpleData);
+        }
+    }
     m_pTypeControl = std::make_unique<ControlPushButton>(kOverviewTypeCfgKey);
     m_pTypeControl->setStates(QMetaEnum::fromType<OverviewType>().keyCount());
     m_pTypeControl->setReadOnly();
