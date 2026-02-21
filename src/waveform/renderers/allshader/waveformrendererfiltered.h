@@ -14,7 +14,8 @@ class allshader::WaveformRendererFiltered final
   public:
     explicit WaveformRendererFiltered(WaveformWidgetRenderer* waveformWidget,
             bool rgbStacked,
-            ::WaveformRendererSignalBase::Options options);
+            ::WaveformRendererSignalBase::Options options,
+            bool layered = false);
 
     // Pure virtual from WaveformRendererSignalBase, not used
     void onSetup(const QDomNode& node) override;
@@ -24,6 +25,7 @@ class allshader::WaveformRendererFiltered final
 
   private:
     const bool m_bRgbStacked;
+    const bool m_bLayered;
     bool preprocessInner();
 
     DISALLOW_COPY_AND_ASSIGN(WaveformRendererFiltered);

@@ -17,6 +17,8 @@ class WaveformWidgetType {
         VSyncTest = 9, // 9  VSync GL
         RGB = 12,      // 12 RGB GLSL
         Stacked = 16,  // 16 RGB Stacked
+        Layered = 17,  // 17 LMH bands stacked tail-to-tail
+        Stems = 18,    // 18 Stem channels stacked tail-to-tail
         Invalid,       // Don't use! Used to indicate invalid/unknown type, as
                        // Count_WaveformWidgetType used to.
     };
@@ -28,6 +30,8 @@ class WaveformWidgetType {
             WaveformWidgetType::VSyncTest,
             WaveformWidgetType::RGB,
             WaveformWidgetType::Stacked,
+            WaveformWidgetType::Layered,
+            WaveformWidgetType::Stems,
     };
 };
 

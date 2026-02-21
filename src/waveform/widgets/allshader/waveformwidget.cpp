@@ -131,6 +131,11 @@ WaveformWidget::addWaveformSignalRenderer(WaveformWidgetType::Type type,
     case ::WaveformWidgetType::Stacked:
         return addWaveformSignalRenderer<WaveformRendererFiltered>(
                 true, options); // true for RGB Stacked
+    case ::WaveformWidgetType::Layered:
+        return addWaveformSignalRenderer<WaveformRendererFiltered>(
+                false, options, true); // false=LMH colours, true=layered tail-to-tail
+    case ::WaveformWidgetType::Stems:
+        return nullptr; // WaveformRendererStem handles stems-only rendering
     default:
         break;
     }
