@@ -4,7 +4,7 @@ INTEGRATION.md
 
 # Mixxx Integration Branch Configuration
 
-> Last updated: 2026-02-21 00:24
+> Last updated: 2026-02-21 01:45
 > URL: https://gist.github.com/mxmilkiib/5fb35c401736efed47ad7d78268c80b6
 > [RFC 2119](https://datatracker.ietf.org/doc/html/rfc2119)
 
@@ -71,6 +71,7 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
 > XCB resize gap 2026-02-19: WA_PaintOnScreen approach abandoned — WGLWidget lacks paintEngine(), causes heap corruption abort; gap is inherent to QOpenGLWindow+createWindowContainer
 > Integration updated 2026-02-20: added controlpickermenu-quickfx-deck-offset (#16019), fix-learning-wizard-from-prefs-button; fixed hotcue-labelling missing setLabel/slotHotcueLabelChangeRequest; build clean
 > Integration updated 2026-02-21: merged simple-waveform-top-and-overview (Simple to top of main waveform list; Simple overview type)
+> Integration updated 2026-02-21 (2): added Layered (LMH tail-to-tail) and Stems (stem channels) as main waveform types; build clean
 
 - 🔴 **Needs Attention (CHANGES_REQUESTED)**
   - *(none)*
@@ -126,6 +127,8 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
       - Moves Simple to top of main waveform type combobox (after alphabetical sort)
       - Adds Simple as an overview waveform type (amplitude envelope, signal color, stereo mirrored)
       - Moves Simple to top of overview waveform combobox
+      - Adds Layered (LMH bands stacked tail-to-tail) as main waveform type
+      - Adds Stems (stem channels stacked tail-to-tail, `__STEM__` only) as main waveform type
     - Tested?: no
   - [x] **feature/2025.10oct.20-restore-last-library-selection** - [#15460](https://github.com/mixxxdj/mixxx/pull/15460) - DRAFT - REVIEW_REQUIRED
     - Issue: [#10125](https://github.com/mixxxdj/mixxx/issues/10125)
