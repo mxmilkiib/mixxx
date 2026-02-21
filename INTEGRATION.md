@@ -4,7 +4,7 @@ INTEGRATION.md
 
 # Mixxx Integration Branch Configuration
 
-> Last updated: 2026-02-21 02:30
+> Last updated: 2026-02-21 03:30
 > URL: https://gist.github.com/mxmilkiib/5fb35c401736efed47ad7d78268c80b6
 > [RFC 2119](https://datatracker.ietf.org/doc/html/rfc2119)
 
@@ -27,6 +27,8 @@ INTEGRATION.md
 - The integration status outline MUST reflect the state of all branches, related issues, PRs, and dates, and MUST be updated after changes are committed — PR URLs SHOULD be checked first to catch new feedback
 - Most branches MAY have related upstream issues; related issues SHOULD be listed in the outline
 - Feature and fix branches should be in the correct outline sections
+- **Secondary patches** are small fixes that either (a) resolve a residual problem that only became visible after a larger fix landed, or (b) are a prerequisite that a main fix branch depends on. They MUST be tracked in the **Secondary Patches** section of the outline, with a `Depends-on` or `Resolves-residual-from` note linking them to the related primary branch
+- A secondary patch SHOULD be submitted upstream independently if it stands alone; if it only makes sense in context of the primary fix, it MAY be folded into that PR
 - Dates for branch creation, last PR comment, and last update MUST be recorded in the status outline
 - Each feature/fix branch SHOULD work standalone without depending on other local branches (except where noted)
 - Feature/fix branch history MUST NOT be rewritten unless the feature/fix is complete
@@ -102,7 +104,7 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
 
 ## Branch and Integration Status Outline
 
-**Summary**: 0 need attention, 18 awaiting review, 5 merged upstream, 8 local-only
+**Summary**: 0 need attention, 18 awaiting review, 5 merged upstream, 8 local-only, 1 secondary patch
 
 > Integration rebuilt 2026-02-19: applied waveform FBO + openglwindow resize fixes; fixed hotcue-labelling merge (missing setLabel/slotHotcueLabelChangeRequest); merged midi-makeinputhandler-null-engine bugfix (was missing, caused SIGSEGV/SIGABRT on controller shutdown)
 > Integration rebuilt 2026-02-19 (second time): removed hotcue-count and catalogue-number branches — both require schema changes (v41, v42) that caused a cross-thread SQLite crash (SIGSEGV in BaseTrackCache::updateIndexWithQuery via Qt::DirectConnection on engine thread). Schema kept at upstream v40.
@@ -114,10 +116,22 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
 > Integration updated 2026-02-21 (2): added Layered (LMH tail-to-tail) and Stems (stem channels) as main waveform types; build clean
 > Integration updated 2026-02-21 (3): added CQT spectrogram main waveform type (frequency-band heatmap, showcqt-style hue mapping); build clean
 > Integration updated 2026-02-21 (4): added Layered RGB (RGB colours, tail-to-tail); fixed CQT missing from mixxx-lib CMake target; build clean
+> Integration patched 2026-02-21 (5): added hid-init-race-on-enumeration secondary patch (explicit hid_init() before hid_enumerate prevents concurrent re-init crash from background descriptor fetch threads); WaveformRendererCQT zero visualIncrementPerPixel guard
 
 - 🔴 **Needs Attention (CHANGES_REQUESTED)**
   - *(none)*
-- 🟡 **BUG FIXES - Open PRs (REVIEW_REQUIRED)**
+- � **Secondary Patches**
+  - [x] **bugfix/2026.02feb.21-hid-init-race-on-enumeration** — LOCAL_ONLY
+    - Resolves-residual-from: `bugfix/2026.02feb.18-midi-makeinputhandler-null-engine`
+    - Created: 2026-02-21, Updated: 2026-02-21
+    - Next: Evaluate for upstream PR; assess if standalone or fold into midi-makeinputhandler PR
+    - Specifics:
+      - `hid_open()` calls `hid_init()` lazily; multiple `HidController` background threads (one per device) race to call it concurrently on startup
+      - `hid_init()` on the hidraw backend is not thread-safe — concurrent calls corrupt the udev context, crashing inside `hid_enumerate`
+      - Fix: call `hid_init()` explicitly on the main thread in `HidEnumerator::queryDevices()` before `hid_enumerate()` and before any `HidController` objects are constructed
+      - Triggered by 3+ HID devices (Launchpad Pro MK3, MPD218, BeatMix4) spawning concurrent background descriptor-fetch threads
+    - Tested?: yes (crash no longer reproduced)
+- �🟡 **BUG FIXES - Open PRs (REVIEW_REQUIRED)**
   - [x] **bugfix/2026.02feb.20-controlpickermenu-quickfx-deck-offset** - REVIEW_REQUIRED
     - Issue: [#16017](https://github.com/mixxxdj/mixxx/issues/16017)
     - Created: 2026-02-20, Last comment: none, Rebased: 2026-02-20, Updated: 2026-02-20
@@ -359,6 +373,8 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
   - **Recent activity**: hotcues-on-overview-waveform (stale Jan 19), library-column-hotcue-count (stale Jan 17)
   - **Clean PRs**: playback-position-control, catalogue-number-column, fivefourths (manual update needed), midi-makeinputhandler-null-engine, fix-learning-wizard-from-prefs-button (no PR yet), controlpickermenu-quickfx-deck-offset (track #16019)
   - **Abandoned (no PR)**: wglwidget-xcb-resize-gap (WA_PaintOnScreen causes heap corruption; gap is inherent)
+- **Secondary Patches (1 branch):**
+  - **Evaluate for upstream**: hid-init-race-on-enumeration (standalone fix or fold into midi-makeinputhandler PR)
 - **Local Development (2 branches):**
   - **Decide PR-worthiness**: deere-waveform-zoom-deck-colors
   - **Continue or archive**: tracker-module-stems
@@ -480,12 +496,14 @@ Branch naming convention: feature/YYYY.MMmon.DD-thing-descriptive-title
 - Within each section: `[x]` (integrated) branches first, then `[ ]` (not integrated) branches
 - Within each group (`[x]` or `[ ]`), sort by updated date (newest first)
 - STATUS is one of: DRAFT, REVIEW_REQUIRED, CHANGES_REQUESTED, MERGED, LOCAL_ONLY
+- Secondary patch entries use `Resolves-residual-from` or `Depends-on` instead of `Issue` to link to the primary branch
 
 ### Section Order
 1. Needs Attention (CHANGES_REQUESTED)
-2. Open PRs (REVIEW_REQUIRED)
-3. Local Only (No PR)
-4. Merged to Upstream
+2. Secondary Patches
+3. Open PRs (REVIEW_REQUIRED)
+4. Local Only (No PR)
+5. Merged to Upstream
 
 ### Summary Line
 **When updating integration**: Update the "Last updated" date at the top of this file.
