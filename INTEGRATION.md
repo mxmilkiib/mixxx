@@ -4,7 +4,7 @@ INTEGRATION.md
 
 # Mixxx Integration Branch Configuration
 
-> Last updated: 2026-02-21 02:10
+> Last updated: 2026-02-21 02:55
 > URL: https://gist.github.com/mxmilkiib/5fb35c401736efed47ad7d78268c80b6
 > [RFC 2119](https://datatracker.ietf.org/doc/html/rfc2119)
 
@@ -30,7 +30,8 @@ INTEGRATION.md
 - Dates for branch creation, last PR comment, and last update MUST be recorded in the status outline
 - Each feature/fix branch SHOULD work standalone without depending on other local branches (except where noted)
 - Feature/fix branch history MUST NOT be rewritten unless the feature/fix is complete
-- Ask Milkii for permission to squash/rebase; integration branch can have merge commits.
+- Ask Milkii for permission to squash/rebase; integration branch can have merge commits
+- **ALWAYS use `git merge` to bring branches into integration, NEVER `git cherry-pick`** — cherry-picking creates duplicate commits with different SHAs, severs the branch relationship, makes bisect/revert unreliable, and hides what is actually in the build from `git log`
 - Any fix or feature branch that relies on another local branch MUST be noted in the Branch Dependencies section
 - Some features (UTF-8 string controls) MUST NOT be submitted to `mixxxdj/mixxx` upstream as they are local-only/personal use
 - PRs SHOULD be submitted to `mxmilkiib/mixxx`, and Milkii will create a further PR from there to `mixxxdj/mixxx`.
@@ -42,6 +43,45 @@ INTEGRATION.md
 - When resolving merge conflicts during rebases, conflicts MUST be resolved and the rebase continued non-interactively
 - Code quality MUST be verified before pushing - code should be proper, straight to the point, robust, and follow Mixxx coding style
 - Permission MUST be sought from the user before pushing commits to GitHub.
+
+## Worktree Branch Hygiene
+
+**CRITICAL**: `mixxx-dev/` worktrees MUST only contain commits belonging to their named feature.
+
+- NEVER commit INTEGRATION.md, integration merge commits, or unrelated fixups into a feature worktree
+- INTEGRATION.md MUST NOT be committed to any feature branch in `mixxx-dev/`
+- Before making any edit in `mixxx-dev/`, confirm the active worktree matches the intended branch:
+  ```bash
+  git -C ~/src/mixxx-dev/<worktree>/ branch --show-current
+  ```
+- To verify a worktree is clean (only its own commits ahead of upstream/main):
+  ```bash
+  git -C ~/src/mixxx-dev/<worktree>/ log --oneline upstream/main..HEAD
+  ```
+- If a worktree has accumulated cruft, reset it:
+  - No real feature commits yet: `git reset --hard upstream/main`
+  - Has real commits mixed with cruft: rebase only the feature commits onto upstream/main, then force-update the branch ref
+
+### Preventing Cross-Branch Contamination
+
+- **ALWAYS create new feature branches from `upstream/main`, never from local `main`** — local `main` may have INTEGRATION.md commits or other local-only changes that will appear as extraneous commits in any upstream PR:
+  ```bash
+  git fetch upstream
+  git worktree add ~/src/mixxx-dev/<name> -b feature/<branch-name> upstream/main
+  ```
+- **Before committing WIP in any worktree**, verify the branch is correct AND that the diff contains only changes belonging to that feature:
+  ```bash
+  git -C ~/src/mixxx-dev/<worktree>/ diff --stat
+  git -C ~/src/mixxx-dev/<worktree>/ branch --show-current
+  ```
+- **If WIP from another feature is present in a worktree**, stash it before committing:
+  ```bash
+  git -C ~/src/mixxx-dev/<worktree>/ stash push --include-untracked -m "<description of what it is and where it belongs>"
+  ```
+- **Before opening or updating a PR**, verify the branch contains only its own commits relative to `upstream/main` (not local `main`):
+  ```bash
+  git log --oneline feature/<branch-name> --not upstream/main
+  ```
 
 ## Directory Structure
 
@@ -386,15 +426,30 @@ This process merges all `[x]` marked branches into the integration branch for a 
    - Update "Rebased" and "Updated" dates to today
    - Update the summary line counts
    - Update the "Last updated" date at the top
-9. **Build and verify**:
+9. **Build and verify** — integration branch MUST be rebuilt after any branch is added or cherry-picked:
+
+   Incremental rebuild (most common — after source changes):
    ```bash
-   cmake --build build --parallel
+   cmake --build /home/milkii/src/mixxx/build --target mixxx -- -j$(nproc --ignore=2)
    ```
-   - Basic functionality SHOULD be tested after build
+   Full reconfigure (only needed when new branches add CMakeLists changes or new source files):
+   ```bash
+   cmake -B /home/milkii/src/mixxx/build -S /home/milkii/src/mixxx -DCMAKE_BUILD_TYPE=RelWithDebInfo
+   cmake --build /home/milkii/src/mixxx/build --target mixxx -- -j$(nproc --ignore=2)
+   ```
+   Basic functionality SHOULD be tested after build.
+
 10. **Sync to Gist** (if INTEGRATION.md was updated):
     ```bash
     gh gist edit 5fb35c401736efed47ad7d78268c80b6 --filename INTEGRATION.md INTEGRATION.md
     ```
+
+## Checking PR Status
+
+```bash
+gh pr view <PR-number>
+gh pr list --repo mixxxdj/mixxx --author mxmilkiib
+```
 
 ## Outline Format Reference
 This section documents the structure of this file for AI assistants and future maintainers.
