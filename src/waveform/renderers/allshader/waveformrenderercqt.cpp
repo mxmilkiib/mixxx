@@ -78,6 +78,10 @@ bool WaveformRendererCQT::preprocessInner() {
     const double visualIncrementPerPixel =
             (lastVisualFrame - firstVisualFrame) / static_cast<double>(pixelLength);
 
+    if (visualIncrementPerPixel <= 0.0) {
+        return false;
+    }
+
     float allGain{1.0};
     float bandGain[3] = {1.0, 1.0, 1.0};
     getGains(&allGain, &bandGain[0], &bandGain[1], &bandGain[2]);
