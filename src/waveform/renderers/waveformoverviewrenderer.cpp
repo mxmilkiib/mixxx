@@ -2,6 +2,7 @@
 
 #include <QPainter>
 
+#include "engine/engine.h"
 #include "util/colorcomponents.h"
 #include "util/math.h"
 #include "util/timer.h"
@@ -33,6 +34,34 @@ QImage render(ConstWaveformPointer pWaveform,
                 mono);
     } else if (type == mixxx::OverviewType::Filtered) {
         drawWaveformPartLMH(&painter,
+                pWaveform,
+                nullptr,
+                dataSize,
+                signalColors,
+                mono);
+    } else if (type == mixxx::OverviewType::Layered) {
+        drawWaveformPartLayered(&painter,
+                pWaveform,
+                nullptr,
+                dataSize,
+                signalColors,
+                mono);
+    } else if (type == mixxx::OverviewType::Stems) {
+        drawWaveformPartStems(&painter,
+                pWaveform,
+                nullptr,
+                dataSize,
+                signalColors,
+                mono);
+    } else if (type == mixxx::OverviewType::Spectrographic) {
+        drawWaveformPartSpectrographic(&painter,
+                pWaveform,
+                nullptr,
+                dataSize,
+                signalColors,
+                mono);
+    } else if (type == mixxx::OverviewType::Gradient) {
+        drawWaveformPartGradient(&painter,
                 pWaveform,
                 nullptr,
                 dataSize,
@@ -318,6 +347,346 @@ void drawWaveformPartHSV(
             pPainter->setPen(color);
             pPainter->drawLine(QPoint(i / 2, -all[0]),
                     QPoint(i / 2, all[1]));
+        }
+    }
+
+    if (start) {
+        *start = end;
+    }
+}
+
+void drawWaveformPartLayered(
+        QPainter* pPainter,
+        ConstWaveformPointer pWaveform,
+        int* start,
+        int end,
+        const WaveformSignalColors& signalColors,
+        bool mono) {
+    ScopedTimer t(QStringLiteral("waveformOverviewRenderer::drawNextPixmapPartLayered"));
+    int startVal = 0;
+    if (start) {
+        startVal = *start;
+    }
+
+    const QColor lowColor = signalColors.getLowColor();
+    const QColor midColor = signalColors.getMidColor();
+    const QColor highColor = signalColors.getHighColor();
+
+    // Bands are stacked tail-to-tail: low from 0, mid starts where low ends,
+    // high starts where mid ends. Each band occupies its own segment of the
+    // column height with no overlap.
+    if (mono) {
+        const qreal dy = pPainter->deviceTransform().dy();
+        pPainter->resetTransform();
+        pPainter->translate(0, 2 * dy);
+        pPainter->scale(1, -1);
+
+        for (int i = startVal, x = startVal / 2; i < end; i += 2, ++x) {
+            const int low = pWaveform->getLow(i) + pWaveform->getLow(i + 1);
+            const int mid = pWaveform->getMid(i) + pWaveform->getMid(i + 1);
+            const int high = pWaveform->getHigh(i) + pWaveform->getHigh(i + 1);
+            int base = 0;
+            if (low > 0) {
+                pPainter->setPen(lowColor);
+                pPainter->drawLine(x, base, x, base + low);
+            }
+            base += low;
+            if (mid > 0) {
+                pPainter->setPen(midColor);
+                pPainter->drawLine(x, base, x, base + mid);
+            }
+            base += mid;
+            if (high > 0) {
+                pPainter->setPen(highColor);
+                pPainter->drawLine(x, base, x, base + high);
+            }
+        }
+    } else { // stereo: left upward, right downward
+        for (int i = startVal, x = startVal / 2; i < end; i += 2, ++x) {
+            // Left channel — draw upward (negative y)
+            int lowL = pWaveform->getLow(i);
+            int midL = pWaveform->getMid(i);
+            int highL = pWaveform->getHigh(i);
+            int base = 0;
+            if (lowL > 0) {
+                pPainter->setPen(lowColor);
+                pPainter->drawLine(x, -base, x, -(base + lowL));
+            }
+            base += lowL;
+            if (midL > 0) {
+                pPainter->setPen(midColor);
+                pPainter->drawLine(x, -base, x, -(base + midL));
+            }
+            base += midL;
+            if (highL > 0) {
+                pPainter->setPen(highColor);
+                pPainter->drawLine(x, -base, x, -(base + highL));
+            }
+            // Right channel — draw downward (positive y)
+            int lowR = pWaveform->getLow(i + 1);
+            int midR = pWaveform->getMid(i + 1);
+            int highR = pWaveform->getHigh(i + 1);
+            base = 0;
+            if (lowR > 0) {
+                pPainter->setPen(lowColor);
+                pPainter->drawLine(x, base, x, base + lowR);
+            }
+            base += lowR;
+            if (midR > 0) {
+                pPainter->setPen(midColor);
+                pPainter->drawLine(x, base, x, base + midR);
+            }
+            base += midR;
+            if (highR > 0) {
+                pPainter->setPen(highColor);
+                pPainter->drawLine(x, base, x, base + highR);
+            }
+        }
+    }
+
+    if (start) {
+        *start = end;
+    }
+}
+
+void drawWaveformPartStems(
+        QPainter* pPainter,
+        ConstWaveformPointer pWaveform,
+        int* start,
+        int end,
+        const WaveformSignalColors& signalColors,
+        bool mono) {
+    ScopedTimer t(QStringLiteral("waveformOverviewRenderer::drawNextPixmapPartStems"));
+    int startVal = 0;
+    if (start) {
+        startVal = *start;
+    }
+
+    // Fixed distinct colours for up to 4 stems. These approximate the
+    // typical stem colours used by Serato/Apple stem tracks.
+    static const QColor kStemColors[mixxx::kMaxSupportedStems] = {
+        QColor(0x4C, 0xAF, 0x50), // green  — drums
+        QColor(0x21, 0x96, 0xF3), // blue   — bass
+        QColor(0xFF, 0xC1, 0x07), // amber  — melody
+        QColor(0xF4, 0x43, 0x36), // red    — vocals
+    };
+
+    // If no stem data is present, fall back to signal colour for all channel.
+    if (!pWaveform->hasStem()) {
+        const QColor fallback = signalColors.getSignalColor();
+        if (mono) {
+            const qreal dy = pPainter->deviceTransform().dy();
+            pPainter->resetTransform();
+            pPainter->translate(0, 2 * dy);
+            pPainter->scale(1, -1);
+            pPainter->setPen(fallback);
+            for (int i = startVal, x = startVal / 2; i < end; i += 2, ++x) {
+                const int all = pWaveform->getAll(i) + pWaveform->getAll(i + 1);
+                if (all > 0) {
+                    pPainter->drawLine(x, 0, x, all);
+                }
+            }
+        } else {
+            pPainter->setPen(fallback);
+            for (int i = startVal, x = startVal / 2; i < end; i += 2, ++x) {
+                const int allL = pWaveform->getAll(i);
+                const int allR = pWaveform->getAll(i + 1);
+                if (allL > 0 || allR > 0) {
+                    pPainter->drawLine(x, -allL, x, allR);
+                }
+            }
+        }
+        if (start) {
+            *start = end;
+        }
+        return;
+    }
+
+    // Stems stacked tail-to-tail, same direction as Layered.
+    if (mono) {
+        const qreal dy = pPainter->deviceTransform().dy();
+        pPainter->resetTransform();
+        pPainter->translate(0, 2 * dy);
+        pPainter->scale(1, -1);
+
+        for (int i = startVal, x = startVal / 2; i < end; i += 2, ++x) {
+            int base = 0;
+            for (int s = 0; s < mixxx::kMaxSupportedStems; ++s) {
+                const int val = pWaveform->get(i).stems[s] +
+                        pWaveform->get(i + 1).stems[s];
+                if (val > 0) {
+                    pPainter->setPen(kStemColors[s]);
+                    pPainter->drawLine(x, base, x, base + val);
+                    base += val;
+                }
+            }
+        }
+    } else {
+        for (int i = startVal, x = startVal / 2; i < end; i += 2, ++x) {
+            // Left channel upward
+            int baseL = 0;
+            for (int s = 0; s < mixxx::kMaxSupportedStems; ++s) {
+                const int val = pWaveform->get(i).stems[s];
+                if (val > 0) {
+                    pPainter->setPen(kStemColors[s]);
+                    pPainter->drawLine(x, -baseL, x, -(baseL + val));
+                    baseL += val;
+                }
+            }
+            // Right channel downward
+            int baseR = 0;
+            for (int s = 0; s < mixxx::kMaxSupportedStems; ++s) {
+                const int val = pWaveform->get(i + 1).stems[s];
+                if (val > 0) {
+                    pPainter->setPen(kStemColors[s]);
+                    pPainter->drawLine(x, baseR, x, baseR + val);
+                    baseR += val;
+                }
+            }
+        }
+    }
+
+    if (start) {
+        *start = end;
+    }
+}
+
+void drawWaveformPartSpectrographic(
+        QPainter* pPainter,
+        ConstWaveformPointer pWaveform,
+        int* start,
+        int end,
+        const WaveformSignalColors& /*signalColors*/,
+        bool mono) {
+    ScopedTimer t(QStringLiteral("waveformOverviewRenderer::drawNextPixmapPartSpectrographic"));
+    int startVal = 0;
+    if (start) {
+        startVal = *start;
+    }
+
+    // Spectrographic: height = all, colour = hue mapped across the spectrum
+    // based on the low/mid/high balance. Low content shifts hue toward red
+    // (0°), mid toward green (120°), high toward blue/violet (240°).
+    // Saturation and value are fixed at 1.0 for maximum visibility.
+    QColor color;
+
+    if (mono) {
+        const qreal dy = pPainter->deviceTransform().dy();
+        pPainter->resetTransform();
+        pPainter->translate(0, 2 * dy);
+        pPainter->scale(1, -1);
+
+        for (int i = startVal, x = startVal / 2; i < end; i += 2, ++x) {
+            const int all = pWaveform->getAll(i) + pWaveform->getAll(i + 1);
+            if (all <= 0) {
+                continue;
+            }
+            const float low = pWaveform->getLow(i) + pWaveform->getLow(i + 1);
+            const float mid = pWaveform->getMid(i) + pWaveform->getMid(i + 1);
+            const float high = pWaveform->getHigh(i) + pWaveform->getHigh(i + 1);
+            const float total = low + mid + high;
+            const float hue = total > 0
+                    ? (low * 0.0f + mid * 120.0f + high * 240.0f) / total
+                    : 0.0f;
+            color.setHsvF(hue / 360.0f, 1.0f, 1.0f);
+            pPainter->setPen(color);
+            pPainter->drawLine(x, 0, x, all);
+        }
+    } else {
+        for (int i = startVal, x = startVal / 2; i < end; i += 2, ++x) {
+            const int allL = pWaveform->getAll(i);
+            const int allR = pWaveform->getAll(i + 1);
+            if (allL <= 0 && allR <= 0) {
+                continue;
+            }
+            // Derive hue from combined L+R band balance
+            const float low = pWaveform->getLow(i) + pWaveform->getLow(i + 1);
+            const float mid = pWaveform->getMid(i) + pWaveform->getMid(i + 1);
+            const float high = pWaveform->getHigh(i) + pWaveform->getHigh(i + 1);
+            const float total = low + mid + high;
+            const float hue = total > 0
+                    ? (low * 0.0f + mid * 120.0f + high * 240.0f) / total
+                    : 0.0f;
+            color.setHsvF(hue / 360.0f, 1.0f, 1.0f);
+            pPainter->setPen(color);
+            if (allL > 0) {
+                pPainter->drawLine(x, 0, x, -allL);
+            }
+            if (allR > 0) {
+                pPainter->drawLine(x, 0, x, allR);
+            }
+        }
+    }
+
+    if (start) {
+        *start = end;
+    }
+}
+
+void drawWaveformPartGradient(
+        QPainter* pPainter,
+        ConstWaveformPointer pWaveform,
+        int* start,
+        int end,
+        const WaveformSignalColors& signalColors,
+        bool mono) {
+    ScopedTimer t(QStringLiteral("waveformOverviewRenderer::drawNextPixmapPartGradient"));
+    int startVal = 0;
+    if (start) {
+        startVal = *start;
+    }
+
+    // Gradient: height = all, colour fades from full signal colour at the
+    // centre line to transparent at the tip. Each pixel of the column is
+    // drawn individually with alpha proportional to its distance from centre.
+    const QColor base = signalColors.getSignalColor();
+    const float br = base.redF();
+    const float bg = base.greenF();
+    const float bb = base.blueF();
+
+    if (mono) {
+        const qreal dy = pPainter->deviceTransform().dy();
+        pPainter->resetTransform();
+        pPainter->translate(0, 2 * dy);
+        pPainter->scale(1, -1);
+
+        for (int i = startVal, x = startVal / 2; i < end; i += 2, ++x) {
+            const int all = pWaveform->getAll(i) + pWaveform->getAll(i + 1);
+            if (all <= 0) {
+                continue;
+            }
+            for (int y = 0; y <= all; ++y) {
+                const float alpha = 1.0f - static_cast<float>(y) / static_cast<float>(all);
+                QColor c;
+                c.setRgbF(br, bg, bb, alpha);
+                pPainter->setPen(c);
+                pPainter->drawPoint(x, y);
+            }
+        }
+    } else {
+        for (int i = startVal, x = startVal / 2; i < end; i += 2, ++x) {
+            const int allL = pWaveform->getAll(i);
+            const int allR = pWaveform->getAll(i + 1);
+            // Left channel — upward
+            if (allL > 0) {
+                for (int y = 0; y <= allL; ++y) {
+                    const float alpha = 1.0f - static_cast<float>(y) / static_cast<float>(allL);
+                    QColor c;
+                    c.setRgbF(br, bg, bb, alpha);
+                    pPainter->setPen(c);
+                    pPainter->drawPoint(x, -y);
+                }
+            }
+            // Right channel — downward
+            if (allR > 0) {
+                for (int y = 0; y <= allR; ++y) {
+                    const float alpha = 1.0f - static_cast<float>(y) / static_cast<float>(allR);
+                    QColor c;
+                    c.setRgbF(br, bg, bb, alpha);
+                    pPainter->setPen(c);
+                    pPainter->drawPoint(x, y);
+                }
+            }
         }
     }
 

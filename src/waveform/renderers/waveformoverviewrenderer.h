@@ -41,4 +41,32 @@ void drawWaveformPartHSV(
         int end,
         const WaveformSignalColors& signalColors,
         bool mono = false);
+void drawWaveformPartLayered(
+        QPainter* pPainter,
+        ConstWaveformPointer pWaveform,
+        int* start,
+        int end,
+        const WaveformSignalColors& signalColors,
+        bool mono = false);
+void drawWaveformPartStems(
+        QPainter* pPainter,
+        ConstWaveformPointer pWaveform,
+        int* start,
+        int end,
+        const WaveformSignalColors& signalColors,
+        bool mono = false);
+void drawWaveformPartSpectrographic(
+        QPainter* pPainter,
+        ConstWaveformPointer pWaveform,
+        int* start,
+        int end,
+        const WaveformSignalColors& signalColors,
+        bool mono = false);
+void drawWaveformPartGradient(
+        QPainter* pPainter,
+        ConstWaveformPointer pWaveform,
+        int* start,
+        int end,
+        const WaveformSignalColors& signalColors,
+        bool mono = false);
 } // namespace waveformOverviewRenderer

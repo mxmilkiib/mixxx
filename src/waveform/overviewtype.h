@@ -10,6 +10,10 @@ enum class OverviewType {
     Filtered,
     HSV,
     RGB,
+    Layered,
+    Stems,
+    Spectrographic,
+    Gradient,
 };
 Q_ENUM_NS(OverviewType);
 

@@ -1515,6 +1515,38 @@ bool WOverview::drawNextPixmapPart() {
                 nextCompletion,
                 m_signalColors,
                 !m_stereo);
+    } else if (m_type == OverviewType::Layered) {
+        waveformOverviewRenderer::drawWaveformPartLayered(
+                &painter,
+                pWaveform,
+                &m_actualCompletion,
+                nextCompletion,
+                m_signalColors,
+                !m_stereo);
+    } else if (m_type == OverviewType::Stems) {
+        waveformOverviewRenderer::drawWaveformPartStems(
+                &painter,
+                pWaveform,
+                &m_actualCompletion,
+                nextCompletion,
+                m_signalColors,
+                !m_stereo);
+    } else if (m_type == OverviewType::Spectrographic) {
+        waveformOverviewRenderer::drawWaveformPartSpectrographic(
+                &painter,
+                pWaveform,
+                &m_actualCompletion,
+                nextCompletion,
+                m_signalColors,
+                !m_stereo);
+    } else if (m_type == OverviewType::Gradient) {
+        waveformOverviewRenderer::drawWaveformPartGradient(
+                &painter,
+                pWaveform,
+                &m_actualCompletion,
+                nextCompletion,
+                m_signalColors,
+                !m_stereo);
     } else { // OverviewType::RGB:
         waveformOverviewRenderer::drawWaveformPartRGB(
                 &painter,
