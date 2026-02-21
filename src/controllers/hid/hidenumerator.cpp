@@ -183,6 +183,15 @@ QList<Controller*> HidEnumerator::queryDevices() {
     }
 #else
 
+    // Explicitly initialise hidapi before hid_enumerate so the hidraw backend
+    // is fully set up on the main thread. Without this, background threads
+    // spawned by HidController::fetchReportDescriptorInBackground() can race
+    // to call hid_init() via hid_open(), causing crashes inside hid_enumerate
+    // when a device is removed mid-scan.
+    if (hid_init() != 0) {
+        qWarning() << "Failed to initialise hidapi";
+    }
+
     QStringList enumeratedDevices;
     hid_device_info* p_device_info_list = hid_enumerate(0x0, 0x0);
     for (const auto* p_device_info = p_device_info_list;
