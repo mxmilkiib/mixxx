@@ -10,6 +10,7 @@
 #include "waveform/renderers/allshader/waveformrendererfiltered.h"
 #include "waveform/renderers/allshader/waveformrendererhsv.h"
 #include "waveform/renderers/allshader/waveformrendererpreroll.h"
+#include "waveform/renderers/allshader/waveformrenderercqt.h"
 #include "waveform/renderers/allshader/waveformrendererrgb.h"
 #include "waveform/renderers/allshader/waveformrenderersimple.h"
 #include "waveform/renderers/allshader/waveformrendererslipmode.h"
@@ -136,6 +137,11 @@ WaveformWidget::addWaveformSignalRenderer(WaveformWidgetType::Type type,
                 false, options, true); // false=LMH colours, true=layered tail-to-tail
     case ::WaveformWidgetType::Stems:
         return nullptr; // WaveformRendererStem handles stems-only rendering
+    case ::WaveformWidgetType::CQT:
+        return addWaveformSignalRenderer<WaveformRendererCQT>(options);
+    case ::WaveformWidgetType::LayeredRGB:
+        return addWaveformSignalRenderer<WaveformRendererFiltered>(
+                true, options, true); // true=RGB colours, true=layered tail-to-tail
     default:
         break;
     }

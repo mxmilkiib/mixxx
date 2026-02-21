@@ -2018,6 +2018,7 @@ if(QOPENGL)
       src/waveform/renderers/allshader/waveformrendererrgb.cpp
       src/waveform/renderers/allshader/waveformrenderertextured.cpp
       src/waveform/renderers/allshader/waveformrenderersignalbase.cpp
+      src/waveform/renderers/allshader/waveformrenderercqt.cpp
       src/waveform/renderers/allshader/waveformrenderersimple.cpp
       src/waveform/renderers/allshader/waveformrendermark.cpp
       src/waveform/renderers/allshader/waveformrendermarkrange.cpp
