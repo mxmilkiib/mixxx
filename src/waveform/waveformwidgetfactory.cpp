@@ -1091,13 +1091,15 @@ void WaveformWidgetFactory::evaluateWidgets() {
         case WaveformWidgetType::Layered:
 #ifdef MIXXX_USE_QOPENGL
             addHandle(collectedHandles, type, allshader::WaveformWidget::vars());
-            supportedOptions[type] = allshader::WaveformWidget::supportedOptions(type);
+            supportedOptions[type] =
+                    allshader::WaveformWidget::supportedOptions(type, useGles);
 #endif
             break;
         case WaveformWidgetType::Stems:
 #if defined(MIXXX_USE_QOPENGL) && defined(__STEM__)
             addHandle(collectedHandles, type, allshader::WaveformWidget::vars());
-            supportedOptions[type] = allshader::WaveformWidget::supportedOptions(type);
+            supportedOptions[type] =
+                    allshader::WaveformWidget::supportedOptions(type, useGles);
 #endif
             break;
         default:
@@ -1269,10 +1271,10 @@ WaveformWidgetAbstract* WaveformWidgetFactory::createWaveformWidget(
             pWidget = createStackedWaveformWidget(pViewer, options);
             break;
         case WaveformWidgetType::Layered:
-            widget = createLayeredWaveformWidget(viewer, options);
+            pWidget = createLayeredWaveformWidget(pViewer, options);
             break;
         case WaveformWidgetType::Stems:
-            widget = createStemsWaveformWidget(viewer, options);
+            pWidget = createStemsWaveformWidget(pViewer, options);
             break;
         default:
             pWidget = new EmptyWaveformWidget(pViewer->getGroup(), pViewer);
