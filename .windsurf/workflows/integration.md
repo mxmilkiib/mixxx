@@ -115,6 +115,27 @@ Full reconfigure (only needed for new branches that add CMakeLists changes or ne
   - No real feature commits yet: `git reset --hard upstream/main`
   - Has real commits mixed with cruft: rebase only the feature commits onto upstream/main, then force-update the branch ref
 
+### Preventing Cross-Branch Contamination
+
+- **ALWAYS create new feature branches from `upstream/main`, never from local `main`** — local `main` may have INTEGRATION.md commits or other local-only changes that will appear as extraneous commits in any upstream PR:
+  ```bash
+   git fetch upstream
+   git worktree add /home/milkii/src/mixxx-dev/<name> -b feature/<branch-name> upstream/main
+  ```
+- **Before committing WIP in any worktree**, verify the branch is correct AND that the diff contains only changes belonging to that feature:
+  ```bash
+   git -C /home/milkii/src/mixxx-dev/<worktree>/ diff --stat
+   git -C /home/milkii/src/mixxx-dev/<worktree>/ branch --show-current
+  ```
+- **If WIP from another feature is present in a worktree**, stash it before committing:
+  ```bash
+   git -C /home/milkii/src/mixxx-dev/<worktree>/ stash push --include-untracked -m "<description of what it is and where it belongs>"
+  ```
+- **Before opening or updating a PR**, verify the branch contains only its own commits relative to `upstream/main` (not local `main`):
+  ```bash
+   git log --oneline feature/<branch-name> --not upstream/main
+  ```
+
 ## Checking PR Status
 
 Use GitHub CLI to check PR status:
