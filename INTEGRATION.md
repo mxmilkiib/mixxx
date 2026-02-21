@@ -4,47 +4,47 @@ INTEGRATION.md
 
 # Mixxx Integration Branch Configuration
 
-> Last updated: 2026-02-21 03:30
+> Last updated: 2026-02-21 03:33
 > URL: https://gist.github.com/mxmilkiib/5fb35c401736efed47ad7d78268c80b6
 > [RFC 2119](https://datatracker.ietf.org/doc/html/rfc2119)
 
 ## Overview / rules
 
-- This document tracks Milkii's personal Mixxx development setup, for creating and testing feature and bugfix branches.
-- This is a living document and SHOULD be updated as the workflow evolves.
-- The goal is to maintain two Mixxx source instances: a main `mixxx` repo and a `mixxx-dev` repo.
-- Both repos MUST maintain a `main` branch that is synced with `mixxxdj/mixxx` main.
-- The `mixxx-dev` repo MUST use worktrees to host individual feature/fix branches, keeping them clean for upstream PRs.
-- The `mixxx` repo MUST have an `integration` branch that combines multiple branches from the `mixxx-dev` repo.
-- All individual branch development should be done using the `mixxx-dev` directory repository
-- `mixxx` can have some edits for testing purposes, but should be kept minimal
-- A branch in `mixxx-dev` MUST have clean commits before first being linked with a GitHub PR
-- All branches SHOULD be kept up-to-date and rebased with `mixxxdj/mixxx` main to minimize merge conflicts, except merged branches
-- A branch MUST be rebased as an initial step before any new change is made to said branch
-- This dual setup SHOULD provide consistency for a stable bleeding-edge build without interference from local development.
-- The integration merge process MUST follow the steps in the **Integration Merge Process** section below.
-- Changes to `mixxxdj/mixxx` PRs MUST be incremental so as to be easy to review, and MUST NOT completely reformulate a system in a single commit.
-- The integration status outline MUST reflect the state of all branches, related issues, PRs, and dates, and MUST be updated after changes are committed — PR URLs SHOULD be checked first to catch new feedback
-- Most branches MAY have related upstream issues; related issues SHOULD be listed in the outline
-- Feature and fix branches should be in the correct outline sections
-- **Secondary patches** are small fixes that either (a) resolve a residual problem that only became visible after a larger fix landed, or (b) are a prerequisite that a main fix branch depends on. They MUST be tracked in the **Secondary Patches** section of the outline, with a `Depends-on` or `Resolves-residual-from` note linking them to the related primary branch
-- A secondary patch SHOULD be submitted upstream independently if it stands alone; if it only makes sense in context of the primary fix, it MAY be folded into that PR
-- Dates for branch creation, last PR comment, and last update MUST be recorded in the status outline
-- Each feature/fix branch SHOULD work standalone without depending on other local branches (except where noted)
-- Feature/fix branch history MUST NOT be rewritten unless the feature/fix is complete
-- Ask Milkii for permission to squash/rebase; integration branch can have merge commits
-- **ALWAYS use `git merge` to bring branches into integration, NEVER `git cherry-pick`** — cherry-picking creates duplicate commits with different SHAs, severs the branch relationship, makes bisect/revert unreliable, and hides what is actually in the build from `git log`
-- Any fix or feature branch that relies on another local branch MUST be noted in the Branch Dependencies section
-- Some features (UTF-8 string controls) MUST NOT be submitted to `mixxxdj/mixxx` upstream as they are local-only/personal use
-- PRs SHOULD be submitted to `mxmilkiib/mixxx`, and Milkii will create a further PR from there to `mixxxdj/mixxx`.
-- Once the PR is fully merged into `mixxxdj/mixxx`, the branch MUST be removed from integration tracking.
-- The "Last updated" date at the top of this file MUST be updated whenever this file is edited
-- If this file is updated, it MUST be synced to Gist: run `gh gist edit 5fb35c401736efed47ad7d78268c80b6 --filename INTEGRATION.md INTEGRATION.md` from `~/src/mixxx/` (`--filename` targets the gist file, the positional arg supplies the local content)
-- Commit messages must not be to verbose, and should be concise and descriptive.
-- Git operations MUST be non-interactive using `GIT_EDITOR=true` and `GIT_PAGER=cat` to avoid vim/editor prompts
-- When resolving merge conflicts during rebases, conflicts MUST be resolved and the rebase continued non-interactively
-- Code quality MUST be verified before pushing - code should be proper, straight to the point, robust, and follow Mixxx coding style
-- Permission MUST be sought from the user before pushing commits to GitHub.
+- **Purpose**: This document tracks Milkii's personal Mixxx development setup, for creating and testing feature and bugfix branches.
+- **Living document**: This is a living document and SHOULD be updated as the workflow evolves.
+- **Dual repo**: The goal is to maintain two Mixxx source instances: a main `mixxx` repo and a `mixxx-dev` repo.
+- **Main sync**: Both repos MUST maintain a `main` branch that is synced with `mixxxdj/mixxx` main.
+- **Worktrees**: The `mixxx-dev` repo MUST use worktrees to host individual feature/fix branches, keeping them clean for upstream PRs.
+- **Integration branch**: The `mixxx` repo MUST have an `integration` branch that combines multiple branches from the `mixxx-dev` repo.
+- **Dev location**: All individual branch development should be done using the `mixxx-dev` directory repository
+- **Integration edits**: `mixxx` can have some edits for testing purposes, but should be kept minimal
+- **Clean commits**: A branch in `mixxx-dev` MUST have clean commits before first being linked with a GitHub PR
+- **Rebase hygiene**: All branches SHOULD be kept up-to-date and rebased with `mixxxdj/mixxx` main to minimize merge conflicts, except merged branches
+- **Rebase first**: A branch MUST be rebased as an initial step before any new change is made to said branch
+- **Stability**: This dual setup SHOULD provide consistency for a stable bleeding-edge build without interference from local development.
+- **Merge process**: The integration merge process MUST follow the steps in the **Integration Merge Process** section below.
+- **Incremental PRs**: Changes to `mixxxdj/mixxx` PRs MUST be incremental so as to be easy to review, and MUST NOT completely reformulate a system in a single commit.
+- **Outline currency**: The integration status outline MUST reflect the state of all branches, related issues, PRs, and dates, and MUST be updated after changes are committed — PR URLs SHOULD be checked first to catch new feedback
+- **Issues**: Most branches MAY have related upstream issues; related issues SHOULD be listed in the outline
+- **Sections**: Feature and fix branches should be in the correct outline sections
+- **Secondary patches**: Secondary patches are small fixes that either (a) resolve a residual problem that only became visible after a larger fix landed, or (b) are a prerequisite that a main fix branch depends on. They MUST be tracked in the **Secondary Patches** section of the outline, with a `Depends-on` or `Resolves-residual-from` note linking them to the related primary branch
+- **Secondary patch upstream**: A secondary patch SHOULD be submitted upstream independently if it stands alone; if it only makes sense in context of the primary fix, it MAY be folded into that PR
+- **Dates**: Dates for branch creation, last PR comment, and last update MUST be recorded in the status outline
+- **Standalone branches**: Each feature/fix branch SHOULD work standalone without depending on other local branches (except where noted)
+- **History**: Feature/fix branch history MUST NOT be rewritten unless the feature/fix is complete
+- **Squash permission**: Ask Milkii for permission to squash/rebase; integration branch can have merge commits
+- **No cherry-pick**: ALWAYS use `git merge` to bring branches into integration, NEVER `git cherry-pick` — cherry-picking creates duplicate commits with different SHAs, severs the branch relationship, makes bisect/revert unreliable, and hides what is actually in the build from `git log`
+- **Dependencies**: Any fix or feature branch that relies on another local branch MUST be noted in the Branch Dependencies section
+- **Local-only**: Some features (UTF-8 string controls) MUST NOT be submitted to `mixxxdj/mixxx` upstream as they are local-only/personal use
+- **PR flow**: PRs SHOULD be submitted to `mxmilkiib/mixxx`, and Milkii will create a further PR from there to `mixxxdj/mixxx`.
+- **Merged cleanup**: Once the PR is fully merged into `mixxxdj/mixxx`, the branch MUST be removed from integration tracking.
+- **Last updated**: The "Last updated" date at the top of this file MUST be updated whenever this file is edited
+- **Gist sync**: If this file is updated, it MUST be synced to Gist: run `gh gist edit 5fb35c401736efed47ad7d78268c80b6 --filename INTEGRATION.md INTEGRATION.md` from `~/src/mixxx/` (`--filename` targets the gist file, the positional arg supplies the local content)
+- **Commit messages**: Commit messages must not be too verbose, and should be concise and descriptive.
+- **Non-interactive git**: Git operations MUST be non-interactive using `GIT_EDITOR=true` and `GIT_PAGER=cat` to avoid vim/editor prompts
+- **Conflict resolution**: When resolving merge conflicts during rebases, conflicts MUST be resolved and the rebase continued non-interactively
+- **Code quality**: Code quality MUST be verified before pushing — code should be proper, straight to the point, robust, and follow Mixxx coding style
+- **Push permission**: Permission MUST be sought from the user before pushing commits to GitHub.
 
 ## Worktree Branch Hygiene
 
@@ -131,7 +131,7 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
       - Fix: call `hid_init()` explicitly on the main thread in `HidEnumerator::queryDevices()` before `hid_enumerate()` and before any `HidController` objects are constructed
       - Triggered by 3+ HID devices (Launchpad Pro MK3, MPD218, BeatMix4) spawning concurrent background descriptor-fetch threads
     - Tested?: yes (crash no longer reproduced)
-- �🟡 **BUG FIXES - Open PRs (REVIEW_REQUIRED)**
+- �� **BUG FIXES - Open PRs (REVIEW_REQUIRED)**
   - [x] **bugfix/2026.02feb.20-controlpickermenu-quickfx-deck-offset** - REVIEW_REQUIRED
     - Issue: [#16017](https://github.com/mixxxdj/mixxx/issues/16017)
     - Created: 2026-02-20, Last comment: none, Rebased: 2026-02-20, Updated: 2026-02-20
