@@ -427,6 +427,10 @@ void DlgPrefController::showLearningWizard(bool suppressPrefsDialogOnClose) {
             &DlgControllerLearning::inputMappingsLearned,
             this,
             &DlgPrefController::midiInputMappingsLearned);
+
+    if (m_bPrefsDialogWasVisible) {
+        emit mappingStarted();
+    }
     connect(m_pDlgControllerLearning,
             &DlgControllerLearning::stopLearning,
             this,
