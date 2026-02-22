@@ -4,7 +4,7 @@ INTEGRATION.md
 
 # Mixxx Integration Branch Configuration
 
-> Last updated: 2026-02-22 09:00
+> Last updated: 2026-02-22 10:00
 > URL: https://gist.github.com/mxmilkiib/5fb35c401736efed47ad7d78268c80b6
 > [RFC 2119](https://datatracker.ietf.org/doc/html/rfc2119)
 
@@ -45,6 +45,13 @@ INTEGRATION.md
 - **Conflict resolution**: When resolving merge conflicts during rebases, conflicts MUST be resolved and the rebase continued non-interactively
 - **Code quality**: Code quality MUST be verified before pushing — code should be proper, straight to the point, robust, and follow Mixxx coding style
 - **Push permission**: Permission MUST be sought from the user before pushing commits to GitHub.
+- **"Updating" the system**: When the user asks to "update" or says the system has been updated, this MUST include all of the following post-update checks and tasks in order:
+  1. Fetch `upstream` and check for new commits on `upstream/main`
+  2. Rebase all worktree branches on new `upstream/main` (stash any WIP first); clean any branches with INTEGRATION.md or other cruft commits
+  3. Rebuild the `integration` branch: merge `upstream/main` then re-merge all `[x]` branches in order, resolving any conflicts
+  4. Build the integration branch (`cmake --build build --target mixxx -- -j$(nproc --ignore=2)`) and verify it succeeds
+  5. Check all open PRs for new review feedback (CHANGES_REQUESTED, new comments) and update INTEGRATION.md statuses accordingly
+  6. Update the "Last updated" timestamp and rebuild log entry in INTEGRATION.md, commit, and sync to Gist
 
 ## Worktree Branch Hygiene
 
@@ -144,12 +151,14 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
       - Upstream PR #16019 by ronso0 targets 2.6; this branch applies same fix to main
     - Tested?: no
   - [x] **bugfix/2026.02feb.20-fix-learning-wizard-from-prefs-button** - [#16018](https://github.com/mixxxdj/mixxx/pull/16018) - DRAFT - REVIEW_REQUIRED
-    - Created: 2026-02-20, Last comment: none, Rebased: 2026-02-22, Updated: 2026-02-20
-    - Next: Await review
+    - Created: 2026-02-20, Last comment: 2026-02-22 (ronso0), Rebased: 2026-02-22, Updated: 2026-02-20
+    - Next: Investigate ronso0's can't-reproduce; clarify reproduction steps and whether this is personal-branch-specific
     - Specifics:
       - DlgControllerLearning is parented to DlgPrefController (child of DlgPreferences)
       - Previously mappingStarted() emitted after show(), causing prefs dialog to cascade-hide the wizard
       - Fix: emit mappingStarted() before creating and showing the wizard
+      - ronso0 (Feb 22): can't reproduce on main/2.5; notes DlgControllerLearning is a QDialog (modal by default) so cascade-hide shouldn't apply; flagged description as AI-generated
+      - Need to verify: is this reproducible on plain upstream main, or only with controller-wizard-quick-access branch applied?
     - Tested?: yes
   - [x] **bugfix/2026.02feb.18-midi-makeinputhandler-null-engine** - [#16003](https://github.com/mixxxdj/mixxx/pull/16003) - REVIEW_REQUIRED
     - Created: 2026-02-18, Last comment: none, Rebased: 2026-02-22, Updated: 2026-02-18
@@ -216,8 +225,8 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
     - Tested?: yes
   - [x] **feature/2025.10oct.21-stacked-overview-waveform** - [#15516](https://github.com/mixxxdj/mixxx/pull/15516) - DRAFT - CHANGES_REQUESTED
     - Issue: [#13265](https://github.com/mixxxdj/mixxx/issues/13265)
-    - Created: 2025-10-21, Last comment: 2026-02-17, Rebased: 2026-02-22, Updated: 2026-02-18
-    - Next: Old CHANGES_REQUESTED (Oct 26) addressed; stale bot Jan 31; left naming comment Feb 17 — re-request review to unstale
+    - Created: 2025-10-21, Last comment: 2026-02-22 (mxmilkiib), Rebased: 2026-02-22, Updated: 2026-02-18
+    - Next: Stale bot fired (Feb 22); our naming comment (Feb 17) + clarification (Feb 22) are latest — re-request review to unstale; no new reviewer feedback
     - Specifics:
       - ~~Remove redundant Stacked HSV and Stacked LMH renderers~~ done
       - ~~Remove unnecessary static_cast<int>~~ done
@@ -237,7 +246,7 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
     - Tested?: yes
   - [x] **feature/2025.10oct.21-replace-libmodplug-with-libopenmpt** - [#15519](https://github.com/mixxxdj/mixxx/pull/15519) - DRAFT - REVIEW_REQUIRED
     - Issue: [#9862](https://github.com/mixxxdj/mixxx/issues/9862)
-    - Created: 2025-10-25, Last comment: 2025-11-22, Rebased: 2026-02-22, Updated: 2026-01-30
+    - Created: 2025-10-25, Last comment: 2026-02-22 (stale-bot), Rebased: 2026-02-22, Updated: 2026-01-30
     - Next: Address daschuer architecture feedback
     - Specifics:
       - DSP in SoundSource is "foreign to Mixxx" — daschuer wants bit-perfect decode, move DSP to effect rack instead
@@ -249,7 +258,7 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
     - Tested?: no
   - [x] **feature/2025.10oct.20-hotcues-on-overview-waveform** - [#15514](https://github.com/mixxxdj/mixxx/pull/15514) - DRAFT - REVIEW_REQUIRED
     - Issue: [#14994](https://github.com/mixxxdj/mixxx/issues/14994)
-    - Created: 2025-10-20, Last comment: 2026-01-19, Rebased: 2026-02-22, Updated: 2026-01-30
+    - Created: 2025-10-20, Last comment: 2026-02-22 (stale-bot), Rebased: 2026-02-22, Updated: 2026-01-30
     - Next: Check recent comment, await review
     - Specifics:
       - PR marked stale (Jan 19 2026) — needs activity to unstale
@@ -260,7 +269,7 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
     - Tested?: no
   - [ ] **feature/2025.10oct.17-library-column-hotcue-count** - [#15462](https://github.com/mixxxdj/mixxx/pull/15462) - REVIEW_REQUIRED
     - Issue: [#15461](https://github.com/mixxxdj/mixxx/issues/15461)
-    - Created: 2025-10-17, Last comment: 2026-01-17, Rebased: 2026-02-22, Updated: 2026-01-30
+    - Created: 2025-10-17, Last comment: 2026-02-22 (stale-bot), Rebased: 2026-02-22, Updated: 2026-01-30
     - Next: Check recent comment, await review
     - Specifics:
       - PR marked stale (Jan 17 2026) — needs activity to unstale
@@ -286,8 +295,8 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
     - Tested?: yes
   - [x] **feature/2025.11nov.16-playback-position-control** - [#15617](https://github.com/mixxxdj/mixxx/pull/15617) - DRAFT - REVIEW_REQUIRED
     - Issue: [#14288](https://github.com/mixxxdj/mixxx/issues/14288)
-    - Created: 2025-11-16, Last comment: 2026-02-09, Rebased: 2026-02-22, Updated: 2026-02-09
-    - Next: Await review — clarified scope with daschuer/ronso0
+    - Created: 2025-11-16, Last comment: 2026-02-22 (mxmilkiib), Rebased: 2026-02-22, Updated: 2026-02-09
+    - Next: Await review — ronso0 confirmed no CO exists for runtime marker pos; we reopened; scope is clear
     - Specifics:
       - daschuer (Feb 9): "this feature already exists" (pref option) — clarified: pref has no CO for runtime control
       - ronso0 confirmed: if it's about changing marker pos on the fly, the pref option has no CO
