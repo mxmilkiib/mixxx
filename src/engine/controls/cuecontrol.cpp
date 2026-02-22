@@ -2999,7 +2999,6 @@ void HotcueControl::slotHotcueLabelChangeRequest(double newValue) {
     m_hotcueLabelText->set(label);
 }
 
-
 mixxx::audio::FramePos HotcueControl::getPosition() const {
     return mixxx::audio::FramePos::fromEngineSamplePosMaybeInvalid(m_hotcuePosition->get());
 }
