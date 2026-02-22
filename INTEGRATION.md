@@ -152,16 +152,13 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
     - Tested?: no
   - [x] **bugfix/2026.02feb.20-fix-learning-wizard-from-prefs-button** - [#16018](https://github.com/mixxxdj/mixxx/pull/16018) - DRAFT - REVIEW_REQUIRED
     - Created: 2026-02-20, Last comment: 2026-02-22 (ronso0), Rebased: 2026-02-22, Updated: 2026-02-20
-    - Next: Investigate ronso0's can't-reproduce; clarify reproduction steps and whether this is personal-branch-specific
+    - Next: Close PR or fold fix into #15577 — bug does not exist on upstream/main
     - Specifics:
-      - DlgControllerLearning is parented to DlgPrefController (child of DlgPreferences)
-      - Previously mappingStarted() emitted after show(), causing prefs dialog to cascade-hide the wizard
-      - Fix: emit mappingStarted() before creating and showing the wizard
-      - ronso0 (Feb 22): can't reproduce on main/2.5; claims DlgControllerLearning is modal so cascade-hide shouldn't apply; flagged description as AI-generated
-      - Investigated: DlgControllerLearning sets Qt::Tool | Qt::WindowStaysOnTopHint — it is NOT modal; Qt::Tool windows are hidden when their parent is hidden
-      - mappingStarted() connects to DlgPreferences::hide() in dlgprefcontrollers.cpp:221 — on upstream/main this fires AFTER show(), hiding the just-shown wizard
-      - Bug is confirmed real on upstream/main; fix (emit before show) is correct
-      - Need to respond to ronso0 with reproduction steps and the Qt::Tool finding
+      - PR description's root cause is wrong: DlgControllerLearning uses Qt::Tool | Qt::WindowStaysOnTopHint — a top-level window; QWidget::hide() on a parent does NOT cascade to top-level children
+      - On upstream/main the flow is correct: wizard shows, then mappingStarted() hides prefs dialog — wizard stays visible, prefs gets out of the way; this is intentional
+      - ronso0 is right: not reproducible on main/2.5 because there is no bug there
+      - The actual problem: controller-wizard-quick-access (#15577) refactored showLearningWizard() to add m_bPrefsDialogWasVisible and conditional mappingStarted() emission — this broke the original prefs-button path in that branch
+      - Fix belongs inside #15577 as a self-correction, not as a standalone upstream PR
     - Tested?: yes
   - [x] **bugfix/2026.02feb.18-midi-makeinputhandler-null-engine** - [#16003](https://github.com/mixxxdj/mixxx/pull/16003) - REVIEW_REQUIRED
     - Created: 2026-02-18, Last comment: none, Rebased: 2026-02-22, Updated: 2026-02-18
