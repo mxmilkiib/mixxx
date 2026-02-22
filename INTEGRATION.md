@@ -157,8 +157,11 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
       - DlgControllerLearning is parented to DlgPrefController (child of DlgPreferences)
       - Previously mappingStarted() emitted after show(), causing prefs dialog to cascade-hide the wizard
       - Fix: emit mappingStarted() before creating and showing the wizard
-      - ronso0 (Feb 22): can't reproduce on main/2.5; notes DlgControllerLearning is a QDialog (modal by default) so cascade-hide shouldn't apply; flagged description as AI-generated
-      - Need to verify: is this reproducible on plain upstream main, or only with controller-wizard-quick-access branch applied?
+      - ronso0 (Feb 22): can't reproduce on main/2.5; claims DlgControllerLearning is modal so cascade-hide shouldn't apply; flagged description as AI-generated
+      - Investigated: DlgControllerLearning sets Qt::Tool | Qt::WindowStaysOnTopHint — it is NOT modal; Qt::Tool windows are hidden when their parent is hidden
+      - mappingStarted() connects to DlgPreferences::hide() in dlgprefcontrollers.cpp:221 — on upstream/main this fires AFTER show(), hiding the just-shown wizard
+      - Bug is confirmed real on upstream/main; fix (emit before show) is correct
+      - Need to respond to ronso0 with reproduction steps and the Qt::Tool finding
     - Tested?: yes
   - [x] **bugfix/2026.02feb.18-midi-makeinputhandler-null-engine** - [#16003](https://github.com/mixxxdj/mixxx/pull/16003) - REVIEW_REQUIRED
     - Created: 2026-02-18, Last comment: none, Rebased: 2026-02-22, Updated: 2026-02-18
