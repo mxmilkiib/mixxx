@@ -117,7 +117,7 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
 > Integration updated 2026-02-21 (3): added CQT spectrogram main waveform type (frequency-band heatmap, showcqt-style hue mapping); build clean
 > Integration updated 2026-02-21 (4): added Layered RGB (RGB colours, tail-to-tail); fixed CQT missing from mixxx-lib CMake target; build clean
 > Integration patched 2026-02-21 (5): added hid-init-race-on-enumeration secondary patch (explicit hid_init() before hid_enumerate prevents concurrent re-init crash from background descriptor fetch threads); WaveformRendererCQT zero visualIncrementPerPixel guard
-> Integration rebuilt 2026-02-22: rebased all branches on upstream/main (custom date format, DlgPrefLibrary style fixes, Traktor S4MK3 FX pref); cleaned experimental-overview-waveforms branch (had INTEGRATION.md cruft commits); updated PR statuses
+> Integration rebuilt 2026-02-22: rebased all branches on upstream/main (custom date format, DlgPrefLibrary style fixes, Traktor S4MK3 FX pref); cleaned experimental-overview-waveforms branch (had INTEGRATION.md cruft commits); updated PR statuses; merged all [x] branches; resolved conflicts: cuecontrol (utf8-string-controls), overviewtype/woverview (stacked-overview vs simple-waveform ordering), dlgprefcontroller (controller-wizard vs fix-learning-wizard)
 
 - 🔴 **Needs Attention (CHANGES_REQUESTED)**
   - [x] **feature/2025.11nov.04-controller-wizard-quick-access** - [#15577](https://github.com/mixxxdj/mixxx/pull/15577) — feedback addressed Feb 18, re-request review
