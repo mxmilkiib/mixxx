@@ -88,7 +88,7 @@ inline QString doubleToString(double value) {
     }
     
     // method 2: ascii unpacking
-    if (value >= 0x10000000 && value <= 0x7FFFFF00 + 0x10000000) {
+    if (value >= 0x10000000 && value <= 0x7FFFFF00u + 0x10000000u) {
         uint64_t packed = static_cast<uint64_t>(value - 0x10000000);
         QByteArray bytes;
         for (int i = 0; i < 4; ++i) {
