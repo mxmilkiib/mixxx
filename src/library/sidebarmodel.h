@@ -83,7 +83,7 @@ class SidebarModel : public QAbstractItemModel {
     void slotModelAboutToBeReset();
     void slotModelReset();
     void slotFeatureIsLoading(LibraryFeature*, bool selectFeature);
-    void restoreLastSelection();
+    bool restoreLastSelection();
     void slotFeatureLoadingFinished(LibraryFeature*);
 
   signals:
