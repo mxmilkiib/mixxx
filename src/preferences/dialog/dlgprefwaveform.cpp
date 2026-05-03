@@ -74,11 +74,15 @@ DlgPrefWaveform::DlgPrefWaveform(
     // Sort the combobox items alphabetically
     waveformTypeComboBox->model()->sort(0);
 
-    // Populate zoom options.
-    for (int i = static_cast<int>(WaveformWidgetRenderer::s_waveformMinZoom);
-            i <= static_cast<int>(WaveformWidgetRenderer::s_waveformMaxZoom);
-            i++) {
-        defaultZoomComboBox->addItem(QString::number(100 / static_cast<double>(i), 'f', 1) + " %");
+    // Populate zoom options. Sub-1.0 levels (zoom in beyond 100%) are listed
+    // first; integer levels follow. Index 0 is always the finest zoom-in level.
+    if (WaveformWidgetRenderer::s_waveformMinZoom < 1.0) {
+        defaultZoomComboBox->addItem(
+                QString::number(100.0 / WaveformWidgetRenderer::s_waveformMinZoom, 'f', 1) +
+                " %");
+    }
+    for (int i = 1; i <= static_cast<int>(WaveformWidgetRenderer::s_waveformMaxZoom); i++) {
+        defaultZoomComboBox->addItem(QString::number(100.0 / i, 'f', 1) + " %");
     }
 
     m_pOverviewStereoControl = std::make_unique<ControlObject>(
@@ -343,8 +347,14 @@ void DlgPrefWaveform::slotUpdate() {
     lowVisualGain->setValue(factory->getVisualGain(BandIndex::Low));
     midVisualGain->setValue(factory->getVisualGain(BandIndex::Mid));
     highVisualGain->setValue(factory->getVisualGain(BandIndex::High));
-    // Round zoom to int to get a default zoom index.
-    defaultZoomComboBox->setCurrentIndex(static_cast<int>(factory->getDefaultZoom()) - 1);
+    // Map zoom value to combo box index, accounting for any sub-1.0 prefix entries.
+    const int subOneCount =
+            (WaveformWidgetRenderer::s_waveformMinZoom < 1.0) ? 1 : 0;
+    const double defaultZoom = factory->getDefaultZoom();
+    const int zoomIndex = (defaultZoom < 1.0)
+            ? 0
+            : subOneCount + static_cast<int>(defaultZoom) - 1;
+    defaultZoomComboBox->setCurrentIndex(zoomIndex);
     playMarkerPositionSlider->setValue(static_cast<int>(factory->getPlayMarkerPosition() * 100));
     beatGridAlphaSpinBox->setValue(factory->getBeatGridAlpha());
     beatGridAlphaSlider->setValue(factory->getBeatGridAlpha());
@@ -435,7 +445,9 @@ void DlgPrefWaveform::slotResetToDefaults() {
     highVisualGain->setValue(WaveformWidgetFactory::getVisualGainDefault(BandIndex::High));
 
     // Default zoom level is 3 in WaveformWidgetFactory.
-    defaultZoomComboBox->setCurrentIndex(3 + 1);
+    const int subOneCount =
+            (WaveformWidgetRenderer::s_waveformMinZoom < 1.0) ? 1 : 0;
+    defaultZoomComboBox->setCurrentIndex(subOneCount + 3 - 1);
 
     synchronizeZoomCheckBox->setChecked(true);
 
@@ -700,7 +712,12 @@ void DlgPrefWaveform::slotSetWaveformOverviewType() {
 }
 
 void DlgPrefWaveform::slotSetDefaultZoom(int index) {
-    WaveformWidgetFactory::instance()->setDefaultZoom(index + 1);
+    const int subOneCount =
+            (WaveformWidgetRenderer::s_waveformMinZoom < 1.0) ? 1 : 0;
+    const double zoom = (index < subOneCount)
+            ? WaveformWidgetRenderer::s_waveformMinZoom
+            : static_cast<double>(index - subOneCount + 1);
+    WaveformWidgetFactory::instance()->setDefaultZoom(zoom);
 }
 
 void DlgPrefWaveform::slotSetZoomSynchronization(bool checked) {
