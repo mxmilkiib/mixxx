@@ -1,0 +1,199 @@
+name: Manjaro/Arch Release
+
+on:
+  push:
+    branches:
+      - integrated
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    container:
+      image: archlinux:latest
+      options: --privileged
+    steps:
+      - name: "Install base dependencies"
+        run: |
+          pacman -Syu --noconfirm
+          pacman -S --noconfirm --needed base-devel git cmake ninja ccache
+
+      - name: "Check out repository"
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: "Workaround for safe.directory in container"
+        run: git config --global --add safe.directory "${GITHUB_WORKSPACE}"
+
+      - name: "Ensure all tags are fetched"
+        run: git fetch origin --force --tags
+
+      - name: "Install Mixxx build dependencies"
+        run: |
+          set -e
+          pacman -S --needed --noconfirm \
+            protobuf vamp-plugin-sdk \
+            chromaprint libid3tag rubberband soundtouch \
+            lame libogg libmad libvorbis libmp4v2 faad2 opusfile wavpack \
+            libshout libsndfile portmidi portaudio \
+            sqlite upower lilv libebur128 libmodplug \
+            qt6-declarative qtkeychain-qt6 qt6-svg qt6-shadertools \
+            qt6-5compat qt6-multimedia-ffmpeg qt6-scxml microsoft-gsl \
+            hidapi ffmpeg fftw flac glu pipewire libusb jsoncpp \
+            gtest gmock
+
+          # taglib1 from AUR (needed for taglib 1.x compatibility)
+          if ! pacman -Qi taglib1 >/dev/null 2>&1; then
+            echo 'Building taglib1 from the AUR'
+            rm -rf /tmp/taglib1
+            git clone https://aur.archlinux.org/taglib1.git /tmp/taglib1
+            cd /tmp/taglib1
+            sed -i 's/arch=(x86_64)/arch=(x86_64 aarch64)/' PKGBUILD
+            makepkg -si --noconfirm --skippgpcheck
+          fi
+
+      - name: "Create build directory"
+        run: mkdir -p build
+
+      - name: "Configure"
+        run: >-
+          cmake
+          -DQT6=ON
+          -DQML=ON
+          -DBULK=ON
+          -DFFMPEG=ON
+          -DLOCALECOMPARE=ON
+          -DMAD=ON
+          -DMODPLUG=ON
+          -DWAVPACK=ON
+          -DINSTALL_USER_UDEV_RULES=OFF
+          -DCMAKE_BUILD_TYPE=RelWithDebInfo
+          -DWARNINGS_FATAL=OFF
+          -DDEBUG_ASSERTIONS_FATAL=OFF
+          -DBATTERY=ON
+          -DBROADCAST=ON
+          -DDOWNLOAD_MANUAL=ON
+          -DHID=ON
+          -DKEYFINDER=ON
+          -DLILV=ON
+          -DOPUS=ON
+          -DQTKEYCHAIN=ON
+          -DVINYLCONTROL=ON
+          -DCMAKE_VERBOSE_MAKEFILE=OFF
+          -L
+          ..
+        working-directory: build
+
+      - name: "Build"
+        run: cmake --build . --config RelWithDebInfo --parallel "$(nproc)"
+        working-directory: build
+        env:
+          CCACHE_NOCOMPRESS: true
+
+      - name: "Test"
+        run: ctest --timeout 45 --parallel "$(nproc)"
+        working-directory: build
+        env:
+          GTEST_COLOR: 1
+          CTEST_OUTPUT_ON_FAILURE: 1
+
+      - name: "Generate git describe"
+        id: git-describe
+        run: |
+          GIT_DESC=$(git describe --always --first-parent --dirty=-modified)
+          echo "git_describe=${GIT_DESC}" >> "$GITHUB_OUTPUT"
+          echo "GIT_DESC=${GIT_DESC}" >> "$GITHUB_ENV"
+
+      - name: "Install to staging directory"
+        run: |
+          DESTDIR="${GITHUB_WORKSPACE}/staging" cmake --install . --config RelWithDebInfo
+        working-directory: build
+
+      - name: "Create Manjaro/Arch package"
+        shell: bash
+        run: |
+          set -e
+          PKG_DIR="${GITHUB_WORKSPACE}/pkgbuild"
+          mkdir -p "${PKG_DIR}"
+
+          # Compute dependencies from the installed binaries
+          DEPS=$(ldd "${GITHUB_WORKSPACE}/staging/usr/bin/mixxx" 2>/dev/null \
+            | awk '/=> \// {print $3}' \
+            | while read -r lib; do pacman -Qo "$lib" 2>/dev/null; done \
+            | sed 's/.*is owned by \([^ ]*\) .*/\1/' \
+            | awk -F'[<>=]' '{print $1}' \
+            | sort -u \
+            | grep -v -E '^(gcc|glibc)$' \
+            | sed "s/^/'/; s/$/'/" \
+            | tr '\n' ' ')
+
+          STAGING="${GITHUB_WORKSPACE}/staging"
+          PKGVER="${GIT_DESC//-/_}"
+
+          cat > "${PKG_DIR}/PKGBUILD" << ENDOFPKGBUILD
+          # Maintainer: mxmilkiib
+          pkgname=mixxx-integrated
+          pkgver=${PKGVER}
+          pkgrel=1
+          pkgdesc="Digital DJ software (integration build)"
+          arch=('x86_64')
+          url="https://mixxx.org"
+          license=('GPL2')
+          depends=(${DEPS})
+          makedepends=('cmake' 'ninja')
+          options=('!strip' '!emptydirs')
+
+          package() {
+            cp -a "${STAGING}/usr" "\${pkgdir}/usr"
+          }
+          ENDOFPKGBUILD
+
+          cd "${PKG_DIR}"
+          makepkg -f --noconfirm --skippgpcheck
+
+          # Find the produced package
+          pkg_file=$(ls *.pkg.tar.zst 2>/dev/null | head -1)
+          if [ -z "$pkg_file" ]; then
+            echo "ERROR: No package file produced"
+            exit 1
+          fi
+          echo "PACKAGE_FILE=${PKG_DIR}/${pkg_file}" >> "$GITHUB_ENV"
+          echo "PACKAGE_NAME=${pkg_file}" >> "$GITHUB_ENV"
+
+      - name: "Upload package artifact"
+        uses: actions/upload-artifact@v7
+        with:
+          name: manjaro-package
+          path: ${{ env.PACKAGE_FILE }}
+          archive: "false"
+
+      - name: "Create or update GitHub Release"
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: integrated-latest
+          name: "Mixxx Integration Build (${{ steps.git-describe.outputs.git_describe }})"
+          body: |
+            ## Manjaro/Arch Linux Package
+
+            Built from the `integrated` branch at commit ${{ steps.git-describe.outputs.git_describe }}.
+
+            ### Install
+
+            ```bash
+            sudo pacman -U ${{ env.PACKAGE_NAME }}
+            ```
+
+            ### Notes
+
+            - This is an unsigned integration build for testing purposes
+            - Built on Arch Linux, compatible with Manjaro and other Arch derivatives
+            - Dependencies are resolved automatically by pacman
+          files: ${{ env.PACKAGE_FILE }}
+          prerelease: true
+          draft: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
