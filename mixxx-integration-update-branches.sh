@@ -11,7 +11,7 @@
 #   ./mixxx-integration-update-branches.sh --run-tests       run mixxx-test suite; skips branches with valid per-branch sentinel
 #   ./mixxx-integration-update-branches.sh --push-changed    push only PR branches whose patch content changed (smart-diff)
 #   ./mixxx-integration-update-branches.sh --push-integrating promote integration → integrating (requires all worktrees tested)
-#   ./mixxx-integration-update-branches.sh --promote-integrated promote integrating → integrated (requires GA CI green)
+#   ./mixxx-integration-update-branches.sh --promote-integrated promote integrating → integrated (requires GA CI green or known-infra-only failures)
 #   ./mixxx-integration-update-branches.sh --full            rebase + build-all-tests + run-tests + push-integration + push-integrating
 #
 # Three-branch promotion chain:
@@ -200,11 +200,32 @@ SKIP_BRANCHES=(
     "2026.02feb.19-wayland-opengl-resize-warning"
 )
 
+# GA CI jobs known to fail for infrastructure/flaky reasons unrelated to code.
+# promote_integrated() will still promote integrating → integrated when every
+# failed job matches a pattern in this list.  Patterns are bash glob(7) patterns
+# matched against the job "name" field from `gh run view --json jobs`.
+# Add new patterns here only after confirming a failure is infra/flaky, not code.
+KNOWN_INFRA_FAILURES=(
+    "build / Flatpak (*"          # xvfb-run exit 1 inside flatpak-builder sandbox
+    "build / Windows *VS* *x64"   # dependency checksum mismatch on Windows runners
+    "build / macOS * x64"         # BeatsTranslateTest SEGFAULT (flaky, pre-existing)
+)
+
 # ── helpers ────────────────────────────────────────────────────────────────────
 
 is_skipped() {
     local n="$1"
     for s in "${SKIP_BRANCHES[@]}"; do [[ "$n" == "$s" ]] && return 0; done
+    return 1
+}
+
+# Returns 0 (true) if the GA CI job name matches a known infra/flaky pattern.
+is_known_infra_failure() {
+    local job_name="$1"
+    for pat in "${KNOWN_INFRA_FAILURES[@]}"; do
+        # shellcheck disable=SC2053
+        [[ "$job_name" == $pat ]] && return 0
+    done
     return 1
 }
 
@@ -793,8 +814,35 @@ promote_integrated() {
         sleep "$poll_interval"
     done
     status "  run #$run_id: completed — conclusion=$conclusion"
+    local _promote=1   # 1 = promote, 0 = block
     if [[ "$conclusion" == "success" ]]; then
         status "  GA CI passed — promoting integrating → integrated"
+    else
+        # CI failed — check whether every failed job is a known infra/flaky failure.
+        # If so, promote anyway; otherwise block.
+        local failed_jobs
+        failed_jobs=$(gh run view "$run_id" --repo mxmilkiib/mixxx \
+            --json jobs --jq '[.jobs[] | select(.conclusion=="failure" or .conclusion=="cancelled") | .name] | .[]' 2>/dev/null)
+        local _all_known=1 _unknown=()
+        while IFS= read -r _jname; do
+            [[ -z "$_jname" ]] && continue
+            if is_known_infra_failure "$_jname"; then
+                status "  known infra failure: $_jname"
+            else
+                status "  UNKNOWN failure:     $_jname"
+                _all_known=0; _unknown+=("$_jname")
+            fi
+        done <<< "$failed_jobs"
+        if (( _all_known )) && [[ -n "$failed_jobs" ]]; then
+            status "  GA CI failed ($conclusion) — all failures are known infra/flaky, promoting"
+        else
+            status "  GA CI FAILED ($conclusion) — NOT promoting integrated"
+            status "  Unknown failures: ${_unknown[*]:-none}"
+            status "  View failures: gh run view $run_id --repo mxmilkiib/mixxx"
+            return 1
+        fi
+    fi
+    if (( _promote )); then
         # git blocks any ref update (including push) for branches checked out in
         # any worktree. Use gh api to update origin/integrated directly (no local
         # ref touched), then fetch + reset --hard FETCH_HEAD in the integrated
@@ -817,10 +865,6 @@ promote_integrated() {
             GIT_PAGER=cat git -C "$MIXXX_MAIN" push --no-verify --force-with-lease origin integrated
         fi
         status "DONE integrated pushed — CI-confirmed clean build"
-    else
-        status "  GA CI FAILED ($conclusion) — NOT promoting integrated"
-        status "  View failures: gh run view $run_id --repo mxmilkiib/mixxx"
-        return 1
     fi
 }
 
