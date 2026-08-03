@@ -2,7 +2,7 @@ prompt: Mixxx personal integration system — worktree-per-branch development, a
 
 # Mixxx Integration Branch Configuration
 
-> Last updated: 2026-07-16 06:21 (session 10)
+> Last updated: 2026-08-03 11:14 (session 11)
 > URL: https://gist.github.com/mxmilkiib/5fb35c401736efed47ad7d78268c80b6
 > [RFC 2119](https://datatracker.ietf.org/doc/html/rfc2119)
 
@@ -249,17 +249,20 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
       - Restores m_dirty flag: defers extra paintGL+swapBuffers from resizeGL to next vsync
       - Does not fix Wayland resize lag (compositor-level issue)
     - Tested?: yes
-  - [x] **bugfix/2026.02feb.19-wayland-opengl-resize-warning** - [#16014](https://github.com/mixxxdj/mixxx/pull/16014) - REVIEW_REQUIRED
-    - Issue: [#16013](https://github.com/mixxxdj/mixxx/issues/16013)
-    - Created: 2026-02-19, Last comment: 2026-05-26 (daschuer), Rebased: 2026-07-16, Updated: 2026-07-16
-    - Next: Address acolombier CHANGES_REQUESTED — use more generic warning message mentioning spinny issues, not just resize events
+  - [ ] **bugfix/2026.02feb.19-wayland-opengl-resize-warning** - [#16014](https://github.com/mixxxdj/mixxx/pull/16014) - REVIEW_REQUIRED
+    - Issue: [#16013](https://github.com/mixxxdj/mixxx/issues/16013), related [#13814](https://github.com/mixxxdj/mixxx/issues/13814)
+    - Created: 2026-02-19, Last comment: 2026-08-03 (daschuer), Rebased: 2026-08-03, Updated: 2026-08-03
+    - Next: Await review — rebased onto 2.6 per daschuer, daschuer CHANGES_REQUESTED addressed 2026-08-03, marked ready for review
+    - Note: NOT in integration merges — branch now targets upstream/2.6, merging into main-based integration would drag in the 2.6↔main delta
     - Specifics:
       - Wayland + QOpenGLWindow subsurface resize causes synchronous compositor buffer realloc on every pixel of drag
       - Workaround: QT_QPA_PLATFORM=xcb (XWayland)
       - Adds qWarning at startup when Wayland detected with OpenGL waveforms and spinny widgets
+      - Warning fires once per session (static flag), not per OpenGLWindow construction
       - Detection uses `startsWith("wayland")` to cover Qt5 variants (wayland-egl, wayland-generic, wayland-xcomposite-egl, wayland-xcomposite-glx)
-      - References issues #16013 (slow resize) and #14492 (sticky mouse on waveform)
-    - Tested?: yes
+      - MIXXX_USE_QOPENGL guard removed per daschuer — getSurfaceFormat callers are already GL-gated
+      - References issues #16013 (slow resize), #14492 (sticky mouse on waveform) and #13814 (resize mouse defocus, GLSL types)
+    - Tested?: yes (1174 tests pass on 2.6 base, 2026-08-03; stale pre-rebase mixxx-test binary was hanging the pre-push hook — rebuilt)
 - 🟡 **NEW FEATURES - Open PRs (REVIEW_REQUIRED)**
   - [x] **feature/2026.05may.03-extend-waveform-zoom-range** — No PR yet
     - Created: 2026-05-03, Rebased: 2026-07-16, Updated: 2026-05-03
@@ -438,12 +441,13 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
 - Integration initiated 2026-06-18: 182 new upstream commits (SoundManager refactor, cmake4 fix, BPM-lock crash fix, non-latin char SoundSource test, FLAC recording fix, instantaneous-frequency detector, LateNightQML colour schemes + QML fixes, shout API warnings, library header assert crash fix); #16003 (midi-makeinputhandler-null-engine) merged upstream — moved to Merged to Upstream, worktree removed; simple-waveform-top-and-overview sentinel stale (updated 2026-05-28/29, needs re-test)
 - Integration updated 2026-06-18: taglib 1.x→2.x system upgrade required full cmake cache wipe (CMakeCache.txt + libdjinterop ExternalProject stamp dirs) and Ninja reconfigure across all 21 worktrees; 21/21 rebuilt clean against taglib 2.3; 21/21 tests pass; integrating pushed (d4ac90d11b); GA CI queued
 - Integration rebuilt 2026-07-16: rebased all 21 active branches on upstream/main; integration branch rebuilt from scratch (reset to upstream/main, merged all 20 [x] branches in order); resolved conflicts in overviewtype.h + waveformoverviewrenderer.cpp/h + woverview.cpp (StackedRGB+Simple coexistence), dlgprefwaveform.cpp (redundant sort+move code from simple-waveform dropped — waveform-menu-order already handles ordering), cuecontrol.cpp/h (setLabel+slotHotcueLabelChangeRequest), dlgprefcontroller.h (showLearningWizard); build clean (5m7s); 21/21 tests pass (42m14s); integration + integrating pushed (d318386f49); GA CI triggered — 3 failures (Windows: dependency checksum mismatch, Flatpak: xvfb-run exit 1, macOS: BeatsTranslateTest SEGFAULT — all infrastructure/flaky, none code-related); rerun requested
+- wayland-opengl-resize-warning 2026-08-03: rebased onto upstream/2.6 per daschuer request (#16014 was main-based, PR retargeted to 2.6); [x] removed — excluded from main-based integration merges; addressed daschuer CHANGES_REQUESTED (dropped redundant MIXXX_USE_QOPENGL guard, warn-once static flag, linked #13814); replied to wayland-egl question; stale Jul-16 mixxx-test binary was hanging pre-push hook at 420s timeout — rebuilt against 2.6 base, 1174 tests pass; pushed (4557b82e49), PR marked ready for review
 
 ---
 
 ## TODO Summary
 
-- **CHANGES_REQUESTED (7 PRs):** waveform-menu-order (#16046 — daschuer: don't sort combobox with lambda, adjust order in factory), simple-waveform-top-and-overview (#16021 — daschuer: upgrade path changes RGB to Simple, default should remain RGB), wayland-opengl-resize-warning (#16014 — acolombier: more generic message mentioning spinny issues), playback-position-control (#15617 — ronso0: tooltip wording + null check pattern, addressed 2026-05-26), controller-wizard-quick-access (#15577 — ronso0: disconnect logic + range-for, addressed Feb 18), stacked-overview-waveform (#15516 — ronso0: remove redundant HSV/LMH renderers, addressed), restore-last-library-selection (#15460 — daschuer+ronso0: size check, programmatic string, match() instead of manual iteration, addressed 2026-02-28)
+- **CHANGES_REQUESTED (7 PRs):** waveform-menu-order (#16046 — daschuer: don't sort combobox with lambda, adjust order in factory), simple-waveform-top-and-overview (#16021 — daschuer: upgrade path changes RGB to Simple, default should remain RGB), wayland-opengl-resize-warning (#16014 — daschuer: drop MIXXX_USE_QOPENGL guard, addressed 2026-08-03; rebased to 2.6, ready for review), playback-position-control (#15617 — ronso0: tooltip wording + null check pattern, addressed 2026-05-26), controller-wizard-quick-access (#15577 — ronso0: disconnect logic + range-for, addressed Feb 18), stacked-overview-waveform (#15516 — ronso0: remove redundant HSV/LMH renderers, addressed), restore-last-library-selection (#15460 — daschuer+ronso0: size check, programmatic string, match() instead of manual iteration, addressed 2026-02-28)
 - **REVIEW_REQUIRED (8 PRs):** textured-waveform-fbo-resize (#16010), openglwindow-resize-repaint (#16012), hide-unenabled-controllers (#15580), deere-channel-mute-buttons (#15624, DRAFT), catalogue-number-column (#15616), replace-libmodplug-with-libopenmpt (#15519, DRAFT), hotcues-on-overview-waveform (#15514, DRAFT), library-column-hotcue-count (#15462, DRAFT)
 - **Merged upstream:** midi-makeinputhandler-null-engine (#16003 — MERGED 2026-06-18; worktree removed)
 - **CI status:** GA CI on origin/integrating failed (3 infra/flaky failures — Windows checksum mismatch, Flatpak xvfb-run, macOS BeatsTranslateTest SEGFAULT); rerun requested
