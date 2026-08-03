@@ -73,8 +73,6 @@ DlgPrefWaveform::DlgPrefWaveform(
         }
         waveformTypeComboBox->addItem(types[i].getDisplayName(), types[i].getType());
     }
-    // Sort the combobox items alphabetically
-    waveformTypeComboBox->model()->sort(0);
 
     // Populate zoom options. Sub-1.0 levels (zoom in beyond 100%) are listed
     // first; integer levels follow. Index 0 is always the finest zoom-in level.
