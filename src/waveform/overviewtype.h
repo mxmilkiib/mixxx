@@ -10,7 +10,6 @@ enum class OverviewType {
     Filtered,
     HSV,
     RGB,
-    RGB,
     StackedRGB,
     Simple,
 };
