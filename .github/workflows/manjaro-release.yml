@@ -19,7 +19,12 @@ jobs:
       - name: "Install base dependencies"
         run: |
           pacman -Syu --noconfirm
-          pacman -S --noconfirm --needed base-devel git cmake ninja ccache
+          pacman -S --noconfirm --needed base-devel git cmake ninja ccache sudo
+
+          # makepkg refuses to run as root — create a non-root builder user
+          # with passwordless sudo for pacman (needed by makepkg -si)
+          useradd -m -G wheel -s /bin/bash builder
+          echo 'builder ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
 
       - name: "Check out repository"
         uses: actions/checkout@v7
@@ -47,13 +52,15 @@ jobs:
             gtest gmock
 
           # taglib1 from AUR (needed for taglib 1.x compatibility)
+          # makepkg cannot run as root — run as the builder user
           if ! pacman -Qi taglib1 >/dev/null 2>&1; then
             echo 'Building taglib1 from the AUR'
             rm -rf /tmp/taglib1
             git clone https://aur.archlinux.org/taglib1.git /tmp/taglib1
+            chown -R builder:builder /tmp/taglib1
             cd /tmp/taglib1
             sed -i 's/arch=(x86_64)/arch=(x86_64 aarch64)/' PKGBUILD
-            makepkg -si --noconfirm --skippgpcheck
+            su builder -c 'cd /tmp/taglib1 && makepkg -si --noconfirm --skippgpcheck'
           fi
 
       - name: "Create build directory"
@@ -153,7 +160,8 @@ jobs:
           ENDOFPKGBUILD
 
           cd "${PKG_DIR}"
-          makepkg -f --noconfirm --skippgpcheck
+          chown -R builder:builder "${PKG_DIR}"
+          su builder -c 'cd '"${PKG_DIR}"' && makepkg -f --noconfirm --skippgpcheck'
 
           # Find the produced package
           pkg_file=$(ls *.pkg.tar.zst 2>/dev/null | head -1)
