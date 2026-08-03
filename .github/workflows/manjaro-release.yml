@@ -45,7 +45,7 @@ jobs:
             chromaprint libid3tag rubberband soundtouch \
             lame libogg libmad libvorbis libmp4v2 faad2 opusfile wavpack \
             libshout libsndfile portmidi portaudio \
-            sqlite upower lilv libebur128 libmodplug \
+            sqlite upower lilv libebur128 libopenmpt \
             qt6-declarative qtkeychain-qt6 qt6-svg qt6-shadertools \
             qt6-5compat qt6-multimedia-ffmpeg qt6-scxml microsoft-gsl \
             hidapi ffmpeg fftw flac glu pipewire libusb jsoncpp \
@@ -75,7 +75,8 @@ jobs:
           -DFFMPEG=ON
           -DLOCALECOMPARE=ON
           -DMAD=ON
-          -DMODPLUG=ON
+          -DMODPLUG=OFF
+          -DOPENMPT=ON
           -DWAVPACK=ON
           -DINSTALL_USER_UDEV_RULES=OFF
           -DCMAKE_BUILD_TYPE=RelWithDebInfo
