@@ -196,6 +196,8 @@ SKIP_BRANCHES=(
     # build-broken: m_options member + Option::MonoSignal missing from WaveformRendererSignalBase —
     # base class modifications were not committed or lost in rebase
     "2026.02feb.17-mono-waveform-option"
+    # retargeted to upstream/2.6 per maintainer request (#16014) — rebasing onto main would clobber the 2.6 base
+    "2026.02feb.19-wayland-opengl-resize-warning"
 )
 
 # ── helpers ────────────────────────────────────────────────────────────────────
