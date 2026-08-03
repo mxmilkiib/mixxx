@@ -2,7 +2,7 @@ prompt: Mixxx personal integration system — worktree-per-branch development, a
 
 # Mixxx Integration Branch Configuration
 
-> Last updated: 2026-08-03 11:14 (session 11)
+> Last updated: 2026-08-03 21:55 (session 11)
 > URL: https://gist.github.com/mxmilkiib/5fb35c401736efed47ad7d78268c80b6
 > [RFC 2119](https://datatracker.ietf.org/doc/html/rfc2119)
 
@@ -177,7 +177,7 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
 - 🔴 **Awaiting Review from Others**
   - [x] **feature/2025.11nov.04-controller-wizard-quick-access** - [#15577](https://github.com/mixxxdj/mixxx/pull/15577) - CHANGES_REQUESTED
     - Issue: [#12262](https://github.com/mixxxdj/mixxx/issues/12262)
-    - Created: 2025-11-04, Last comment: 2026-02-18, Rebased: 2026-07-16, Updated: 2026-02-22
+    - Created: 2025-11-04, Last comment: 2026-02-18, Rebased: 2026-08-03, Updated: 2026-02-22
     - Note: rebased with wmainmenubar.cpp/h conflict resolved (Controller+KeyboardEventFilter both included)
     - Next: Awaiting re-review — ronso0 CHANGES_REQUESTED (Nov 16) addressed Feb 18; fix-learning-wizard folded in Feb 22 (ffc28f8)
     - Specifics:
@@ -187,7 +187,7 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
     - Tested?: yes
   - [x] **feature/2025.10oct.21-stacked-overview-waveform** - [#15516](https://github.com/mixxxdj/mixxx/pull/15516) - DRAFT - CHANGES_REQUESTED
     - Issue: [#13265](https://github.com/mixxxdj/mixxx/issues/13265)
-    - Created: 2025-10-21, Last comment: 2026-02-22 (mxmilkiib), Rebased: 2026-07-16, Updated: 2026-02-18
+    - Created: 2025-10-21, Last comment: 2026-02-22 (mxmilkiib), Rebased: 2026-08-03, Updated: 2026-02-18
     - Next: Stale bot fired (Feb 22); our naming comment (Feb 17) + clarification (Feb 22) are latest — re-request review to unstale; no new reviewer feedback
     - Specifics:
       - ~~Remove redundant Stacked HSV and Stacked LMH renderers~~ done
@@ -198,7 +198,7 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
     - Tested?: yes
   - [x] **feature/2025.10oct.20-restore-last-library-selection** - [#15460](https://github.com/mixxxdj/mixxx/pull/15460) - DRAFT - CHANGES_REQUESTED
     - Issue: [#10125](https://github.com/mixxxdj/mixxx/issues/10125)
-    - Created: 2025-10-08, Last comment: 2026-02-26 (ronso0), Rebased: 2026-07-16, Updated: 2026-02-28
+    - Created: 2025-10-08, Last comment: 2026-02-26 (ronso0), Rebased: 2026-08-03, Updated: 2026-02-28
     - Next: CI failing (ronso0 Feb 26) + unrelated Reloop JS changes slipped in — fixed 2026-02-28: removed JS file from commit, cleaned commit message (had # Conflicts: lines), fixed all clang-format violations; re-request review
     - Specifics:
       - ~~Separate commits for changes~~ done - 4 commits with explanations
@@ -213,7 +213,7 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
     - Tested?: yes
   - [x] **feature/2025.11nov.05-hide-unenabled-controllers** - [#15580](https://github.com/mixxxdj/mixxx/pull/15580) - REVIEW_REQUIRED
     - Issue: [#14275](https://github.com/mixxxdj/mixxx/issues/14275)
-    - Created: 2025-11-05, Last comment: 2025-11-17 (ronso0), Rebased: 2026-07-16, Updated: 2026-02-28
+    - Created: 2025-11-05, Last comment: 2025-11-17 (ronso0), Rebased: 2026-08-03, Updated: 2026-02-28
     - Next: Awaiting re-review — ronso0 Nov 17 feedback addressed Feb 28: removed redundant null checks, confirmed rename already done
     - Specifics:
       - ~~Rename "unenabled" to "disabled" everywhere — config keys, function names, and UI text (ronso0)~~ done
@@ -221,12 +221,12 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
     - Tested?: yes
 - 🔧 **Secondary Patches**
   - [x] **bugfix/2026.05may.01-fix-timer-test-potmeter-clamping** — upstream test bug
-    - Created: 2026-05-01, Rebased: 2026-07-16
+    - Created: 2026-05-01, Rebased: 2026-08-03
     - coTimerId ControlPotmeter max=50 clamped QTimer IDs (10000+ in full suite); replaced with ControlObject
     - Next: open upstream PR to mixxxdj/mixxx
     - Workaround: pre-push hook and script filter `ControllerScriptEngineLegacyTimerTest.*` (entire suite — `beginTimer_repeatedTimer` corrupts clamped-ID-50 state, causing `MidiMappings` JS tests to hang; filtering only `singleShot*` is insufficient) and `TrackMetadataExportTest.keepWithespaceKey` (`getKeyText()` returns `B_FLAT_MINOR` internal string instead of `B♭m` display format, fails in all worktrees). Remove filters once upstream fix lands.
   - [x] **bugfix/2026.02feb.21-hid-init-race-on-enumeration** — LOCAL_ONLY
-    - Created: 2026-02-21, Rebased: 2026-07-16, Updated: 2026-02-21
+    - Created: 2026-02-21, Rebased: 2026-08-03, Updated: 2026-02-21
     - Note: originally tracked as residual from midi-makeinputhandler (#16003, merged upstream 2026-06-18) — stands alone
     - Next: Evaluate for upstream PR as standalone fix
     - Specifics:
@@ -237,13 +237,13 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
     - Tested?: yes (crash no longer reproduced)
 - 🐛 **BUG FIXES - Open PRs (REVIEW_REQUIRED)**
   - [x] **bugfix/2026.02feb.19-textured-waveform-fbo-resize** - [#16010](https://github.com/mixxxdj/mixxx/pull/16010) - REVIEW_REQUIRED
-    - Created: 2026-02-19, Last comment: none, Rebased: 2026-07-16, Updated: 2026-02-19
+    - Created: 2026-02-19, Last comment: none, Rebased: 2026-08-03, Updated: 2026-02-19
     - Next: Await review
     - Specifics:
       - Improved: defer FBO reallocation to paintGL via m_pendingResize flag
     - Tested?: yes
   - [x] **bugfix/2026.02feb.19-openglwindow-resize-repaint** - [#16012](https://github.com/mixxxdj/mixxx/pull/16012) - DRAFT - REVIEW_REQUIRED
-    - Created: 2026-02-19, Last comment: none, Rebased: 2026-07-16, Updated: 2026-02-19
+    - Created: 2026-02-19, Last comment: none, Rebased: 2026-08-03, Updated: 2026-02-19
     - Next: Await review
     - Specifics:
       - Restores m_dirty flag: defers extra paintGL+swapBuffers from resizeGL to next vsync
@@ -265,7 +265,7 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
     - Tested?: yes (1174 tests pass on 2.6 base, 2026-08-03; stale pre-rebase mixxx-test binary was hanging the pre-push hook — rebuilt)
 - 🟡 **NEW FEATURES - Open PRs (REVIEW_REQUIRED)**
   - [x] **feature/2026.05may.03-extend-waveform-zoom-range** — No PR yet
-    - Created: 2026-05-03, Rebased: 2026-07-16, Updated: 2026-05-03
+    - Created: 2026-05-03, Rebased: 2026-08-03, Updated: 2026-05-03
     - Next: Test, then open upstream PR
     - Specifics:
       - Extends `s_waveformMinZoom` from 1.0 → 0.5 (allows 200% zoom-in, twice as detailed)
@@ -274,7 +274,7 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
       - Index↔zoom mapping generalised via `subOneCount` offset
     - Tested?: no
   - [x] **feature/2026.02feb.26-waveform-menu-order** - [#16046](https://github.com/mixxxdj/mixxx/pull/16046) - CHANGES_REQUESTED → addressed
-    - Created: 2026-02-26, Last comment: 2026-05-26 (daschuer), Rebased: 2026-07-16, Updated: 2026-07-16
+    - Created: 2026-02-26, Last comment: 2026-05-26 (daschuer), Rebased: 2026-08-03, Updated: 2026-07-16
     - Next: Await re-review — addressed daschuer: removed lambda + alphabetical sort; order now set via `kValues` in `waveformwidgettype.h`
     - Specifics:
       - Reorders `kValues` in `WaveformWidgetType`: Simple, Filtered, HSV, RGB, Stacked, VSyncTest
@@ -283,7 +283,7 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
     - Tested?: yes (1203 tests pass)
   - [x] **feature/2026.02feb.20-simple-waveform-top-and-overview** - [#16021](https://github.com/mixxxdj/mixxx/pull/16021) - REVIEW_REQUIRED
     - Issue: [#16020](https://github.com/mixxxdj/mixxx/issues/16020)
-    - Created: 2026-02-20, Last comment: 2026-05-28 (mxmilkiib, stale-bot reset), Rebased: 2026-07-16, Updated: 2026-07-16
+    - Created: 2026-02-20, Last comment: 2026-05-28 (mxmilkiib, stale-bot reset), Rebased: 2026-08-03, Updated: 2026-07-16
     - Next: Address daschuer upgrade-path issue — RGB selected before update becomes Simple after; default should remain RGB; likely combobox position stored instead of enum value
     - Specifics:
       - Adds Simple as an overview waveform type (amplitude envelope, signal color, stereo mirrored)
@@ -293,7 +293,7 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
     - Tested?: yes (2026-07-16)
   - [x] **feature/2025.10oct.21-replace-libmodplug-with-libopenmpt** - [#15519](https://github.com/mixxxdj/mixxx/pull/15519) - DRAFT - REVIEW_REQUIRED
     - Issue: [#9862](https://github.com/mixxxdj/mixxx/issues/9862)
-    - Created: 2025-10-25, Last comment: 2026-02-22 (stale-bot), Rebased: 2026-07-16, Updated: 2026-01-30
+    - Created: 2025-10-25, Last comment: 2026-02-22 (stale-bot), Rebased: 2026-08-03, Updated: 2026-01-30
     - Next: Address daschuer architecture feedback
     - Specifics:
       - DSP in SoundSource is "foreign to Mixxx" — daschuer wants bit-perfect decode, move DSP to effect rack instead
@@ -305,7 +305,7 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
     - Tested?: no
   - [x] **feature/2025.10oct.20-hotcues-on-overview-waveform** - [#15514](https://github.com/mixxxdj/mixxx/pull/15514) - DRAFT - REVIEW_REQUIRED
     - Issue: [#14994](https://github.com/mixxxdj/mixxx/issues/14994)
-    - Created: 2025-10-20, Last comment: 2026-02-22 (stale-bot), Rebased: 2026-07-16, Updated: 2026-01-30
+    - Created: 2025-10-20, Last comment: 2026-02-22 (stale-bot), Rebased: 2026-08-03, Updated: 2026-01-30
     - Next: Check recent comment, await review
     - Specifics:
       - PR marked stale (Jan 19 2026) — needs activity to unstale
@@ -316,7 +316,7 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
     - Tested?: no
   - [x] **feature/2025.11nov.17-deere-channel-mute-buttons** - [#15624](https://github.com/mixxxdj/mixxx/pull/15624) - DRAFT - REVIEW_REQUIRED
     - Issue: [#15623](https://github.com/mixxxdj/mixxx/issues/15623)
-    - Created: 2025-11-17, Last comment: 2026-02-15, Rebased: 2026-07-16, Updated: 2026-02-15
+    - Created: 2025-11-17, Last comment: 2026-02-15, Rebased: 2026-08-03, Updated: 2026-02-15
     - Next: On hold - marked as DRAFT by ronso0
     - Specifics:
       - Marked as DRAFT by ronso0 (Feb 9)
@@ -329,7 +329,7 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
     - Tested?: yes
   - [x] **feature/2025.11nov.16-playback-position-control** - [#15617](https://github.com/mixxxdj/mixxx/pull/15617) - REVIEW_REQUIRED
     - Issue: [#14288](https://github.com/mixxxdj/mixxx/issues/14288)
-    - Created: 2025-11-16, Last comment: 2026-05-26 (mxmilkiib), Rebased: 2026-07-16, Updated: 2026-07-16
+    - Created: 2025-11-16, Last comment: 2026-05-26 (mxmilkiib), Rebased: 2026-08-03, Updated: 2026-07-16
     - Next: Await re-review — all ronso0 CHANGES_REQUESTED addressed 2026-05-26; CI failures are pre-existing flaky (Flatpak aarch64 network timeout, macOS x64 BeatsTranslateTest SEGFAULT — unrelated to our changes)
     - Specifics:
       - daschuer (Feb 9): "this feature already exists" (pref option) — clarified: pref has no CO for runtime control
@@ -339,7 +339,7 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
 - ⚠️ **Schema-Changing Branches (Excluded from Integration)**
   - [ ] **feature/2025.10oct.17-library-column-hotcue-count** - [#15462](https://github.com/mixxxdj/mixxx/pull/15462) - REVIEW_REQUIRED
     - Issue: [#15461](https://github.com/mixxxdj/mixxx/issues/15461)
-    - Created: 2025-10-17, Last comment: 2026-02-22 (stale-bot), Rebased: 2026-07-16, Updated: 2026-01-30
+    - Created: 2025-10-17, Last comment: 2026-02-22 (stale-bot), Rebased: 2026-08-03, Updated: 2026-01-30
     - Next: Check recent comment, await review
     - Specifics:
       - PR marked stale (Jan 17 2026) — needs activity to unstale
@@ -352,7 +352,7 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
     - Tested?: no
   - [ ] **feature/2025.11nov.16-catalogue-number-column** - [#15616](https://github.com/mixxxdj/mixxx/pull/15616) - REVIEW_REQUIRED
     - Issue: [#12583](https://github.com/mixxxdj/mixxx/issues/12583)
-    - Created: 2025-11-16, Last comment: 2026-02-15, Rebased: 2026-07-16, Updated: 2026-02-15
+    - Created: 2025-11-16, Last comment: 2026-02-15, Rebased: 2026-08-03, Updated: 2026-02-15
     - Next: Await review
     - Specifics:
       - acolombier left review comment 2026-02-14; replied 2026-02-15
@@ -362,7 +362,7 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
     - Tested?: no
 - 🔵 **Local Only (No PR)**
   - [ ] **feature/2026.02feb.17-mono-waveform-option** — **SKIP_BRANCHES (build-broken)**
-    - Created: 2026-02-17, Rebased: 2026-07-16, Updated: 2026-02-17
+    - Created: 2026-02-17, Rebased: 2026-08-03, Updated: 2026-02-17
     - Test binary: [build-fail 2026-05-13]
     - Next: Fix base class — add `MonoSignal` to `WaveformRendererSignalBase::Option` enum and store `m_options` as protected member; both were expected by the branch but never committed or were lost in rebase
     - Specifics:
@@ -370,23 +370,23 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
       - Base class `WaveformRendererSignalBase` Option enum only has: `None`, `SplitStereoSignal`, `HighDetail`, `AllOptionsCombined`
       - Fix: add `MonoSignal = 0b100` to Option enum, store `m_options` in protected block, handle in both .cpp files
   - [x] **feature/2025.10oct.14-waveform-hotcue-label-options**
-    - Created: 2025-10-14, Rebased: 2026-07-16, Updated: 2026-01-30
+    - Created: 2025-10-14, Rebased: 2026-08-03, Updated: 2026-01-30
     - Next: Maintain for personal use
   - [x] **feature/2025.10oct.08-utf8-string-controls**
     - Dependency for: hotcue-labelling, hotcue-label-options
-    - Created: 2025-10-08, Rebased: 2026-07-16, Updated: 2026-01-30
+    - Created: 2025-10-08, Rebased: 2026-08-03, Updated: 2026-01-30
     - Next: Maintain for personal use (not for upstream)
   - [x] **feature/2025.09sep.25-hotcue-labelling**
-    - Created: 2025-09-25, Rebased: 2026-07-16, Updated: 2026-02-20
+    - Created: 2025-09-25, Rebased: 2026-08-03, Updated: 2026-02-20
     - Next: Maintain for personal use
   - [x] **feature/2025.11nov.05-deere-waveform-zoom-deck-colors**
-    - Created: 2025-11-05, Rebased: 2026-07-16, Updated: 2026-01-30
+    - Created: 2025-11-05, Rebased: 2026-08-03, Updated: 2026-01-30
     - Next: Merge to integration, decide if PR-worthy
     - Specifics:
       - Evaluate if the Deere-specific waveform zoom deck color change is worth a PR or remains personal use
       - Test visual appearance across deck configurations
   - [ ] **draft/2025.10oct.21-tracker-module-stems** — **SKIP_BRANCHES (build-broken)**
-    - Created: 2025-10-21, Rebased: 2026-07-16, Updated: 2025-10-21
+    - Created: 2025-10-21, Rebased: 2026-08-03, Updated: 2025-10-21
     - Test binary: [build-fail 2026-05-13]
     - Next: Investigate libopenmpt API — `openmpt::module::set_channel_mute_status` is absent from the stable C++ API (verified against libopenmpt 0.8.6); either the method does not exist in any release and the code must be rewritten using available API, or the branch was written against a proposed/unreleased API
     - Specifics:
@@ -395,7 +395,7 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
       - Depends on replace-libmodplug-with-libopenmpt (#15519) being accepted first
       - Block until correct API is identified or available
   - [ ] **feature/2025.02feb.17-waveform-blend-customization** — LOCAL_ONLY — not in integration (branch name year typo: should be 2026)
-    - Created: 2026-02-17, Rebased: 2026-07-16 (empty — no commits), Updated: unknown
+    - Created: 2026-02-17, Rebased: 2026-08-03 (empty — no commits), Updated: unknown
     - Note: untracked worktree in mixxx-dev; branch has zero commits; placeholder or lost work
     - Next: Decide whether to populate, repurpose, or remove worktree
   - [ ] **bugfix/2026.02feb.19-wglwidget-xcb-resize-gap** — ABANDONED
@@ -441,7 +441,8 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
 - Integration initiated 2026-06-18: 182 new upstream commits (SoundManager refactor, cmake4 fix, BPM-lock crash fix, non-latin char SoundSource test, FLAC recording fix, instantaneous-frequency detector, LateNightQML colour schemes + QML fixes, shout API warnings, library header assert crash fix); #16003 (midi-makeinputhandler-null-engine) merged upstream — moved to Merged to Upstream, worktree removed; simple-waveform-top-and-overview sentinel stale (updated 2026-05-28/29, needs re-test)
 - Integration updated 2026-06-18: taglib 1.x→2.x system upgrade required full cmake cache wipe (CMakeCache.txt + libdjinterop ExternalProject stamp dirs) and Ninja reconfigure across all 21 worktrees; 21/21 rebuilt clean against taglib 2.3; 21/21 tests pass; integrating pushed (d4ac90d11b); GA CI queued
 - Integration rebuilt 2026-07-16: rebased all 21 active branches on upstream/main; integration branch rebuilt from scratch (reset to upstream/main, merged all 20 [x] branches in order); resolved conflicts in overviewtype.h + waveformoverviewrenderer.cpp/h + woverview.cpp (StackedRGB+Simple coexistence), dlgprefwaveform.cpp (redundant sort+move code from simple-waveform dropped — waveform-menu-order already handles ordering), cuecontrol.cpp/h (setLabel+slotHotcueLabelChangeRequest), dlgprefcontroller.h (showLearningWizard); build clean (5m7s); 21/21 tests pass (42m14s); integration + integrating pushed (d318386f49); GA CI triggered — 3 failures (Windows: dependency checksum mismatch, Flatpak: xvfb-run exit 1, macOS: BeatsTranslateTest SEGFAULT — all infrastructure/flaky, none code-related); rerun requested
-- wayland-opengl-resize-warning 2026-08-03: rebased onto upstream/2.6 per daschuer request (#16014 was main-based, PR retargeted to 2.6); [x] removed — excluded from main-based integration merges; addressed daschuer CHANGES_REQUESTED (dropped redundant MIXXX_USE_QOPENGL guard, warn-once static flag, linked #13814); replied to wayland-egl question; stale Jul-16 mixxx-test binary was hanging pre-push hook at 420s timeout — rebuilt against 2.6 base, 1174 tests pass; pushed (4557b82e49), PR marked ready for review
+- wayland-opengl-resize-warning 2026-08-03: rebased onto upstream/2.6 per daschuer request (#16014 was main-based, PR retargeted to 2.6); [x] removed — excluded from main-based integration merges; addressed daschuer CHANGES_REQUESTED (dropped redundant MIXXX_USE_QOPENGL guard, warn-once static flag, linked #13814); replied to wayland-egl question; stale Jul-16 mixxx-test binary was hanging pre-push hook at 420s timeout — rebuilt against 2.6 base, 1174 tests pass; pushed (4557b82e49), PR marked ready for review; pre-commit CI then flagged two pre-existing long lines in 2.6's waveformwidgetfactory.cpp — wrapped locally, unpushed pending confirmation
+- Integration rebuilt 2026-08-03: rebased 20 active branches on upstream/main (216 new commits incl. 2.6 sync, stem stacked waveforms, AutoDJ orientation); integration rebuilt from scratch (reset to upstream/main, merged 19 [x] branches — wayland excluded, now 2.6-based); resolved conflicts in dlgprefcontroller.h (showLearningWizard), overviewtype.h + waveformoverviewrenderer.cpp/h + woverview.cpp (StackedRGB+Simple coexistence — one resolution initially duplicated RGB enum, fixed), dlgprefwaveform.cpp (simple-waveform sort+move dropped, waveform-menu-order handles ordering); textured-waveform-fbo-resize + openglwindow-resize-repaint (no worktrees) rebased via temp worktrees; script gap fixed: build_all_tests now rebuilds binaries older than HEAD commit (stale binaries were previously tested after rebases); known gap: push_changed smart-diff compares against moving upstream/main so ALL branches push after any upstream sync (20 pushed) — needs range-diff-based comparison; ~/src/mixxx build dir needed taglib1 cache wipe (CMakeCache + libdjinterop stamps moved aside) before test binary rebuild; build clean; 20/20 tests pass; integration + integrating pushed (4d0590b836); GA CI triggered on origin/integrating
 
 ---
 
