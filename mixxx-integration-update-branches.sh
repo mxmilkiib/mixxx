@@ -216,6 +216,17 @@ is_test_binary_stale() {
     [[ -f "$bin" ]] && ldd "$bin" 2>/dev/null | grep -q "not found"
 }
 
+# Returns 0 if the test binary predates the current HEAD commit — the branch was
+# rebased or amended after the binary was last linked, so it needs a rebuild.
+is_test_binary_older_than_head() {
+    local bin="$1/build/mixxx-test"
+    [[ -f "$bin" ]] || return 1
+    local head_ct bin_mt
+    head_ct=$(GIT_PAGER=cat git -C "$1" log -1 --format=%ct 2>/dev/null || echo 0)
+    bin_mt=$(stat -c %Y "$bin")
+    (( head_ct > bin_mt ))
+}
+
 ensure_ccache_enabled() {
     local build_dir="$1/build"
     [[ -f "$build_dir/CMakeCache.txt" ]] || return 0
@@ -414,6 +425,8 @@ build_all_tests() {
             to_configure+=("$dir")
             to_build+=("$dir")
         elif ! has_test_bin "$dir" || is_test_binary_stale "$dir"; then
+            to_build+=("$dir")
+        elif is_test_binary_older_than_head "$dir"; then
             to_build+=("$dir")
         fi
     done
