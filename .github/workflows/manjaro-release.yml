@@ -168,27 +168,41 @@ jobs:
           STAGING="${GITHUB_WORKSPACE}/staging"
           PKGVER="${GIT_DESC//-/_}"
 
-          cat > "${PKG_DIR}/PKGBUILD" << ENDOFPKGBUILD
-          # Maintainer: mxmilkiib
-          pkgname=mixxx-integrated
-          pkgver=${PKGVER}
-          pkgrel=1
-          pkgdesc="Digital DJ software (integration build)"
-          arch=('x86_64')
-          url="https://mixxx.org"
-          license=('GPL2')
-          depends=(${DEPS})
-          makedepends=('cmake' 'ninja')
-          options=('!strip' '!emptydirs')
+          cat > "${PKG_DIR}/PKGBUILD" << 'ENDOFPKGBUILD'
+# Maintainer: mxmilkiib
+pkgname=mixxx-integrated
+pkgver=${PKGVER}
+pkgrel=1
+pkgdesc="Digital DJ software (integration build)"
+arch=('x86_64')
+url="https://mixxx.org"
+license=('GPL2')
+depends=(${DEPS})
+makedepends=('cmake' 'ninja')
+options=('!strip' '!emptydirs')
 
-          package() {
-            cp -a "${STAGING}/usr" "\${pkgdir}/usr"
-          }
-          ENDOFPKGBUILD
+package() {
+  cp -a "${STAGING}/usr" "${pkgdir}/usr"
+}
+ENDOFPKGBUILD
+
+          # Substitute shell variables into the PKGBUILD
+          sed -i \
+            -e "s|\${PKGVER}|${PKGVER}|g" \
+            -e "s|\${DEPS}|${DEPS}|g" \
+            -e "s|\${STAGING}|${STAGING}|g" \
+            "${PKG_DIR}/PKGBUILD"
 
           cd "${PKG_DIR}"
           chown -R builder:builder "${PKG_DIR}"
-          su builder -c "cd ${PKG_DIR} && makepkg -f --noconfirm --skippgpcheck"
+          # Run makepkg as builder; capture stderr for debugging
+          su builder -c "cd ${PKG_DIR} && makepkg -f --noconfirm --skippgpcheck" 2>&1 || {
+            echo "=== makepkg failed — PKGBUILD contents: ==="
+            cat "${PKG_DIR}/PKGBUILD"
+            echo "=== staging dir: ==="
+            ls -la "${STAGING}/usr/bin/" 2>&1 || true
+            exit 1
+          }
 
           # Find the produced package
           pkg_file=$(ls *.pkg.tar.zst 2>/dev/null | head -1)
