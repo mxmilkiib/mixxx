@@ -119,6 +119,8 @@ jobs:
       - name: "Install to staging directory"
         run: |
           DESTDIR="${GITHUB_WORKSPACE}/staging" cmake --install . --config RelWithDebInfo
+          # makepkg runs as builder user — needs read access to staging
+          chmod -R a+rX "${GITHUB_WORKSPACE}/staging"
         working-directory: build
 
       - name: "Create Manjaro/Arch package"
@@ -162,7 +164,7 @@ jobs:
 
           cd "${PKG_DIR}"
           chown -R builder:builder "${PKG_DIR}"
-          su builder -c 'cd '"${PKG_DIR}"' && makepkg -f --noconfirm --skippgpcheck'
+          su builder -c "cd ${PKG_DIR} && makepkg -f --noconfirm --skippgpcheck"
 
           # Find the produced package
           pkg_file=$(ls *.pkg.tar.zst 2>/dev/null | head -1)
