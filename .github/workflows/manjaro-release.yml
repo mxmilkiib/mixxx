@@ -153,9 +153,19 @@ jobs:
           set -e
           PKG_DIR="${GITHUB_WORKSPACE}/pkgbuild"
           mkdir -p "${PKG_DIR}"
+          STAGING="${GITHUB_WORKSPACE}/staging"
+          PKGVER="${GIT_DESC//-/_}"
+
+          # cmake installs to /usr/local by default — find the actual binary
+          # Use -print -quit to avoid SIGPIPE from `find | head` under pipefail
+          MIXXX_BIN=$(find "${STAGING}" -name mixxx -type f -print -quit)
+          echo "Found mixxx binary: ${MIXXX_BIN}"
+          STAGING_USR=$(dirname "$(dirname "${MIXXX_BIN}")")  # /.../staging/usr/local
+          echo "Staging usr dir: ${STAGING_USR}"
 
           # Compute dependencies from the installed binaries
-          DEPS=$(ldd "${GITHUB_WORKSPACE}/staging/usr/bin/mixxx" 2>/dev/null \
+          # Wrap in `|| true` since grep/awk may exit non-zero under pipefail
+          DEPS=$(ldd "${MIXXX_BIN}" 2>/dev/null \
             | awk '/=> \// {print $3}' \
             | while read -r lib; do pacman -Qo "$lib" 2>/dev/null; done \
             | sed 's/.*is owned by \([^ ]*\) .*/\1/' \
@@ -163,10 +173,8 @@ jobs:
             | sort -u \
             | grep -v -E '^(gcc|glibc)$' \
             | sed "s/^/'/; s/$/'/" \
-            | tr '\n' ' ')
-
-          STAGING="${GITHUB_WORKSPACE}/staging"
-          PKGVER="${GIT_DESC//-/_}"
+            | tr '\n' ' ' || true)
+          echo "Dependencies: ${DEPS}"
 
           # Write PKGBUILD using printf to avoid heredoc indentation issues in YAML
           printf '%s\n' \
@@ -183,9 +191,13 @@ jobs:
             "options=('!strip' '!emptydirs')" \
             '' \
             'package() {' \
-            '  cp -a "'"${STAGING}"'/usr" "${pkgdir}/usr"' \
+            '  cp -a "'"${STAGING_USR}"'/" "${pkgdir}/usr/"' \
             '}' \
             > "${PKG_DIR}/PKGBUILD"
+
+          echo "=== PKGBUILD ==="
+          cat "${PKG_DIR}/PKGBUILD"
+          echo "================"
 
           cd "${PKG_DIR}"
           chown -R builder:builder "${PKG_DIR}"
