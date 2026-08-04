@@ -37,6 +37,22 @@ jobs:
       - name: "Ensure all tags are fetched"
         run: git fetch origin --force --tags
 
+      - name: "Restore ccache"
+        uses: actions/cache/restore@v4
+        with:
+          path: /ccache
+          key: ccache-manjaro-${{ github.sha }}
+          restore-keys: |
+            ccache-manjaro-
+
+      - name: "Configure ccache"
+        run: |
+          mkdir -p /ccache
+          ccache -M 5G
+          ccache -o cache_dir=/ccache
+          ccache -o hash_dir=false
+          ccache -z
+
       - name: "Install Mixxx build dependencies"
         run: |
           set -e
@@ -92,6 +108,8 @@ jobs:
           -DQTKEYCHAIN=ON
           -DVINYLCONTROL=ON
           -DCMAKE_VERBOSE_MAKEFILE=OFF
+          -DCMAKE_C_COMPILER_LAUNCHER=ccache
+          -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
           -L
           ..
         working-directory: build
@@ -101,6 +119,12 @@ jobs:
         working-directory: build
         env:
           CCACHE_NOCOMPRESS: true
+          CCACHE_DIR: /ccache
+
+      - name: "Print ccache stats"
+        run: ccache -s
+        env:
+          CCACHE_DIR: /ccache
 
       - name: "Test"
         run: ctest --timeout 45 --parallel "$(nproc)"
@@ -208,3 +232,10 @@ jobs:
           draft: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: "Save ccache"
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: /ccache
+          key: ccache-manjaro-${{ github.sha }}
