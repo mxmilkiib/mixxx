@@ -191,6 +191,8 @@ jobs:
             'url="https://mixxx.org"' \
             "license=('GPL2')" \
             "depends=(${DEPS})" \
+            "conflicts=('mixxx' 'mixxx-git')" \
+            "provides=('mixxx')" \
             "options=('!strip' '!emptydirs')" \
             '' \
             'package() {' \
