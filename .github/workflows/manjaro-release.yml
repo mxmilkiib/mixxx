@@ -139,6 +139,10 @@ jobs:
           GIT_DESC=$(git describe --always --first-parent --dirty=-modified)
           echo "git_describe=${GIT_DESC}" >> "$GITHUB_OUTPUT"
           echo "GIT_DESC=${GIT_DESC}" >> "$GITHUB_ENV"
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          echo "short_sha=${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+          TIMESTAMP=$(date -u +%Y%m%d-%H%M)
+          echo "timestamp=${TIMESTAMP}" >> "$GITHUB_OUTPUT"
 
       - name: "Install to staging directory"
         run: |
@@ -229,8 +233,8 @@ jobs:
       - name: "Create or update GitHub Release"
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: integrated-latest
-          name: "Mixxx Integration Build (${{ steps.git-describe.outputs.git_describe }})"
+          tag_name: mixxx-milkiib-integrated-${{ steps.git-describe.outputs.timestamp }}-${{ steps.git-describe.outputs.short_sha }}
+          name: "Mixxx Integrated Build (${{ steps.git-describe.outputs.git_describe }})"
           body: |
             ## Manjaro/Arch Linux Package
 
