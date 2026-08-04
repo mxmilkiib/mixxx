@@ -2,7 +2,7 @@ prompt: Mixxx personal integration system — worktree-per-branch development, a
 
 # Mixxx Integration Branch Configuration
 
-> Last updated: 2026-08-03 21:55 (session 11)
+> Last updated: 2026-08-05 01:00 (session 12)
 > URL: https://gist.github.com/mxmilkiib/5fb35c401736efed47ad7d78268c80b6
 > [RFC 2119](https://datatracker.ietf.org/doc/html/rfc2119)
 
@@ -225,16 +225,18 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
     - coTimerId ControlPotmeter max=50 clamped QTimer IDs (10000+ in full suite); replaced with ControlObject
     - Next: open upstream PR to mixxxdj/mixxx
     - Workaround: pre-push hook and script filter `ControllerScriptEngineLegacyTimerTest.*` (entire suite — `beginTimer_repeatedTimer` corrupts clamped-ID-50 state, causing `MidiMappings` JS tests to hang; filtering only `singleShot*` is insufficient) and `TrackMetadataExportTest.keepWithespaceKey` (`getKeyText()` returns `B_FLAT_MINOR` internal string instead of `B♭m` display format, fails in all worktrees). Remove filters once upstream fix lands.
-  - [x] **bugfix/2026.02feb.21-hid-init-race-on-enumeration** — LOCAL_ONLY
-    - Created: 2026-02-21, Rebased: 2026-08-03, Updated: 2026-02-21
+  - [x] **bugfix/2026.02feb.21-hid-init-race-on-enumeration**
+    - Created: 2026-02-21, Rebased: 2026-08-03, Updated: 2026-08-05
     - Note: originally tracked as residual from midi-makeinputhandler (#16003, merged upstream 2026-06-18) — stands alone
     - Next: Evaluate for upstream PR as standalone fix
+    - Merged into integration: 2026-08-05 (mutex fix merged — conflict in hidenumerator.cpp comment resolved)
     - Specifics:
-      - `hid_open()` calls `hid_init()` lazily; multiple `HidController` background threads (one per device) race to call it concurrently on startup
-      - `hid_init()` on the hidraw backend is not thread-safe — concurrent calls corrupt the udev context, crashing inside `hid_enumerate`
-      - Fix: call `hid_init()` explicitly on the main thread in `HidEnumerator::queryDevices()` before `hid_enumerate()` and before any `HidController` objects are constructed
-      - Triggered by 3+ HID devices (Launchpad Pro MK3, MPD218, BeatMix4) spawning concurrent background descriptor-fetch threads
-    - Tested?: yes (crash no longer reproduced)
+      - The hidraw backend of hidapi is not thread-safe; `hid_open()`/`hid_open_path()` internally call `hid_enumerate()` → `udev_enumerate_scan_devices()`
+      - Upstream PR #15692 (Joerg, `loadHidReportDescriptorAtEnumeration2`) made each `HidController` constructor spawn a `QtConcurrent::run` background thread in `fetchReportDescriptorInBackground()` that calls `hid_open*`
+      - With 3+ HID devices (Launchpad Pro MK3, MPD218, BeatMix4) those background threads race inside udev, corrupting the heap — manifests as `free(): chunks in smallbin corrupted` from an unrelated `free()` later (e.g. library scanner `RecursiveScanDirectoryTask` destructor)
+      - Fix part 1: call `hid_init()` explicitly on the main thread in `HidEnumerator::queryDevices()` before `hid_enumerate()` and before any `HidController` objects are constructed
+      - Fix part 2 (added 2026-08-05): guard the `hid_open*` calls in `fetchReportDescriptorInBackground()` with a global `std::mutex s_hidOpenMutex` so only one background fetch thread touches udev at a time — `hid_init()` alone was insufficient
+    - Tested?: yes (crash no longer reproduced; library scan completes cleanly, 33091 tracks)
 - 🐛 **BUG FIXES - Open PRs (REVIEW_REQUIRED)**
   - [x] **bugfix/2026.02feb.19-textured-waveform-fbo-resize** - [#16010](https://github.com/mixxxdj/mixxx/pull/16010) - REVIEW_REQUIRED
     - Created: 2026-02-19, Last comment: none, Rebased: 2026-08-03, Updated: 2026-02-19
@@ -444,6 +446,7 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
 - wayland-opengl-resize-warning 2026-08-03: rebased onto upstream/2.6 per daschuer request (#16014 was main-based, PR retargeted to 2.6); [x] removed — excluded from main-based integration merges; addressed daschuer CHANGES_REQUESTED (dropped redundant MIXXX_USE_QOPENGL guard, warn-once static flag, linked #13814); replied to wayland-egl question; stale Jul-16 mixxx-test binary was hanging pre-push hook at 420s timeout — rebuilt against 2.6 base, 1174 tests pass; pushed (4557b82e49), PR marked ready for review; pre-commit CI then flagged two pre-existing long lines in 2.6's waveformwidgetfactory.cpp — wrapped locally, unpushed pending confirmation
 - Integration rebuilt 2026-08-03: rebased 20 active branches on upstream/main (216 new commits incl. 2.6 sync, stem stacked waveforms, AutoDJ orientation); integration rebuilt from scratch (reset to upstream/main, merged 19 [x] branches — wayland excluded, now 2.6-based); resolved conflicts in dlgprefcontroller.h (showLearningWizard), overviewtype.h + waveformoverviewrenderer.cpp/h + woverview.cpp (StackedRGB+Simple coexistence — one resolution initially duplicated RGB enum, fixed), dlgprefwaveform.cpp (simple-waveform sort+move dropped, waveform-menu-order handles ordering); textured-waveform-fbo-resize + openglwindow-resize-repaint (no worktrees) rebased via temp worktrees; script gap fixed: build_all_tests now rebuilds binaries older than HEAD commit (stale binaries were previously tested after rebases); known gap: push_changed smart-diff compares against moving upstream/main so ALL branches push after any upstream sync (20 pushed) — needs range-diff-based comparison; ~/src/mixxx build dir needed taglib1 cache wipe (CMakeCache + libdjinterop stamps moved aside) before test binary rebuild; build clean; 20/20 tests pass; integration + integrating pushed (4d0590b836); GA CI triggered on origin/integrating
 - Integrated promoted 2026-08-03: GA CI run #30852260900 completed — Flatpak (x86_64) xvfb-run exit 1, Flatpak (aarch64) cancelled (cascade); all other jobs green (coverage, clazy, clang-tidy, macOS arm64+x64, Android, Windows x64+ARM64, pre-commit, Ubuntu 24.04). Added `KNOWN_INFRA_FAILURES` allowlist to script — `promote_integrated()` now fetches failed job names and promotes when every failure matches a known infra/flaky pattern, blocking on any unknown failure. Promoted integrating → integrated.
+- Integration patched 2026-08-05: merged hid-init-race-on-enumeration mutex fix (part 2 — `s_hidOpenMutex` serialising `hid_open*` calls in `fetchReportDescriptorInBackground()`); resolved comment conflict in `hidenumerator.cpp` (incoming version references both `hid_init()` and mutex); also brings `mixxx-controls.d.ts` and `stemcontrolobjecttest.cpp` changes from upstream
 
 ---
 
