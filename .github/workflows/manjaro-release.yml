@@ -168,30 +168,24 @@ jobs:
           STAGING="${GITHUB_WORKSPACE}/staging"
           PKGVER="${GIT_DESC//-/_}"
 
-          cat > "${PKG_DIR}/PKGBUILD" << 'ENDOFPKGBUILD'
-# Maintainer: mxmilkiib
-pkgname=mixxx-integrated
-pkgver=${PKGVER}
-pkgrel=1
-pkgdesc="Digital DJ software (integration build)"
-arch=('x86_64')
-url="https://mixxx.org"
-license=('GPL2')
-depends=(${DEPS})
-makedepends=('cmake' 'ninja')
-options=('!strip' '!emptydirs')
-
-package() {
-  cp -a "${STAGING}/usr" "${pkgdir}/usr"
-}
-ENDOFPKGBUILD
-
-          # Substitute shell variables into the PKGBUILD
-          sed -i \
-            -e "s|\${PKGVER}|${PKGVER}|g" \
-            -e "s|\${DEPS}|${DEPS}|g" \
-            -e "s|\${STAGING}|${STAGING}|g" \
-            "${PKG_DIR}/PKGBUILD"
+          # Write PKGBUILD using printf to avoid heredoc indentation issues in YAML
+          printf '%s\n' \
+            '# Maintainer: mxmilkiib' \
+            'pkgname=mixxx-integrated' \
+            "pkgver=${PKGVER}" \
+            'pkgrel=1' \
+            'pkgdesc="Digital DJ software (integration build)"' \
+            "arch=('x86_64')" \
+            'url="https://mixxx.org"' \
+            "license=('GPL2')" \
+            "depends=(${DEPS})" \
+            "makedepends=('cmake' 'ninja')" \
+            "options=('!strip' '!emptydirs')" \
+            '' \
+            'package() {' \
+            '  cp -a "'"${STAGING}"'/usr" "${pkgdir}/usr"' \
+            '}' \
+            > "${PKG_DIR}/PKGBUILD"
 
           cd "${PKG_DIR}"
           chown -R builder:builder "${PKG_DIR}"
