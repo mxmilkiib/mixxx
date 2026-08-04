@@ -64,7 +64,7 @@ jobs:
             sqlite upower lilv libebur128 libopenmpt \
             qt6-declarative qtkeychain-qt6 qt6-svg qt6-shadertools \
             qt6-5compat qt6-multimedia-ffmpeg qt6-scxml microsoft-gsl \
-            hidapi ffmpeg fftw flac glu pipewire libusb jsoncpp \
+            hidapi ffmpeg fftw flac glu pipewire pipewire-jack libusb jsoncpp \
             gtest gmock
 
           # taglib1 from AUR (needed for taglib 1.x compatibility)
@@ -191,7 +191,6 @@ jobs:
             'url="https://mixxx.org"' \
             "license=('GPL2')" \
             "depends=(${DEPS})" \
-            "makedepends=('cmake' 'ninja')" \
             "options=('!strip' '!emptydirs')" \
             '' \
             'package() {' \
