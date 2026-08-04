@@ -127,7 +127,7 @@ jobs:
           CCACHE_DIR: /ccache
 
       - name: "Test"
-        run: ctest --timeout 45 --parallel "$(nproc)" --exclude-regex 'AdjustReplayGainTest.AdjustReplayGainUpdatesPregain|MidiMappings/MappingTestFixture.LoadMapping/.*'
+        run: ctest --timeout 45 --parallel "$(nproc)" --exclude-regex 'AdjustReplayGainTest.AdjustReplayGainUpdatesPregain|MidiMappings/.*'
         working-directory: build
         env:
           GTEST_COLOR: 1
