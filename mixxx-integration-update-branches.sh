@@ -3,6 +3,7 @@
 # Mixxx Integration Branch Helper
 # Manages worktree rebases, test binary rebuilds, test runs, and branch pushes.
 # MUST be committed to the integration branch — see INTEGRATION.md.
+# Gist: https://gist.github.com/mxmilkiib/5fb35c401736efed47ad7d78268c80b6
 #
 # Usage:
 #   ./mixxx-integration-update-branches.sh                   rebase all worktrees (no push)
@@ -13,6 +14,7 @@
 #   ./mixxx-integration-update-branches.sh --push-integrating promote integration → integrating (requires all worktrees tested)
 #   ./mixxx-integration-update-branches.sh --promote-integrated promote integrating → integrated (requires GA CI green or known-infra-only failures)
 #   ./mixxx-integration-update-branches.sh --full            rebase + build-all-tests + run-tests + push-integration + push-integrating
+#   ./mixxx-integration-update-branches.sh --full-promote    --full + poll GA CI + promote to integrated (end-to-end, no manual step)
 #
 # Three-branch promotion chain:
 #   integration  — working merges; script operates here; may fail
@@ -41,7 +43,7 @@
 # Related files (all committed to integration branch, all synced to gist 5fb35c4):
 #   mixxx-integration-update-branches.sh  — this script
 #   mixxx-integration-pre-push.sh         — hook logic (versioned); .git/hooks/pre-push delegates here
-#   mixxx-dev-gdb-run.sh                  — GDB launcher with logging (gist da0d174)
+#   mixxx-integration-gdb-run.sh          — GDB launcher with logging
 #   INTEGRATION.md                        — branch registry, process rules, status outline
 #
 # Runtime state files (not committed):
@@ -571,7 +573,6 @@ rebuild_tests_serial() {
     if [[ ${#stale[@]} -eq 0 ]]; then status "All test binaries up to date."; return 0; fi
 
     echo ""; echo "Stale (${#stale[@]}):"; printf '  - %s\n' "${stale[@]}"; echo ""
-
     echo "Enabling ccache on affected build dirs..."
     for dir in "${MIXXX_DEV}"/*/; do
         [[ -d "$dir" ]] || continue
@@ -784,6 +785,7 @@ push_integrating() {
 # ── mode: promote_integrated ──────────────────────────────────────────────────
 # Polls GA CI on origin/integrating. On success, fast-forwards local+remote
 # integrated to match — this is the CI-confirmed-clean gate.
+# Reports per-job status on each poll so progress is visible without external polling.
 
 promote_integrated() {
     local _jq; _jq=$(command -v jq 2>/dev/null || true)
@@ -794,6 +796,7 @@ promote_integrated() {
     status "PHASE promote_integrated — polling GA CI on origin/integrating"
     local timeout_secs=3600 poll_interval=60
     local t0; t0=$(date +%s)
+    local _prev_jobs=""
     while true; do
         local elapsed=$(( $(date +%s) - t0 ))
         [[ $elapsed -gt $timeout_secs ]] && {
@@ -810,7 +813,35 @@ promote_integrated() {
         run_status=$(echo "$run_json" | "$_jq" -r '.[0].status     // "unknown"')
         conclusion=$( echo "$run_json" | "$_jq" -r '.[0].conclusion // "null"')
         if [[ "$run_status" == "completed" ]]; then break; fi
-        status "  run #$run_id: $run_status — next check in ${poll_interval}s (${elapsed}s total)"
+        # Fetch per-job status for progress reporting
+        local jobs_json _jobs_summary
+        jobs_json=$(gh run view "$run_id" --repo mxmilkiib/mixxx \
+            --json jobs --jq '[.jobs[] | "\(.status)/\(.conclusion // "")/\(.name)"] | .[]' 2>/dev/null || true)
+        _jobs_summary=$(echo "$jobs_json" | sort)
+        if [[ "$_jobs_summary" != "$_prev_jobs" ]]; then
+            status "  run #$run_id: $run_status (${elapsed}s total)"
+            while IFS='/' read -r _jstat _jconc _jname; do
+                [[ -z "$_jname" ]] && continue
+                local _icon="?"
+                if [[ "$_jstat" == "completed" ]]; then
+                    case "$_jconc" in
+                        success)    _icon="OK" ;;
+                        failure)    _icon="FAIL" ;;
+                        cancelled)  _icon="CXL" ;;
+                        skipped)    _icon="SKIP" ;;
+                        *)          _icon="??" ;;
+                    esac
+                elif [[ "$_jstat" == "in_progress" ]]; then
+                    _icon=".."
+                elif [[ "$_jstat" == "queued" ]]; then
+                    _icon="Q"
+                elif [[ "$_jstat" == "waiting" ]]; then
+                    _icon="W"
+                fi
+                status "    [$_icon] $_jname"
+            done <<< "$jobs_json"
+            _prev_jobs="$_jobs_summary"
+        fi
         sleep "$poll_interval"
     done
     status "  run #$run_id: completed — conclusion=$conclusion"
@@ -973,6 +1004,55 @@ full_integration() {
     print_grand_summary "$_build_ok" "$_integrating_ok"
 }
 
+# ── mode: full_promote ────────────────────────────────────────────────────────────────────────
+# Full integration pipeline + GA CI polling + promotion to integrated.
+# Chains full_integration() with promote_integrated() so the entire
+# integration → integrating → integrated chain runs in one command.
+# The AI can launch this as a single background command and poll
+# command_status periodically — all progress is reported via status().
+
+full_promote_integration() {
+    local ts; ts=$(date '+%Y-%m-%d %H:%M')
+    echo "╔══════════════════════════════════════════════╗"
+    printf  "║  Full+Promote integration run — %-16s║\n" "$ts"
+    echo "╚══════════════════════════════════════════════╝"
+    echo ""
+    echo "Real-time status: tail -f $STATUS_FILE"
+    echo "Test logs:        tail -f $TEST_LOG_DIR/<worktree>.log"
+    echo ""
+
+    rebase_all           || { echo "ABORT: rebase step had failures."; exit 1; }
+    echo ""
+    local _build_ok=true
+    build_all_tests || _build_ok=false
+    echo ""
+    run_tests_serial     || { echo "ABORT: tests failed — fix before pushing."; exit 1; }
+    echo ""
+    push_integration
+    echo ""
+    local _integrating_ok=true
+    if ! $_build_ok; then
+        status "push_integrating skipped — build failures present (see above)"
+        _integrating_ok=false
+    else
+        push_integrating || _integrating_ok=false
+    fi
+    echo ""
+    print_grand_summary "$_build_ok" "$_integrating_ok"
+
+    if $_integrating_ok; then
+        echo ""
+        promote_integrated || {
+            status "promote_integrated failed — CI did not pass or timed out"
+            status "  Re-run when CI passes: $0 --promote-integrated"
+            return 1
+        }
+    else
+        status "SKIPPED promote_integrated — integrating was not pushed"
+        return 1
+    fi
+}
+
 # ── dispatch ───────────────────────────────────────────────────────────────────
 
 case "${1:-}" in
@@ -984,6 +1064,7 @@ case "${1:-}" in
     --push-integrating)   push_integrating ;;
     --promote-integrated) promote_integrated ;;
     --full)               full_integration ;;
+    --full-promote)       full_promote_integration ;;
     "")                   rebase_all ;;
-    *) echo "Usage: $0 [--rebuild-tests | --build-all-tests | --run-tests | --push-changed | --push-integration | --push-integrating | --promote-integrated | --full]"; exit 1 ;;
+    *) echo "Usage: $0 [--rebuild-tests | --build-all-tests | --run-tests | --push-changed | --push-integration | --push-integrating | --promote-integrated | --full | --full-promote]"; exit 1 ;;
 esac

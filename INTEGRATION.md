@@ -2,7 +2,7 @@ prompt: Mixxx personal integration system — worktree-per-branch development, a
 
 # Mixxx Integration Branch Configuration
 
-> Last updated: 2026-08-05 01:00 (session 12)
+> Last updated: 2026-08-05 12:25 (session 12)
 > URL: https://gist.github.com/mxmilkiib/5fb35c401736efed47ad7d78268c80b6
 > [RFC 2119](https://datatracker.ietf.org/doc/html/rfc2119)
 
@@ -20,10 +20,12 @@ Run these checks automatically at the start of every session, before any other w
 
 - **Purpose**: This living document tracks Milkii's personal Mixxx development setup, for creating and testing feature and bugfix branches, and MUST be updated as the workflow evolves.
 - **Last updated**: The "Last updated" date at the top of this file MUST be updated whenever this file is edited
-- **Gist sync**: This file AND `mixxx-integration-update-branches.sh` MUST be kept in sync with the Gist (https://gist.github.com/mxmilkiib/5fb35c401736efed47ad7d78268c80b6).
+- **Gist sync**: This file, `mixxx-integration-update-branches.sh`, `mixxx-integration-pre-push.sh`, and `mixxx-integration-gdb-run.sh` MUST be kept in sync with the Gist (https://gist.github.com/mxmilkiib/5fb35c401736efed47ad7d78268c80b6).
     - To sync INTEGRATION.md: `gh gist edit 5fb35c401736efed47ad7d78268c80b6 --filename INTEGRATION.md INTEGRATION.md`.
     - To sync the script: `gh gist edit 5fb35c401736efed47ad7d78268c80b6 --filename mixxx-integration-update-branches.sh mixxx-integration-update-branches.sh`.
-    - Both files MUST be updated whenever they change.
+    - To sync the pre-push hook: `gh gist edit 5fb35c401736efed47ad7d78268c80b6 --filename mixxx-integration-pre-push.sh mixxx-integration-pre-push.sh`.
+    - To sync the GDB runner: `gh gist edit 5fb35c401736efed47ad7d78268c80b6 --filename mixxx-integration-gdb-run.sh mixxx-integration-gdb-run.sh`.
+    - All files MUST be updated whenever they change.
 - **Dual dir**: All source trees share the SAME `.git` database rooted at `~/src/mixxx/.git`. Registered worktrees are not separate clones — `git log`, `git branch -a`, etc. show all branches from any path.
   - `~/src/mixxx/` — checked out on `integrated`; `build/mixxx` here is the CI-confirmed daily-driver binary
   - `~/src/mixxx-dev/integration/` — checked out on `integration`; script and helper files live here; this is where `./mixxx-integration-update-branches.sh` is run from
@@ -47,8 +49,8 @@ Run these checks automatically at the start of every session, before any other w
   3. Rebase all non-merged worktree branches on new `upstream/main` (stash any WIP first); skip branches identified as merged in step 2; clean any branches with INTEGRATION.md or other cruft commits. **Rebasing does NOT push** — use `--push-changed` explicitly when PR branches need updating (e.g. after addressing review feedback, or to clear stale-bot)
   4. Rebuild the `integration` branch: merge `upstream/main` then re-merge all `[x]` branches in order, resolving any conflicts
   5. Build the integration branch (`cmake --build build --target mixxx -- -j$(nproc --ignore=2)`) and verify it succeeds
-  6. All local tests must pass across ALL non-skipped worktrees. Run `--build-all-tests` to configure cmake and build any missing binaries (also rebuilds stale ones), then `--run-tests` to confirm 0 failures. Both steps are done automatically by `--full`. Once clean, run `--push-integrating` to promote `integration` → `origin/integrating`. This triggers GA CI.
-  6b. Wait for GA CI on `origin/integrating`: `gh run list --branch integrating --repo mxmilkiib/mixxx`. Once all checks pass, run `--promote-integrated` to fast-forward `integrated` → `origin/integrated`. If CI fails, `--promote-integrated` checks each failed job against `KNOWN_INFRA_FAILURES` in the script — if every failure is a known infra/flaky job (Flatpak, Windows checksum, macOS x64 SEGFAULT), promotion proceeds automatically. If any failure is unknown, promotion is blocked; investigate whether it is pre-existing on `upstream/main` or integration-introduced, and add the job pattern to `KNOWN_INFRA_FAILURES` only after confirming it is infra/flaky.
+  6. All local tests must pass across ALL non-skipped worktrees. Run `--build-all-tests` to configure cmake and build any missing binaries (also rebuilds stale ones), then `--run-tests` to confirm 0 failures. Both steps are done automatically by `--full` (or `--full-promote` to also poll CI and promote in one command). Once clean, run `--push-integrating` to promote `integration` → `origin/integrating`. This triggers GA CI.
+  6b. Wait for GA CI on `origin/integrating`. `--promote-integrated` polls GA CI with per-job status reporting and promotes automatically once CI completes. If CI fails, it checks each failed job against `KNOWN_INFRA_FAILURES` in the script — if every failure is a known infra/flaky job (Flatpak, Windows checksum, macOS x64 SEGFAULT), promotion proceeds automatically. If any failure is unknown, promotion is blocked; investigate whether it is pre-existing on `upstream/main` or integration-introduced, and add the job pattern to `KNOWN_INFRA_FAILURES` only after confirming it is infra/flaky. For end-to-end automation, `--full-promote` chains steps 1–6b into a single command.
   7. Check all open PRs for new review feedback (CHANGES_REQUESTED, new comments) and update INTEGRATION.md statuses accordingly
   7b. If any PR branches have actual content changes (review feedback addressed, conflict resolutions), run `--push-changed` to push only those branches whose patch differs from origin — pure rebases are skipped to conserve upstream CI resources
   8. Update the "Last updated" timestamp and rebuild log entry in INTEGRATION.md, commit, and sync to Gist
@@ -93,7 +95,7 @@ Run these checks automatically at the start of every session, before any other w
 - **Skip list vs integration markers**: `SKIP_BRANCHES` in `mixxx-integration-update-branches.sh` covers only branches whose worktrees are removed, merged, or abandoned — these are skipped in ALL operations. LOCAL_ONLY and schema-excluded branches are NOT in SKIP_BRANCHES; they are still rebased and tested. They are excluded only from integration merges, tracked via `[ ]` vs `[x]` markers in the Branch Status Outline (manual step).
 - **Upstream test filter scope**: When filtering known-failing upstream tests, filter the ENTIRE affected test suite (e.g. `ControllerScriptEngineLegacyTimerTest.*`) not just the specific failing cases. Individual tests in the suite that nominally pass can still corrupt shared QTimer/ControlObject state, causing unrelated downstream tests (e.g. `MidiMappings/MappingTestFixture`) to hang indefinitely. Root cause: `coTimerId ControlPotmeter max=50` clamps any QTimer ID > 50, producing collisions that prevent timer callbacks from firing. Filtering the entire suite prevents state poisoning. Remove when upstream fix lands.
 - **Pre-push hook timeout**: The hook runs `timeout 420 ./mixxx-test` to prevent indefinite hangs. If the timeout fires, it reports the last test name and blocks the push. Investigate the hanging test by running it in isolation first (`./mixxx-test --gtest_filter=SuiteName`) — if it passes alone, it is a state-poisoning issue from a preceding test.
-- **Monitoring progress**: `mixxx-integration-update-branches.sh --full` writes timestamped phase/branch updates to `STATUS_FILE=/tmp/mixxx-integration-status`. In a second terminal: `tail -f /tmp/mixxx-integration-status`. Individual test suite logs: `tail -f /tmp/mixxx-test-logs/<worktree>.log`. During test runs, a heartbeat prints test count every 30 s to the main terminal so it never appears frozen.
+- **Monitoring progress**: `mixxx-integration-update-branches.sh --full` (or `--full-promote`) writes timestamped phase/branch updates to `STATUS_FILE=/tmp/mixxx-integration-status`. In a second terminal: `tail -f /tmp/mixxx-integration-status`. Individual test suite logs: `tail -f /tmp/mixxx-test-logs/<worktree>.log`. During test runs, a heartbeat prints test count every 30 s to the main terminal so it never appears frozen. During CI polling (`--promote-integrated` or `--full-promote`), per-job status is printed with OK/FAIL/CXL/SKIP/.. icons each time a job state changes.
 - **File edits**: All file changes to tracked files MUST be made with the IDE's `edit`/`write_to_file` tools (showing diffs in the editor), NEVER via shell commands (`echo >`, `tee`, `sed -i`, etc.) which bypass the diff view entirely.
 - **Promotion currency**: `integrated` MUST NOT lag behind a passing `integrating`. At the start of any session — before any other work — check whether `origin/integrating` has a completed, passing CI run that has not yet been promoted: `gh run list --branch integrating --repo mxmilkiib/mixxx --limit 1 --json status,conclusion,headSha`. If it shows `"conclusion": "success"` (or `"failure"` with all failed jobs in `KNOWN_INFRA_FAILURES`) and the SHA differs from the current `integrated` HEAD, run `--promote-integrated` immediately. Letting `integrated` sit stale means `~/src/mixxx/build/mixxx` is not the CI-confirmed binary.
 - **Branch tier semantics**: `integration` ≠ `integrating` ≠ `integrated`. These are three distinct promotion gates, not aliases:
@@ -491,12 +493,13 @@ Automated via `./mixxx-integration-update-branches.sh` (run from `~/src/mixxx-de
 
 ## Dev Helper Scripts
 
-All scripts use the `mixxx-dev-` or `mixxx-integration-` filename prefix. All are committed to the `integration` branch and synced to the gist at the URL in the header.
+All scripts use the `mixxx-integration-` filename prefix. All are committed to the `integration` branch and synced to a single gist: https://gist.github.com/mxmilkiib/5fb35c401736efed47ad7d78268c80b6
 
-| Script | Gist | Purpose |
-|---|---|---|
-| `mixxx-integration-update-branches.sh` | [5fb35c4](https://gist.github.com/mxmilkiib/5fb35c401736efed47ad7d78268c80b6) | Rebase all worktrees (no push), configure+build test binaries (parallel configure, serial build, `nice 15`), run test suite with per-branch sentinels for selective re-runs, smart-diff push (`--push-changed` — only content changes trigger CI), push `integration`/`integrating`, grand summary |
-| `mixxx-dev-gdb-run.sh` | [da0d174](https://gist.github.com/mxmilkiib/da0d174d1bf80bd6d3f182d5e62186ec) | Launch Mixxx under GDB with `--developer --controller-debug --debug-assert-break`; auto-detects the `mixxx` binary; logs to timestamped file, discards on clean exit; sets `debuginfod enabled`, suppresses `SIG32`/`SIGPIPE`/`SIGUSR*` |
+| Script | Purpose |
+|---|---|
+| `mixxx-integration-update-branches.sh` | Rebase all worktrees (no push), configure+build test binaries (parallel configure, serial build, `nice 15`), run test suite with per-branch sentinels for selective re-runs, smart-diff push (`--push-changed` — only content changes trigger CI), push `integration`/`integrating`, poll GA CI with per-job status (`--promote-integrated`), end-to-end pipeline (`--full-promote` — rebase+build+test+push+CI poll+promote in one command), grand summary |
+| `mixxx-integration-pre-push.sh` | Pre-push hook logic (versioned); `.git/hooks/pre-push` delegates here; runs clang-format check + test suite, blocks local-only files from reaching `mixxxdj/mixxx` |
+| `mixxx-integration-gdb-run.sh` | Launch Mixxx under GDB with `--developer --controller-debug --debug-assert-break`; auto-detects the `mixxx` binary; logs to timestamped file, discards on clean exit; sets `debuginfod enabled`, suppresses `SIG32`/`SIGPIPE`/`SIGUSR*` |
 
 ## Integration Merge Process
 This process merges all `[x]` marked branches into the integration branch for a combined bleeding-edge build.
@@ -552,6 +555,8 @@ This process merges all `[x]` marked branches into the integration branch for a 
     ```bash
     gh gist edit 5fb35c401736efed47ad7d78268c80b6 --filename INTEGRATION.md INTEGRATION.md
     gh gist edit 5fb35c401736efed47ad7d78268c80b6 --filename mixxx-integration-update-branches.sh mixxx-integration-update-branches.sh
+    gh gist edit 5fb35c401736efed47ad7d78268c80b6 --filename mixxx-integration-pre-push.sh mixxx-integration-pre-push.sh
+    gh gist edit 5fb35c401736efed47ad7d78268c80b6 --filename mixxx-integration-gdb-run.sh mixxx-integration-gdb-run.sh
     ```
 
 ## Checking PR Status
