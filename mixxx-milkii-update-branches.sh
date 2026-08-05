@@ -6,15 +6,15 @@
 # Gist: https://gist.github.com/mxmilkiib/5fb35c401736efed47ad7d78268c80b6
 #
 # Usage:
-#   ./mixxx-integration-update-branches.sh                   rebase all worktrees (no push)
-#   ./mixxx-integration-update-branches.sh --rebuild-tests   detect and rebuild stale test binaries only (serial)
-#   ./mixxx-integration-update-branches.sh --build-all-tests configure cmake + build ALL non-skipped branches (serial)
-#   ./mixxx-integration-update-branches.sh --run-tests       run mixxx-test suite; skips branches with valid per-branch sentinel
-#   ./mixxx-integration-update-branches.sh --push-changed    push only PR branches whose patch content changed (smart-diff)
-#   ./mixxx-integration-update-branches.sh --push-integrating promote integration → integrating (requires all worktrees tested)
-#   ./mixxx-integration-update-branches.sh --promote-integrated promote integrating → integrated (requires GA CI green or known-infra-only failures)
-#   ./mixxx-integration-update-branches.sh --full            rebase + build-all-tests + run-tests + push-integration + push-integrating
-#   ./mixxx-integration-update-branches.sh --full-promote    --full + poll GA CI + promote to integrated (end-to-end, no manual step)
+#   ./mixxx-milkii-update-branches.sh                   rebase all worktrees (no push)
+#   ./mixxx-milkii-update-branches.sh --rebuild-tests   detect and rebuild stale test binaries only (serial)
+#   ./mixxx-milkii-update-branches.sh --build-all-tests configure cmake + build ALL non-skipped branches (serial)
+#   ./mixxx-milkii-update-branches.sh --run-tests       run mixxx-test suite; skips branches with valid per-branch sentinel
+#   ./mixxx-milkii-update-branches.sh --push-changed    push only PR branches whose patch content changed (smart-diff)
+#   ./mixxx-milkii-update-branches.sh --push-integrating promote integration → integrating (requires all worktrees tested)
+#   ./mixxx-milkii-update-branches.sh --promote-integrated promote integrating → integrated (requires GA CI green or known-infra-only failures)
+#   ./mixxx-milkii-update-branches.sh --full            rebase + build-all-tests + run-tests + push-integration + push-integrating
+#   ./mixxx-milkii-update-branches.sh --full-promote    --full + poll GA CI + promote to integrated (end-to-end, no manual step)
 #
 # Three-branch promotion chain:
 #   integration  — working merges; script operates here; may fail
@@ -37,13 +37,13 @@
 #
 # Killing a running build:
 #   Ctrl-C in the running terminal sends SIGINT to the script's process group, which the trap handles.
-#   From another shell: kill -TERM -$(pgrep -fo 'mixxx-integration-update-branches.sh' | head -1)
+#   From another shell: kill -TERM -$(pgrep -fo 'mixxx-milkii-update-branches.sh' | head -1)
 #   Do NOT use pkill on cmake/ninja alone — child cc1plus processes will survive and saturate the CPU.
 #
 # Related files (all committed to integration branch, all synced to gist 5fb35c4):
-#   mixxx-integration-update-branches.sh  — this script
-#   mixxx-integration-pre-push.sh         — hook logic (versioned); .git/hooks/pre-push delegates here
-#   mixxx-integration-gdb-run.sh          — GDB launcher with logging
+#   mixxx-milkii-update-branches.sh  — this script
+#   mixxx-milkii-pre-push.sh         — hook logic (versioned); .git/hooks/pre-push delegates here
+#   mixxx-milkii-gdb-run.sh          — GDB launcher with logging
 #   INTEGRATION.md                        — branch registry, process rules, status outline
 #
 # Runtime state files (not committed):

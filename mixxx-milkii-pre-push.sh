@@ -1,7 +1,7 @@
 #!/bin/bash
 # Pre-push hook logic for mxmilkiib/mixxx.
 # This file is committed to the integration branch and versioned alongside
-# mixxx-integration-update-branches.sh. The actual .git/hooks/pre-push is a
+# mixxx-milkii-update-branches.sh. The actual .git/hooks/pre-push is a
 # thin delegate that execs this script, so hook logic is tracked in git.
 # Gist: https://gist.github.com/mxmilkiib/5fb35c401736efed47ad7d78268c80b6
 #
@@ -15,7 +15,7 @@
 #      script, and the GDB helper — these must never reach mixxxdj/mixxx.
 #
 # KNOWN_FAILING must be kept in sync with the same constant in
-# mixxx-integration-update-branches.sh. Remove entries once the upstream
+# mixxx-milkii-update-branches.sh. Remove entries once the upstream
 # fix is merged into mixxxdj/mixxx main.
 
 remote="$1"
@@ -95,7 +95,7 @@ while read local_ref local_oid remote_ref remote_oid; do
     else
         range="$remote_oid..$local_oid"
     fi
-    protected_files="INTEGRATION.md mixxx-integration-gdb-run.sh mixxx-integration-update-branches.sh mixxx-integration-pre-push.sh"
+    protected_files="INTEGRATION.md mixxx-milkii-gdb-run.sh mixxx-milkii-update-branches.sh mixxx-milkii-pre-push.sh"
     for f in $protected_files; do
         if git log --diff-filter=ACDMR --name-only --pretty=format: $range -- "$f" | grep -q .; then
             echo "ERROR: Push blocked. $f must not be pushed to $remote ($url)."
