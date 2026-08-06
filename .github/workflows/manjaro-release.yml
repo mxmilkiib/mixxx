@@ -143,6 +143,9 @@ jobs:
           echo "short_sha=${SHORT_SHA}" >> "$GITHUB_OUTPUT"
           TIMESTAMP=$(date -u +%Y%m%d-%H%M)
           echo "timestamp=${TIMESTAMP}" >> "$GITHUB_OUTPUT"
+          # Extract major.minor from CMake project version
+          MIXXX_VERSION=$(grep -m1 'project(mixxx VERSION' CMakeLists.txt | sed 's/.*VERSION \([0-9]*\.[0-9]*\).*/\1/')
+          echo "mixxx_version=${MIXXX_VERSION}" >> "$GITHUB_OUTPUT"
 
       - name: "Install to staging directory"
         run: |
@@ -235,7 +238,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: mixxx-milkiib-integrated-${{ steps.git-describe.outputs.timestamp }}-${{ steps.git-describe.outputs.short_sha }}
-          name: "Mixxx Integrated Build (${{ steps.git-describe.outputs.git_describe }})"
+          name: "Mixxx MilkiiB Integrated ${{ steps.git-describe.outputs.mixxx_version }}-${{ steps.git-describe.outputs.short_sha }}"
           body: |
             ## Manjaro/Arch Linux Package
 
@@ -245,6 +248,12 @@ jobs:
 
             ```bash
             sudo pacman -U ${{ env.PACKAGE_NAME }}
+            ```
+
+            ### One-liner (download + install)
+
+            ```bash
+            curl --progress-bar -L -o /tmp/${{ env.PACKAGE_NAME }} https://github.com/mxmilkiib/mixxx/releases/download/mixxx-milkiib-integrated-${{ steps.git-describe.outputs.timestamp }}-${{ steps.git-describe.outputs.short_sha }}/${{ env.PACKAGE_NAME }} && sudo pacman -U /tmp/${{ env.PACKAGE_NAME }}
             ```
 
             ### Notes
