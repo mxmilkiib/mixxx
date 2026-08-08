@@ -147,9 +147,14 @@ jobs:
           echo "short_sha=${SHORT_SHA}" >> "$GITHUB_OUTPUT"
           TIMESTAMP=$(date -u +%Y%m%d-%H%M)
           echo "timestamp=${TIMESTAMP}" >> "$GITHUB_OUTPUT"
+          PKGVER_TIMESTAMP=$(date -u +%Y%m%d_%H%M)
+          echo "pkgver_timestamp=${PKGVER_TIMESTAMP}" >> "$GITHUB_OUTPUT"
+          echo "PKGVER_TIMESTAMP=${PKGVER_TIMESTAMP}" >> "$GITHUB_ENV"
           # Extract major.minor from CMake project version
           MIXXX_VERSION=$(grep -m1 'project(mixxx VERSION' CMakeLists.txt | sed 's/.*VERSION \([0-9]*\.[0-9]*\).*/\1/')
           echo "mixxx_version=${MIXXX_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "MIXXX_VERSION=${MIXXX_VERSION}" >> "$GITHUB_ENV"
+          echo "SHORT_SHA=${SHORT_SHA}" >> "$GITHUB_ENV"
 
       - name: "Install to staging directory"
         run: |
@@ -165,7 +170,7 @@ jobs:
           PKG_DIR="${GITHUB_WORKSPACE}/pkgbuild"
           mkdir -p "${PKG_DIR}"
           STAGING="${GITHUB_WORKSPACE}/staging"
-          PKGVER="${GIT_DESC//-/_}"
+          PKGVER="${MIXXX_VERSION}_${PKGVER_TIMESTAMP}_${SHORT_SHA}"
 
           # cmake installs to /usr/local by default — find the actual binary
           # Use -print -quit to avoid SIGPIPE from `find | head` under pipefail
@@ -190,7 +195,7 @@ jobs:
           # Write PKGBUILD using printf to avoid heredoc indentation issues in YAML
           printf '%s\n' \
             '# Maintainer: mxmilkiib' \
-            'pkgname=mixxx-integrated' \
+            'pkgname=mixxx-milkiib-integrated-manjaro' \
             "pkgver=${PKGVER}" \
             'pkgrel=1' \
             'pkgdesc="Digital DJ software (integration build)"' \
@@ -242,7 +247,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: mixxx-milkiib-integrated-${{ steps.git-describe.outputs.timestamp }}-${{ steps.git-describe.outputs.short_sha }}
-          name: "Mixxx MilkiiB Manjaro Integrated Build ${{ steps.git-describe.outputs.mixxx_version }}-${{ steps.git-describe.outputs.short_sha }}"
+          name: "Mixxx MilkiiB Integrated Manjaro Build ${{ steps.git-describe.outputs.mixxx_version }}-${{ steps.git-describe.outputs.short_sha }}"
           body: |
             ## Manjaro/Arch Linux Package
 
