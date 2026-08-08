@@ -3,6 +3,7 @@
 #include <QAbstractItemModel>
 #include <QList>
 #include <QModelIndex>
+#include <QPersistentModelIndex>
 #include <QVariant>
 
 #include "preferences/usersettings.h"
@@ -24,7 +25,7 @@ class SidebarModel : public QAbstractItemModel {
     Q_ENUM(Roles);
 
     explicit SidebarModel(
-            UserSettingsPointer pConfig,
+            UserSettingsPointer pConfig = UserSettingsPointer(),
             QObject* parent = nullptr);
     ~SidebarModel() override = default;
 
@@ -32,11 +33,10 @@ class SidebarModel : public QAbstractItemModel {
     QModelIndex getDefaultSelection();
     void setDefaultSelection(unsigned int index);
     void activateDefaultSelection();
+    bool restoreLastSelection();
 
     // Required for QAbstractItemModel
-    QModelIndex index(int row,
-            int column,
-            const QModelIndex& parent = QModelIndex()) const override;
+    QModelIndex index(int row, int column, const QModelIndex& parent = QModelIndex()) const override;
     QModelIndex parent(const QModelIndex& index) const override;
     int rowCount(const QModelIndex& parent = QModelIndex()) const override;
     int columnCount(const QModelIndex& parent = QModelIndex()) const override;
@@ -83,12 +83,11 @@ class SidebarModel : public QAbstractItemModel {
     void slotModelAboutToBeReset();
     void slotModelReset();
     void slotFeatureIsLoading(LibraryFeature*, bool selectFeature);
-    bool restoreLastSelection();
     void slotFeatureLoadingFinished(LibraryFeature*);
 
   signals:
-    void selectIndex(const QModelIndex& index, bool scrollTo = false);
-    void saveScrollPosition();
+    void selectIndex(const QModelIndex& index, bool scrollTo);
+    void selectionSaved();
 
   private slots:
     void slotPressedUntilClickedTimeout();

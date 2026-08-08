@@ -5,14 +5,12 @@
 
 #include "library/libraryfeature.h"
 #include "library/treeitem.h"
+#include "library/treeitemmodel.h"
 #include "moc_sidebarmodel.cpp"
 #include "util/assert.h"
 #include "util/cmdlineargs.h"
-#include "util/logger.h"
 
 namespace {
-
-mixxx::Logger kLogger("SidebarModel");
 
 /// The time between selecting and activating (= clicking) a feature item
 /// in the sidebar tree. This is essential to allow smooth scrolling through
@@ -20,15 +18,23 @@ mixxx::Logger kLogger("SidebarModel");
 /// been chosen as a compromise between usability and responsiveness.
 constexpr int kPressedUntilClickedTimeoutMillis = 300;
 
+/// Debounce delay for saving sidebar selection to config. Avoids
+/// excessive config writes while scrolling through items.
+constexpr int kSaveDebounceMillis = 3000;
+
 /// Enables additional debugging output.
 constexpr bool kDebug = false;
 
+const ConfigKey kLastSelectedFeatureConfigKey =
+        ConfigKey(QStringLiteral("[Library]"), QStringLiteral("last_selected_feature"));
+const ConfigKey kLastSelectedChildConfigKey =
+        ConfigKey(QStringLiteral("[Library]"), QStringLiteral("last_selected_child"));
+
 } // anonymous namespace
 
-const ConfigKey kLastSelectedFeatureConfigKey = ConfigKey("[Library]", "last_selected_feature");
-const ConfigKey kLastSelectedChildConfigKey = ConfigKey("[Library]", "last_selected_child");
-
-SidebarModel::SidebarModel(UserSettingsPointer pConfig, QObject* parent)
+SidebarModel::SidebarModel(
+        UserSettingsPointer pConfig,
+        QObject* parent)
         : QAbstractItemModel(parent),
           m_iDefaultSelectedIndex(0),
           m_pressedUntilClickedTimer(new QTimer(this)),
@@ -389,6 +395,7 @@ void SidebarModel::clicked(const QModelIndex& index) {
                 pFeature->activateChild(index);
             }
         }
+        scheduleSelectionSave(index);
     }
 }
 
@@ -656,13 +663,13 @@ void SidebarModel::scheduleSelectionSave(const QModelIndex& index) {
     }
     m_pendingSelection = index;
     m_saveTimer->stop();
-    m_saveTimer->start(3000);
+    m_saveTimer->start(kSaveDebounceMillis);
 }
 
 void SidebarModel::performSave() {
     if (m_pendingSelection.isValid()) {
         saveSelectionToConfig(m_pendingSelection);
-        emit saveScrollPosition();
+        emit selectionSaved();
     }
 }
 
@@ -671,30 +678,36 @@ void SidebarModel::saveSelectionToConfig(const QModelIndex& index) {
         return;
     }
 
-    TreeItem* pTreeItem = static_cast<TreeItem*>(index.internalPointer());
-    VERIFY_OR_DEBUG_ASSERT(pTreeItem) {
-        return;
+    LibraryFeature* pFeature = nullptr;
+
+    if (index.internalPointer() == this) {
+        // Top-level feature row
+        pFeature = m_sFeatures[index.row()];
+    } else {
+        TreeItem* pTreeItem = static_cast<TreeItem*>(index.internalPointer());
+        VERIFY_OR_DEBUG_ASSERT(pTreeItem) {
+            return;
+        }
+        pFeature = pTreeItem->feature();
     }
 
-    LibraryFeature* pFeature = pTreeItem->feature();
     VERIFY_OR_DEBUG_ASSERT(pFeature) {
         return;
     }
 
-    // Save feature icon name for robust matching
-    QString featureIconName = pFeature->iconName();
-    m_pConfig->setValue(kLastSelectedFeatureConfigKey, featureIconName);
+    // Save feature icon name for robust matching across sessions
+    m_pConfig->setValue(kLastSelectedFeatureConfigKey, pFeature->iconName());
 
-    // Save child data if it's a child item
+    // Save child data if it's a child item, clear otherwise
     if (index.parent().isValid()) {
         QVariant childData = index.data(DataRole);
         if (childData.isValid()) {
-            m_pConfig->set(kLastSelectedChildConfigKey, ConfigValue(childData.toString()));
+            m_pConfig->set(kLastSelectedChildConfigKey,
+                    ConfigValue(childData.toString()));
         } else {
             m_pConfig->set(kLastSelectedChildConfigKey, ConfigValue());
         }
     } else {
-        // Root feature selected - clear child data
         m_pConfig->set(kLastSelectedChildConfigKey, ConfigValue());
     }
 }
@@ -709,26 +722,11 @@ bool SidebarModel::restoreLastSelection() {
         return false;
     }
 
-    QString savedChildDataStr = m_pConfig->getValue(kLastSelectedChildConfigKey);
-    QVariant savedChildData;
-    if (!savedChildDataStr.isEmpty()) {
-        // Try to convert to int first (for playlist/crate IDs), fallback to string
-        bool ok;
-        int intValue = savedChildDataStr.toInt(&ok);
-        if (ok) {
-            savedChildData = intValue;
-        } else {
-            savedChildData = savedChildDataStr;
-        }
-    }
-
     // Find the feature by icon name
     LibraryFeature* pTargetFeature = nullptr;
-    int featureIndex = -1;
     for (int i = 0; i < m_sFeatures.size(); ++i) {
         if (m_sFeatures[i]->iconName() == savedFeatureIcon) {
             pTargetFeature = m_sFeatures[i];
-            featureIndex = i;
             break;
         }
     }
@@ -737,32 +735,35 @@ bool SidebarModel::restoreLastSelection() {
         return false;
     }
 
-    QModelIndex targetIndex = index(featureIndex, 0);
-
-    // If we have child data, try to find the matching child
-    if (savedChildData.isValid() && pTargetFeature->sidebarModel()) {
-        QAbstractItemModel* pChildModel = pTargetFeature->sidebarModel();
-        const QModelIndexList matches = pChildModel->match(
-                pChildModel->index(0, 0),
-                DataRole,
-                savedChildData,
-                1,
-                Qt::MatchExactly);
-
-        VERIFY_OR_DEBUG_ASSERT(!matches.isEmpty() && matches.first().isValid()) {
-            // Child not found, select feature root
-            emit selectIndex(targetIndex, true);
-            return true;
+    QString savedChildDataStr = m_pConfig->getValue(kLastSelectedChildConfigKey);
+    if (!savedChildDataStr.isEmpty() && pTargetFeature->sidebarModel()) {
+        // Try to convert to int first (for playlist/crate IDs), fallback to string
+        QVariant savedChildData;
+        bool ok;
+        int intValue = savedChildDataStr.toInt(&ok);
+        if (ok) {
+            savedChildData = intValue;
+        } else {
+            savedChildData = savedChildDataStr;
         }
 
-        // Translate child index to sidebar index
-        QModelIndex childIndex = matches.first();
-        TreeItem* pTreeItem = static_cast<TreeItem*>(childIndex.internalPointer());
-        if (pTreeItem) {
-            targetIndex = createIndex(childIndex.row(), childIndex.column(), pTreeItem);
+        TreeItemModel* pChildModel = pTargetFeature->sidebarModel();
+        const QModelIndexList matches = pChildModel->match(
+                pChildModel->index(0, 0),
+                TreeItemModel::kDataRole,
+                savedChildData,
+                1,
+                Qt::MatchExactly | Qt::MatchRecursive);
+
+        if (!matches.isEmpty() && matches.first().isValid()) {
+            // selectAndActivate handles sidebar selection, tree expansion,
+            // scrolling, and library pane activation
+            pTargetFeature->selectAndActivate(matches.first());
+            return true;
         }
     }
 
-    emit selectIndex(targetIndex, true);
+    // No child data or child not found — select and activate the feature root
+    pTargetFeature->selectAndActivate();
     return true;
 }
