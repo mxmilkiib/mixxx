@@ -13,7 +13,7 @@ jobs:
   build:
     runs-on: ubuntu-24.04
     container:
-      image: archlinux:latest
+      image: manjarolinux/base:latest
       options: --privileged
     steps:
       - name: "Install base dependencies"
@@ -238,7 +238,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: mixxx-milkiib-integrated-${{ steps.git-describe.outputs.timestamp }}-${{ steps.git-describe.outputs.short_sha }}
-          name: "Mixxx MilkiiB Integrated ${{ steps.git-describe.outputs.mixxx_version }}-${{ steps.git-describe.outputs.short_sha }}"
+          name: "Mixxx MilkiiB Manjaro Integrated Build ${{ steps.git-describe.outputs.mixxx_version }}-${{ steps.git-describe.outputs.short_sha }}"
           body: |
             ## Manjaro/Arch Linux Package
 
@@ -259,7 +259,7 @@ jobs:
             ### Notes
 
             - This is an unsigned integration build for testing purposes
-            - Built on Arch Linux, compatible with Manjaro and other Arch derivatives
+            - Built on Manjaro Linux, compatible with Manjaro and other Arch derivatives
             - Dependencies are resolved automatically by pacman
           files: ${{ env.PACKAGE_FILE }}
           prerelease: true
