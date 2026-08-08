@@ -23,7 +23,7 @@ jobs:
 
           # makepkg refuses to run as root — create a non-root builder user
           # with passwordless sudo for pacman (needed by makepkg -si)
-          useradd -m -G wheel -s /bin/bash builder
+          id builder >/dev/null 2>&1 || useradd -m -G wheel -s /bin/bash builder
           echo 'builder ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
 
       - name: "Check out repository"
