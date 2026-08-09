@@ -163,6 +163,46 @@ jobs:
           chmod -R a+rX "${GITHUB_WORKSPACE}/staging"
         working-directory: build
 
+      - name: "Fetch and install personal resources"
+        run: |
+          set -euo pipefail
+          STAGING="${GITHUB_WORKSPACE}/staging"
+          MIXXX_BIN=$(find "${STAGING}" -name mixxx -type f -print -quit)
+          STAGING_USR=$(dirname "$(dirname "${MIXXX_BIN}")")
+          MIXXX_DATA="${STAGING_USR}/share/mixxx"
+          WORK="${GITHUB_WORKSPACE}/.mixxx-extras"
+          mkdir -p "${MIXXX_DATA}/skins" "${MIXXX_DATA}/controllers" "${WORK}"
+          cd "${WORK}"
+
+          git clone --depth 1 https://github.com/mxmilkiib/deere-redo.git
+          rm -rf deere-redo/.git
+          mkdir -p "${MIXXX_DATA}/skins/Deere-Redo"
+          cp -aT deere-redo/ "${MIXXX_DATA}/skins/Deere-Redo/"
+          rm -rf deere-redo
+          rm -f \
+            "${MIXXX_DATA}/skins/Deere-Redo/CHANGELOG_FORK.md" \
+            "${MIXXX_DATA}/skins/Deere-Redo/CHANNEL_MUTE_ANALYSIS.md" \
+            "${MIXXX_DATA}/skins/Deere-Redo/TEMPLATE_STRUCTURE_OUTLINE.txt" \
+            "${MIXXX_DATA}/skins/Deere-Redo/skin_include_tree.dot" \
+            "${MIXXX_DATA}/skins/Deere-Redo/skin_include_tree.png" \
+            "${MIXXX_DATA}/skins/Deere-Redo/style.qss.backup"
+          find "${MIXXX_DATA}/skins/Deere-Redo" -type f \( -name '*.xml' -o -name '*.qss' \) \
+            -exec sed -i 's/\[Deere\]/[Deere-Redo]/g' {} +
+
+          git clone --depth 1 https://github.com/mxmilkiib/mixxx-novation-launchpad-pro-mk3-milkii.git lppro
+          cp lppro/LaunchpadProMK3.midi.xml lppro/LaunchpadProMK3.js "${MIXXX_DATA}/controllers/"
+          rm -rf lppro
+
+          git clone --depth 1 https://github.com/mxmilkiib/mixxx-akai-mpd218-milkii.git mpd218
+          cp mpd218/Akai-MPD218-milkii.midi.xml mpd218/Akai-MPD218-milkii-scripts.js "${MIXXX_DATA}/controllers/"
+          rm -rf mpd218
+
+          git clone --depth 1 https://github.com/mxmilkiib/mixxx-korg-nanokontrol-2-milkii.git nano2
+          cp nano2/Korg-nanoKONTROL-2-milkii.midi.xml nano2/Korg-nanoKONTROL-2-scripts-milkii.js "${MIXXX_DATA}/controllers/"
+          rm -rf nano2
+
+          chmod -R a+rX "${MIXXX_DATA}/skins/Deere-Redo" "${MIXXX_DATA}/controllers"
+
       - name: "Create Manjaro/Arch package"
         shell: bash
         run: |
