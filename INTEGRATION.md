@@ -2,7 +2,7 @@ prompt: Mixxx personal integration system — worktree-per-branch development, a
 
 # Mixxx Integration Branch Configuration
 
-> Last updated: 2026-08-05 12:25 (session 12)
+> Last updated: 2026-08-09 (session 15, dual-dir refactor)
 > URL: https://gist.github.com/mxmilkiib/5fb35c401736efed47ad7d78268c80b6
 > [RFC 2119](https://datatracker.ietf.org/doc/html/rfc2119)
 
@@ -20,23 +20,23 @@ Run these checks automatically at the start of every session, before any other w
 
 - **Purpose**: This living document tracks Milkii's personal Mixxx development setup, for creating and testing feature and bugfix branches, and MUST be updated as the workflow evolves.
 - **Last updated**: The "Last updated" date at the top of this file MUST be updated whenever this file is edited
-- **Gist sync**: This file, `mixxx-milkii-update-branches.sh`, `mixxx-milkii-pre-push.sh`, and `mixxx-milkii-gdb-run.sh` MUST be kept in sync with the Gist (https://gist.github.com/mxmilkiib/5fb35c401736efed47ad7d78268c80b6).
+- **Gist sync**: This file, `mixxx-milkii-integration-update-branches.sh`, `mixxx-milkii-integration-pre-push.sh`, and `mixxx-milkii-integration-gdb-run.sh` MUST be kept in sync with the Gist (https://gist.github.com/mxmilkiib/5fb35c401736efed47ad7d78268c80b6).
     - To sync INTEGRATION.md: `gh gist edit 5fb35c401736efed47ad7d78268c80b6 --filename INTEGRATION.md INTEGRATION.md`.
-    - To sync the script: `gh gist edit 5fb35c401736efed47ad7d78268c80b6 --filename mixxx-milkii-update-branches.sh mixxx-milkii-update-branches.sh`.
-    - To sync the pre-push hook: `gh gist edit 5fb35c401736efed47ad7d78268c80b6 --filename mixxx-milkii-pre-push.sh mixxx-milkii-pre-push.sh`.
-    - To sync the GDB runner: `gh gist edit 5fb35c401736efed47ad7d78268c80b6 --filename mixxx-milkii-gdb-run.sh mixxx-milkii-gdb-run.sh`.
+    - To sync the script: `gh gist edit 5fb35c401736efed47ad7d78268c80b6 --filename mixxx-milkii-integration-update-branches.sh mixxx-milkii-integration-update-branches.sh`.
+    - To sync the pre-push hook: `gh gist edit 5fb35c401736efed47ad7d78268c80b6 --filename mixxx-milkii-integration-pre-push.sh mixxx-milkii-integration-pre-push.sh`.
+    - To sync the GDB runner: `gh gist edit 5fb35c401736efed47ad7d78268c80b6 --filename mixxx-milkii-integration-gdb-run.sh mixxx-milkii-integration-gdb-run.sh`.
     - All files MUST be updated whenever they change.
 - **Dual dir**: All source trees share the SAME `.git` database rooted at `~/src/mixxx/.git`. Registered worktrees are not separate clones — `git log`, `git branch -a`, etc. show all branches from any path.
-  - `~/src/mixxx/` — checked out on `integrated`; `build/mixxx` here is the CI-confirmed daily-driver binary
-  - `~/src/mixxx-dev/integration/` — checked out on `integration`; script and helper files live here; this is where `./mixxx-milkii-update-branches.sh` is run from
+  - `~/src/mixxx/` — checked out on `main`; synced with `mixxxdj/mixxx` main (see Main sync rule)
+  - `~/src/mixxx-dev/integration/` — checked out on `integration`; all `[x]`-marked branches merged here; script and helper files live here; this is where `./mixxx-milkii-integration-update-branches.sh` is run from; `build/mixxx` here is the daily-driver binary
   - `~/src/mixxx-dev/<branch>/` — individual feature/bugfix worktrees
 - **Main sync**: The project repo MUST maintain a `main` branch that is synced with `mixxxdj/mixxx` main. `origin/main` MUST be kept as a fast-forward mirror of `upstream/main` — run `git push --no-verify origin main` after every `git fetch upstream && git merge upstream/main` on `main`.
 - **Main read-only**: The `main` branch MUST NOT receive any local commits — not INTEGRATION.md updates, not patches, nothing. All commits go on `integration` or a worktree branch. Any stray commits on `main` MUST be removed by force-pushing the clean `upstream/main` tip.
-- **Worktrees**: All development MUST use worktrees, keeping individual branches clean for upstream PRs. The `integration` worktree at `~/src/mixxx-dev/integration/` is the script's operating base; `~/src/mixxx/` MUST remain on `integrated` so its `build/mixxx` is always the CI-confirmed binary.
+- **Worktrees**: All development MUST use worktrees, keeping individual branches clean for upstream PRs. The `integration` worktree at `~/src/mixxx-dev/integration/` is the script's operating base and where the daily-driver binary is built; `~/src/mixxx/` MUST remain on `main` synced with `upstream/main`.
 - **Branch tiers**: The `mixxx` repo MUST maintain three promotion-chain branches:
   - `integration` — working merge branch; script operates here; may be broken at any time. Rebuilt from scratch on each run by merging `upstream/main` then all `[x]`-marked worktree branches in order — it is intentionally ephemeral and MUST NOT be treated as stable.
   - `integrating` — locally-tested-clean tier; promoted from `integration` only after ALL non-skipped worktrees have passing test suites (`--push-integrating`); triggers GA CI. Local tests run against the same kernel/libraries/ccache as the build; they catch logic regressions but not environment or flag differences.
-  - `integrated` — CI-confirmed-clean tier; promoted from `integrating` only after GA CI passes on `origin/integrating` (`--promote-integrated`); safe to build from daily. GA CI runs a full build + unit test suite on a clean runner with no shared cache, catching missing-dependency or build-flag issues invisible to local tests. CI failures matching `KNOWN_INFRA_FAILURES` in the script (Flatpak xvfb-run, Windows checksum mismatch, macOS x64 SEGFAULT) are treated as infra/flaky and do not block promotion.
+  - `integrated` — CI-confirmed-clean tier; promoted from `integrating` only after GA CI passes on `origin/integrating` (`--promote-integrated`); no dedicated worktree — the script updates the ref remotely via `gh api` and force-pushes from `MIXXX_MAIN`. GA CI runs a full build + unit test suite on a clean runner with no shared cache, catching missing-dependency or build-flag issues invisible to local tests. CI failures matching `KNOWN_INFRA_FAILURES` in the script (Flatpak xvfb-run, Windows checksum mismatch, macOS x64 SEGFAULT) are treated as infra/flaky and do not block promotion.
   Three tiers exist because local-passing does not imply clean-environment-passing: a missing system header, a flag difference, or a locally-installed library can mask a real breakage. `integrating` is the staging gate; `integrated` is the confirmed-clean consumption tier.
   `integration` combines all `[x]`-marked branches from `mixxx-dev` worktrees.
 - **Dev location**: All individual branch development should be done using the `mixxx-dev` worktree directory
@@ -48,7 +48,7 @@ Run these checks automatically at the start of every session, before any other w
   2. Check all `[x]` branches: for each, verify whether its commits are already present in `upstream/main` (`git log upstream/main --oneline | grep <keyword>`); if fully merged, move the entry to the "Merged to Upstream" section, remove the `[x]` marker, and record the merge date — do this BEFORE rebasing or rebuilding so merged branches are excluded from both
   3. Rebase all non-merged worktree branches on new `upstream/main` (stash any WIP first); skip branches identified as merged in step 2; clean any branches with INTEGRATION.md or other cruft commits. **Rebasing does NOT push** — use `--push-changed` explicitly when PR branches need updating (e.g. after addressing review feedback, or to clear stale-bot)
   4. Rebuild the `integration` branch: merge `upstream/main` then re-merge all `[x]` branches in order, resolving any conflicts
-  5. Build the integration branch (`cmake --build build --target mixxx -- -j$(nproc --ignore=2)`) and verify it succeeds
+  5. Build the integration branch (`CCACHE_BASEDIR=~/src/mixxx-dev/integration nice -n 15 cmake --build ~/src/mixxx-dev/integration/build --target mixxx -- -j$(nproc --ignore=2)`) and verify it succeeds
   6. All local tests must pass across ALL non-skipped worktrees. Run `--build-all-tests` to configure cmake and build any missing binaries (also rebuilds stale ones), then `--run-tests` to confirm 0 failures. Both steps are done automatically by `--full` (or `--full-promote` to also poll CI and promote in one command). Once clean, run `--push-integrating` to promote `integration` → `origin/integrating`. This triggers GA CI.
   6b. Wait for GA CI on `origin/integrating`. `--promote-integrated` polls GA CI with per-job status reporting and promotes automatically once CI completes. If CI fails, it checks each failed job against `KNOWN_INFRA_FAILURES` in the script — if every failure is a known infra/flaky job (Flatpak, Windows checksum, macOS x64 SEGFAULT), promotion proceeds automatically. If any failure is unknown, promotion is blocked; investigate whether it is pre-existing on `upstream/main` or integration-introduced, and add the job pattern to `KNOWN_INFRA_FAILURES` only after confirming it is infra/flaky. For end-to-end automation, `--full-promote` chains steps 1–6b into a single command.
   7. Check all open PRs for new review feedback (CHANGES_REQUESTED, new comments) and update INTEGRATION.md statuses accordingly
@@ -78,35 +78,37 @@ Run these checks automatically at the start of every session, before any other w
 - **Conflict resolution**: When resolving merge conflicts — whether during rebases or integration merges — conflicts MUST be resolved and the operation continued non-interactively
 - **Code quality**: Code quality MUST be verified before pushing — code should be proper, straight to the point, robust, and follow Mixxx coding style
 - **Push permission**: Permission MUST be sought from the user before pushing commits to GitHub. Once the user has confirmed a push in a session, further pushes in that same session MAY proceed without asking again, to reduce friction.
-- **Worktree pruning**: When a branch is merged upstream, closed, or abandoned, its worktree MUST be removed (`git worktree remove ~/src/mixxx-dev/<name>`) and the local branch ref MAY be deleted. This keeps `mixxx-dev/` lean and prevents `mixxx-milkii-update-branches.sh` from wasting time on dead branches.
+- **Worktree pruning**: When a branch is merged upstream, closed, or abandoned, its worktree MUST be removed (`git worktree remove ~/src/mixxx-dev/<name>`) and the local branch ref MAY be deleted. This keeps `mixxx-dev/` lean and prevents `mixxx-milkii-integration-update-branches.sh` from wasting time on dead branches.
 - **Schema exclusion**: Branches that introduce database schema migrations MUST NOT be merged into the integration branch unless all schema-changing branches use compatible, non-conflicting revision numbers. Schema branches are tracked in a dedicated "Schema-Changing Branches" section of the outline.
 - **Local-only backup**: All local-only branches MUST be pushed to `origin` (`mxmilkiib/mixxx`) for off-machine backup, even if they will never be PRed upstream. All worktrees share a single `.git` directory — losing it means losing every unpushed branch.
 - **LOCAL_ONLY dependency chains**: When rebasing branches that form a LOCAL_ONLY dependency chain, the dependency root MUST be rebased first, then each dependent in topological order. If the root bitrots or conflicts, all dependents are broken until the root is fixed.
-- **mixxx-milkii-update-branches.sh**: The script MUST exist as a committed file in the `integration` branch and MUST be run from `~/src/mixxx-dev/integration/`. All `${MIXXX_DEV}/*/` loops in the script MUST guard with `[[ "$name" =~ ^[0-9]{4}\. ]] || continue` so promotion-chain worktrees (`integration`, `integrating`, `integrated`) — which lack the `YYYY.` date prefix — are never treated as feature branches. It MUST skip worktrees whose branches have been merged upstream, closed, or abandoned.
-- **Test binary staleness**: After any system library upgrade (e.g. protobuf, Qt, libstdc++), the `build/mixxx-test` binary in each worktree MUST be rebuilt before pushing — stale binaries will fail the pre-push hook with a dynamic linker error, not a test failure. Run `ldd <worktree>/build/mixxx-test | grep 'not found'` to detect staleness without rebuilding. Use `mixxx-milkii-update-branches.sh --rebuild-tests` to rebuild all stale test binaries serially.
-- **Single-branch build**: When the user asks to build a specific branch or worktree, ALWAYS build the full `mixxx` executable (`cmake --build <worktree>/build --target mixxx`), NOT just `mixxx-test`. The test binary is built separately by the integration script; a user-requested build means they want a runnable binary. Build command: `CCACHE_BASEDIR=~/src/mixxx-dev/<name> nice -n 15 cmake --build ~/src/mixxx-dev/<name>/build --target mixxx -j$(nproc)`.
+- **mixxx-milkii-integration-update-branches.sh**: The script MUST exist as a committed file in the `integration` branch and MUST be run from `~/src/mixxx-dev/integration/`. All `${MIXXX_DEV}/*/` loops in the script MUST guard with `[[ "$name" =~ ^[0-9]{4}\. ]] || continue` so promotion-chain worktrees (`integration`, `integrating`, `integrated`) — which lack the `YYYY.` date prefix — are never treated as feature branches. It MUST skip worktrees whose branches have been merged upstream, closed, or abandoned.
+- **Test binary staleness**: After any system library upgrade (e.g. protobuf, Qt, libstdc++), the `build/mixxx-test` binary in each worktree MUST be rebuilt before pushing — stale binaries will fail the pre-push hook with a dynamic linker error, not a test failure. Run `ldd <worktree>/build/mixxx-test | grep 'not found'` to detect staleness without rebuilding. Use `mixxx-milkii-integration-update-branches.sh --rebuild-tests` to rebuild all stale test binaries serially.
+- **Single-branch build**: When the user asks to build a specific branch or worktree, ALWAYS build the full `mixxx` executable (`cmake --build <worktree>/build --target mixxx`), NOT just `mixxx-test`. The test binary is built separately by the integration script; a user-requested build means they want a runnable binary. Build command: `CCACHE_BASEDIR=~/src/mixxx-dev/<name> nice -n 15 cmake --build ~/src/mixxx-dev/<name>/build --target mixxx -j$(nproc --ignore=2)`.
+- **Isolated test profiles**: When running a worktree build for manual testing, use `--settingsPath /tmp/mixxx-test-<branch-name>` to isolate config, library DB, and state from the main profile. Mixxx auto-creates the directory. Run: `<worktree>/build/mixxx --settingsPath /tmp/mixxx-test-<branch-name>`. Add `--debug --developer` for diagnostic logging.
 - **Build type**: All worktree builds MUST use `CMAKE_BUILD_TYPE=RelWithDebInfo`. Debug builds abort on `DEBUG_ASSERT` calls, causing tests to crash with non-zero exit that looks like a test failure (e.g. `SoundSourceProxyTest.openEmptyFile` firing `FileInfo::canonicalLocation` assert). Release builds suppress the crash but lose debug symbols. `RelWithDebInfo` is the correct balance. Check: `grep CMAKE_BUILD_TYPE <worktree>/build/CMakeCache.txt`. Reconfigure with: `cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo <worktree>/build`.
 - **Test serialisation**: Local tests MUST be run serially (`run_tests_serial`), not in parallel. Multiple concurrent `mixxx-test` processes share the same audio device mocks, ControlObject registry, and SQLite test databases — parallel runs cause non-deterministic failures and resource exhaustion. Serial execution ensures reproducible results. Build compilation IS parallel within each worktree (`-j$(nproc --ignore=2)`) and configure steps are parallelised across worktrees.
 - **Build parallelism**: NEVER launch multiple full worktree builds simultaneously — 5 × `-j$(nproc)` on a 32-core machine means 150 competing jobs and effectively no progress. Worktree builds MUST be run serially using `-j$(nproc --ignore=2)`. With ccache + CCACHE_BASEDIR correctly set, each subsequent build is mostly cache hits making serial runs fast.
 - **Killing builds**: `pkill -f cmake` only kills the cmake wrapper — ninja/make/cc1plus children survive and saturate the CPU. To kill a full build tree: `ps aux | grep -E 'cc1plus|ninja|/usr/bin/make' | grep -v grep | awk '{print $2}' | xargs -r kill -9`. In the script, Ctrl-C triggers a `kill 0` trap that kills the whole process group cleanly.
 - **ccache**: All worktree builds MUST be configured with `-DCCACHE_SUPPORT=ON`. Cache size SHOULD be 15 GB or more. To enable on an existing build: `cmake -DCCACHE_SUPPORT=ON <worktree>/build` (in-place reconfigure).
-  - **Cross-worktree sharing requires `CCACHE_BASEDIR`**: worktrees are at different paths, so preprocessor `#line` markers embed different absolute paths in the hash. Setting `CCACHE_BASEDIR=<worktree-root>` at build time strips that prefix, making paths relative — identical upstream files then produce the same hash across worktrees. This is set automatically by `mixxx-milkii-update-branches.sh`; manual builds MUST also set it: `CCACHE_BASEDIR=~/src/mixxx-dev/<name> cmake --build ...`.
+  - **Cross-worktree sharing requires `CCACHE_BASEDIR`**: worktrees are at different paths, so preprocessor `#line` markers embed different absolute paths in the hash. Setting `CCACHE_BASEDIR=<worktree-root>` at build time strips that prefix, making paths relative — identical upstream files then produce the same hash across worktrees. This is set automatically by `mixxx-milkii-integration-update-branches.sh`; manual builds MUST also set it: `CCACHE_BASEDIR=~/src/mixxx-dev/<name> cmake --build ...`.
   - `hash_dir = false` in `~/.config/ccache/ccache.conf` prevents the build directory path from entering the hash (complementary to CCACHE_BASEDIR). Both settings are needed for robust cross-worktree sharing.
-- **Skip list vs integration markers**: `SKIP_BRANCHES` in `mixxx-milkii-update-branches.sh` covers only branches whose worktrees are removed, merged, or abandoned — these are skipped in ALL operations. LOCAL_ONLY and schema-excluded branches are NOT in SKIP_BRANCHES; they are still rebased and tested. They are excluded only from integration merges, tracked via `[ ]` vs `[x]` markers in the Branch Status Outline (manual step).
+- **Skip list vs integration markers**: `SKIP_BRANCHES` in `mixxx-milkii-integration-update-branches.sh` covers only branches whose worktrees are removed, merged, or abandoned — these are skipped in ALL operations. LOCAL_ONLY and schema-excluded branches are NOT in SKIP_BRANCHES; they are still rebased and tested. They are excluded only from integration merges, tracked via `[ ]` vs `[x]` markers in the Branch Status Outline (manual step).
 - **Upstream test filter scope**: When filtering known-failing upstream tests, filter the ENTIRE affected test suite (e.g. `ControllerScriptEngineLegacyTimerTest.*`) not just the specific failing cases. Individual tests in the suite that nominally pass can still corrupt shared QTimer/ControlObject state, causing unrelated downstream tests (e.g. `MidiMappings/MappingTestFixture`) to hang indefinitely. Root cause: `coTimerId ControlPotmeter max=50` clamps any QTimer ID > 50, producing collisions that prevent timer callbacks from firing. Filtering the entire suite prevents state poisoning. Remove when upstream fix lands.
 - **Pre-push hook timeout**: The hook runs `timeout 420 ./mixxx-test` to prevent indefinite hangs. If the timeout fires, it reports the last test name and blocks the push. Investigate the hanging test by running it in isolation first (`./mixxx-test --gtest_filter=SuiteName`) — if it passes alone, it is a state-poisoning issue from a preceding test.
-- **Monitoring progress**: `mixxx-milkii-update-branches.sh --full` (or `--full-promote`) writes timestamped phase/branch updates to `STATUS_FILE=/tmp/mixxx-integration-status`. In a second terminal: `tail -f /tmp/mixxx-integration-status`. Individual test suite logs: `tail -f /tmp/mixxx-test-logs/<worktree>.log`. During test runs, a heartbeat prints test count every 30 s to the main terminal so it never appears frozen. During CI polling (`--promote-integrated` or `--full-promote`), per-job status is printed with OK/FAIL/CXL/SKIP/.. icons each time a job state changes.
+- **Monitoring progress**: `mixxx-milkii-integration-update-branches.sh --full` (or `--full-promote`) writes timestamped phase/branch updates to `STATUS_FILE=/tmp/mixxx-integration-status`. In a second terminal: `tail -f /tmp/mixxx-integration-status`. Individual test suite logs: `tail -f /tmp/mixxx-test-logs/<worktree>.log`. During test runs, a heartbeat prints test count every 30 s to the main terminal so it never appears frozen. During CI polling (`--promote-integrated` or `--full-promote`), per-job status is printed with OK/FAIL/CXL/SKIP/.. icons each time a job state changes.
 - **File edits**: All file changes to tracked files MUST be made with the IDE's `edit`/`write_to_file` tools (showing diffs in the editor), NEVER via shell commands (`echo >`, `tee`, `sed -i`, etc.) which bypass the diff view entirely.
-- **Promotion currency**: `integrated` MUST NOT lag behind a passing `integrating`. At the start of any session — before any other work — check whether `origin/integrating` has a completed, passing CI run that has not yet been promoted: `gh run list --branch integrating --repo mxmilkiib/mixxx --limit 1 --json status,conclusion,headSha`. If it shows `"conclusion": "success"` (or `"failure"` with all failed jobs in `KNOWN_INFRA_FAILURES`) and the SHA differs from the current `integrated` HEAD, run `--promote-integrated` immediately. Letting `integrated` sit stale means `~/src/mixxx/build/mixxx` is not the CI-confirmed binary.
+- **Promotion currency**: `integrated` MUST NOT lag behind a passing `integrating`. At the start of any session — before any other work — check whether `origin/integrating` has a completed, passing CI run that has not yet been promoted: `gh run list --branch integrating --repo mxmilkiib/mixxx --limit 1 --json status,conclusion,headSha`. If it shows `"conclusion": "success"` (or `"failure"` with all failed jobs in `KNOWN_INFRA_FAILURES`) and the SHA differs from the current `integrated` HEAD, run `--promote-integrated` immediately. Letting `integrated` sit stale means the Manjaro release pipeline is packaging an out-of-date build.
 - **Branch tier semantics**: `integration` ≠ `integrating` ≠ `integrated`. These are three distinct promotion gates, not aliases:
   - `integration` is a working scratchpad — never guaranteed to build or pass tests.
   - `integrating` is locally-tested-clean — every non-skipped worktree passed its test suite with 0 failures. This is NOT CI-confirmed.
-  - `integrated` is CI-confirmed-clean — GA confirmed `origin/integrating` passed all platform checks. This is the branch to build from.
+  - `integrated` is CI-confirmed-clean — GA confirmed `origin/integrating` passed all platform checks. No dedicated worktree; the ref is updated remotely by the script. The Manjaro release pipeline fires on pushes to this branch.
   `integrated` ≠ "guaranteed to build everywhere" — CI may still filter some known-upstream test failures via `KNOWN_FAILING`, and known infra/flaky CI jobs via `KNOWN_INFRA_FAILURES` in the script. Its guarantee is: locally clean + GA Linux/macOS/Windows builds passed.
 - **Test binary completeness**: Before `--push-integrating` can succeed, ALL non-skipped worktree branches MUST have a `build/mixxx-test` binary AND each must have a per-branch passing sentinel for its current HEAD. `--full` uses `--build-all-tests` which: (1) launches all cmake configures **in parallel** (configure is I/O-bound; 16 configures take ~5s instead of ~70s serial), then (2) builds `mixxx-test` serially with `-j(nproc-2)`, then (3) prints a `ccache -s` summary. Standalone: `--build-all-tests` then `--run-tests`. The script lists all blocking branches when `--push-integrating` is blocked. `--rebuild-tests` still exists but only handles stale binaries (ldd-detected) — it does NOT configure unconfigured branches.
 - **Per-branch test status**: Each active branch entry in this document SHOULD carry a `Test binary:` field with one of: `[no-build]`, `[build-only]`, `[test-pass YYYY-MM-DD]`, `[test-fail YYYY-MM-DD]`. This is updated manually after each `--run-tests` run. The field reflects the LAST KNOWN state; the script is authoritative for the current live state.
 - **CI-conscious pushing**: Feature branch force-pushes to `origin` trigger full CI matrix on `mixxxdj/mixxx`. A pure rebase (same patch, different base) has zero CI value — it wastes shared runner time and annoys reviewers who monitor PR activity. `rebase_all()` no longer pushes; use `--push-changed` to push only branches whose `git diff upstream/main..HEAD` differs from `git diff upstream/main..origin/<branch>`. Manual pushes (e.g. after addressing review feedback) bypass this — push directly from the worktree as needed.
 - **Per-branch test sentinel**: After each test run, `run_tests_serial` writes `~/.cache/mixxx-integration/<name>.tested` containing `<branch-HEAD-SHA> pass|fail`. Sentinels survive reboots (unlike `/tmp/`). `run_tests_serial` is **selective**: branches whose sentinel matches their current HEAD SHA and status is `pass` are skipped, so re-runs after a single branch rebase only re-test that branch (~3 min vs ~65 min). `push_integrating` Gate 2 checks each branch's sentinel individually — reports exactly which branches need attention. A global summary sentinel is also written to `~/.cache/mixxx-integration/tests-passed` for auditing. Invalidation is automatic: when a branch rebases its HEAD SHA changes, making the sentinel stale.
+- **Manjaro release pipeline**: `.github/workflows/manjaro-release.yml` is a release-packaging workflow distinct from the `build.yml` CI matrix — it produces an installable Manjaro/Arch package from the CI-confirmed `integrated` branch and publishes it as a pre-release GitHub Release on `mxmilkiib/mixxx`. See the **Manjaro/Arch Release Pipeline** section for full details.
 
 
 ## Worktree Branch Hygiene
@@ -152,7 +154,7 @@ Run these checks automatically at the start of every session, before any other w
 
 | Path               | Purpose                                                                    |
 |--------------------|----------------------------------------------------------------------------|
-| `~/src/mixxx/`     | Worktree checked out on `integrated` — CI-confirmed daily-driver binary    |
+| `~/src/mixxx/`     | Worktree checked out on `main` — synced with `mixxxdj/mixxx` main           |
 | `~/src/mixxx-dev/` | Worktrees: `integration/` (script base) + individual feature/fix branches  |
 
 **Branch promotion chain** (all branches live in the single shared `.git` at `~/src/mixxx/`):
@@ -172,6 +174,27 @@ utf8-string-controls (LOCAL_ONLY)
 
 Branches with dependencies on local-only branches cannot be submitted upstream as-is. They MUST be refactored to remove the dependency or the dependency MUST be upstreamed first.
 
+### Merge Order for Overlapping Source Files
+
+Some active branches modify the same source files. The script merges branches in worktree directory order (alphabetical by date prefix), which happens to be correct for these overlaps. If the order is ever changed, the following dependencies MUST be respected:
+
+**`src/waveform/renderers/waveformoverviewrenderer.cpp` and `.h`** — 3 branches touch these:
+1. `2025.10oct.20-hotcues-on-overview-waveform` (adds hotcue rendering to overview)
+2. `2025.10oct.21-stacked-overview-waveform` (adds StackedRGB enum + renderer)
+3. `2026.02feb.20-simple-waveform-top-and-overview` (adds Simple overview type)
+
+Each builds on the previous — merging out of order will cause conflict resolutions that silently drop changes.
+
+**`src/preferences/dialog/dlgprefwaveform.cpp`** — 4 branches touch this:
+1. `2025.10oct.21-stacked-overview-waveform` (adds Stacked to combobox)
+2. `2026.02feb.20-simple-waveform-top-and-overview` (adds Simple to top of combobox)
+3. `2026.02feb.26-waveform-menu-order` (reorders combobox via kValues, removes sort lambda)
+4. `2026.05may.03-extend-waveform-zoom-range` (extends zoom range entries)
+
+waveform-menu-order MUST merge after simple-waveform — it removes the sort lambda that simple-waveform relies on being absent. The current alphabetical order satisfies this.
+
+**`src/library/library.cpp`, `src/library/sidebarmodel.cpp`, `src/library/sidebarmodel.h`** — only `restore-last-library-selection` touches these. No ordering concern, but if the branch is rewritten after being merged into integration, the next `--full` rebuild may resolve merge conflicts in favour of the stale already-merged version. After rewriting a branch, re-merge it manually into `integration` before running `--full`.
+
 ## Branch and Integration Status Outline
 
 **Summary**: 7 CHANGES_REQUESTED, 8 REVIEW_REQUIRED, 2 schema-excluded, 10 merged/resolved upstream, 6 local-only, 2 secondary patches, 2 build-broken/skipped
@@ -179,7 +202,7 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
 - 🔴 **Awaiting Review from Others**
   - [x] **feature/2025.11nov.04-controller-wizard-quick-access** - [#15577](https://github.com/mixxxdj/mixxx/pull/15577) - CHANGES_REQUESTED
     - Issue: [#12262](https://github.com/mixxxdj/mixxx/issues/12262)
-    - Created: 2025-11-04, Last comment: 2026-02-18, Rebased: 2026-08-03, Updated: 2026-02-22
+    - Created: 2025-11-04, Last comment: 2026-02-18, Rebased: 2026-08-08, Updated: 2026-02-22
     - Note: rebased with wmainmenubar.cpp/h conflict resolved (Controller+KeyboardEventFilter both included)
     - Next: Awaiting re-review — ronso0 CHANGES_REQUESTED (Nov 16) addressed Feb 18; fix-learning-wizard folded in Feb 22 (ffc28f8)
     - Specifics:
@@ -189,7 +212,7 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
     - Tested?: yes
   - [x] **feature/2025.10oct.21-stacked-overview-waveform** - [#15516](https://github.com/mixxxdj/mixxx/pull/15516) - DRAFT - CHANGES_REQUESTED
     - Issue: [#13265](https://github.com/mixxxdj/mixxx/issues/13265)
-    - Created: 2025-10-21, Last comment: 2026-02-22 (mxmilkiib), Rebased: 2026-08-03, Updated: 2026-02-18
+    - Created: 2025-10-21, Last comment: 2026-02-22 (mxmilkiib), Rebased: 2026-08-08, Updated: 2026-02-18
     - Next: Stale bot fired (Feb 22); our naming comment (Feb 17) + clarification (Feb 22) are latest — re-request review to unstale; no new reviewer feedback
     - Specifics:
       - ~~Remove redundant Stacked HSV and Stacked LMH renderers~~ done
@@ -200,8 +223,8 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
     - Tested?: yes
   - [x] **feature/2025.10oct.20-restore-last-library-selection** - [#15460](https://github.com/mixxxdj/mixxx/pull/15460) - DRAFT - CHANGES_REQUESTED
     - Issue: [#10125](https://github.com/mixxxdj/mixxx/issues/10125)
-    - Created: 2025-10-08, Last comment: 2026-02-26 (ronso0), Rebased: 2026-08-03, Updated: 2026-02-28
-    - Next: CI failing (ronso0 Feb 26) + unrelated Reloop JS changes slipped in — fixed 2026-02-28: removed JS file from commit, cleaned commit message (had # Conflicts: lines), fixed all clang-format violations; re-request review
+    - Created: 2025-10-08, Last comment: 2026-08-08 (mxmilkiib), Rebased: 2026-08-08, Updated: 2026-08-08
+    - Next: Redone as two commits, confirmed working — awaiting re-review; mxmilkiib left update comment 2026-08-08
     - Specifics:
       - ~~Separate commits for changes~~ done - 4 commits with explanations
       - ~~Store selection with debounced saves~~ done - 3 second debounce timer
@@ -215,7 +238,7 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
     - Tested?: yes
   - [x] **feature/2025.11nov.05-hide-unenabled-controllers** - [#15580](https://github.com/mixxxdj/mixxx/pull/15580) - REVIEW_REQUIRED
     - Issue: [#14275](https://github.com/mixxxdj/mixxx/issues/14275)
-    - Created: 2025-11-05, Last comment: 2025-11-17 (ronso0), Rebased: 2026-08-03, Updated: 2026-02-28
+    - Created: 2025-11-05, Last comment: 2025-11-17 (ronso0), Rebased: 2026-08-08, Updated: 2026-02-28
     - Next: Awaiting re-review — ronso0 Nov 17 feedback addressed Feb 28: removed redundant null checks, confirmed rename already done
     - Specifics:
       - ~~Rename "unenabled" to "disabled" everywhere — config keys, function names, and UI text (ronso0)~~ done
@@ -223,14 +246,15 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
     - Tested?: yes
 - 🔧 **Secondary Patches**
   - [x] **bugfix/2026.05may.01-fix-timer-test-potmeter-clamping** — upstream test bug
-    - Created: 2026-05-01, Rebased: 2026-08-03
+    - Created: 2026-05-01, Rebased: 2026-08-08
     - coTimerId ControlPotmeter max=50 clamped QTimer IDs (10000+ in full suite); replaced with ControlObject
     - Next: open upstream PR to mixxxdj/mixxx
     - Workaround: pre-push hook and script filter `ControllerScriptEngineLegacyTimerTest.*` (entire suite — `beginTimer_repeatedTimer` corrupts clamped-ID-50 state, causing `MidiMappings` JS tests to hang; filtering only `singleShot*` is insufficient) and `TrackMetadataExportTest.keepWithespaceKey` (`getKeyText()` returns `B_FLAT_MINOR` internal string instead of `B♭m` display format, fails in all worktrees). Remove filters once upstream fix lands.
   - [x] **bugfix/2026.02feb.21-hid-init-race-on-enumeration**
-    - Created: 2026-02-21, Rebased: 2026-08-03, Updated: 2026-08-05
+    - Created: 2026-02-21, Rebased: 2026-08-08, Updated: 2026-08-05
     - Note: originally tracked as residual from midi-makeinputhandler (#16003, merged upstream 2026-06-18) — stands alone
-    - Next: Evaluate for upstream PR as standalone fix
+    - PR: [#16838](https://github.com/mixxxdj/mixxx/pull/16838) — REVIEW_REQUIRED, opened 2026-08-04
+    - Next: Await review on #16838
     - Merged into integration: 2026-08-05 (mutex fix merged — conflict in hidenumerator.cpp comment resolved)
     - Specifics:
       - The hidraw backend of hidapi is not thread-safe; `hid_open()`/`hid_open_path()` internally call `hid_enumerate()` → `udev_enumerate_scan_devices()`
@@ -241,13 +265,13 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
     - Tested?: yes (crash no longer reproduced; library scan completes cleanly, 33091 tracks)
 - 🐛 **BUG FIXES - Open PRs (REVIEW_REQUIRED)**
   - [x] **bugfix/2026.02feb.19-textured-waveform-fbo-resize** - [#16010](https://github.com/mixxxdj/mixxx/pull/16010) - REVIEW_REQUIRED
-    - Created: 2026-02-19, Last comment: none, Rebased: 2026-08-03, Updated: 2026-02-19
+    - Created: 2026-02-19, Last comment: none, Rebased: 2026-08-08, Updated: 2026-02-19
     - Next: Await review
     - Specifics:
       - Improved: defer FBO reallocation to paintGL via m_pendingResize flag
     - Tested?: yes
   - [x] **bugfix/2026.02feb.19-openglwindow-resize-repaint** - [#16012](https://github.com/mixxxdj/mixxx/pull/16012) - DRAFT - REVIEW_REQUIRED
-    - Created: 2026-02-19, Last comment: none, Rebased: 2026-08-03, Updated: 2026-02-19
+    - Created: 2026-02-19, Last comment: none, Rebased: 2026-08-08, Updated: 2026-02-19
     - Next: Await review
     - Specifics:
       - Restores m_dirty flag: defers extra paintGL+swapBuffers from resizeGL to next vsync
@@ -269,7 +293,7 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
     - Tested?: yes (1174 tests pass on 2.6 base, 2026-08-03; stale pre-rebase mixxx-test binary was hanging the pre-push hook — rebuilt)
 - 🟡 **NEW FEATURES - Open PRs (REVIEW_REQUIRED)**
   - [x] **feature/2026.05may.03-extend-waveform-zoom-range** — No PR yet
-    - Created: 2026-05-03, Rebased: 2026-08-03, Updated: 2026-05-03
+    - Created: 2026-05-03, Rebased: 2026-08-08, Updated: 2026-05-03
     - Next: Test, then open upstream PR
     - Specifics:
       - Extends `s_waveformMinZoom` from 1.0 → 0.5 (allows 200% zoom-in, twice as detailed)
@@ -278,7 +302,7 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
       - Index↔zoom mapping generalised via `subOneCount` offset
     - Tested?: no
   - [x] **feature/2026.02feb.26-waveform-menu-order** - [#16046](https://github.com/mixxxdj/mixxx/pull/16046) - CHANGES_REQUESTED → addressed
-    - Created: 2026-02-26, Last comment: 2026-05-26 (daschuer), Rebased: 2026-08-03, Updated: 2026-07-16
+    - Created: 2026-02-26, Last comment: 2026-05-26 (daschuer), Rebased: 2026-08-08, Updated: 2026-07-16
     - Next: Await re-review — addressed daschuer: removed lambda + alphabetical sort; order now set via `kValues` in `waveformwidgettype.h`
     - Specifics:
       - Reorders `kValues` in `WaveformWidgetType`: Simple, Filtered, HSV, RGB, Stacked, VSyncTest
@@ -287,7 +311,7 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
     - Tested?: yes (1203 tests pass)
   - [x] **feature/2026.02feb.20-simple-waveform-top-and-overview** - [#16021](https://github.com/mixxxdj/mixxx/pull/16021) - REVIEW_REQUIRED
     - Issue: [#16020](https://github.com/mixxxdj/mixxx/issues/16020)
-    - Created: 2026-02-20, Last comment: 2026-05-28 (mxmilkiib, stale-bot reset), Rebased: 2026-08-03, Updated: 2026-07-16
+    - Created: 2026-02-20, Last comment: 2026-05-28 (mxmilkiib, stale-bot reset), Rebased: 2026-08-08, Updated: 2026-07-16
     - Next: Address daschuer upgrade-path issue — RGB selected before update becomes Simple after; default should remain RGB; likely combobox position stored instead of enum value
     - Specifics:
       - Adds Simple as an overview waveform type (amplitude envelope, signal color, stereo mirrored)
@@ -297,7 +321,7 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
     - Tested?: yes (2026-07-16)
   - [x] **feature/2025.10oct.21-replace-libmodplug-with-libopenmpt** - [#15519](https://github.com/mixxxdj/mixxx/pull/15519) - DRAFT - REVIEW_REQUIRED
     - Issue: [#9862](https://github.com/mixxxdj/mixxx/issues/9862)
-    - Created: 2025-10-25, Last comment: 2026-02-22 (stale-bot), Rebased: 2026-08-03, Updated: 2026-01-30
+    - Created: 2025-10-25, Last comment: 2026-02-22 (stale-bot), Rebased: 2026-08-08, Updated: 2026-01-30
     - Next: Address daschuer architecture feedback
     - Specifics:
       - DSP in SoundSource is "foreign to Mixxx" — daschuer wants bit-perfect decode, move DSP to effect rack instead
@@ -309,7 +333,7 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
     - Tested?: no
   - [x] **feature/2025.10oct.20-hotcues-on-overview-waveform** - [#15514](https://github.com/mixxxdj/mixxx/pull/15514) - DRAFT - REVIEW_REQUIRED
     - Issue: [#14994](https://github.com/mixxxdj/mixxx/issues/14994)
-    - Created: 2025-10-20, Last comment: 2026-02-22 (stale-bot), Rebased: 2026-08-03, Updated: 2026-01-30
+    - Created: 2025-10-20, Last comment: 2026-02-22 (stale-bot), Rebased: 2026-08-08, Updated: 2026-01-30
     - Next: Check recent comment, await review
     - Specifics:
       - PR marked stale (Jan 19 2026) — needs activity to unstale
@@ -320,7 +344,7 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
     - Tested?: no
   - [x] **feature/2025.11nov.17-deere-channel-mute-buttons** - [#15624](https://github.com/mixxxdj/mixxx/pull/15624) - DRAFT - REVIEW_REQUIRED
     - Issue: [#15623](https://github.com/mixxxdj/mixxx/issues/15623)
-    - Created: 2025-11-17, Last comment: 2026-02-15, Rebased: 2026-08-03, Updated: 2026-02-15
+    - Created: 2025-11-17, Last comment: 2026-02-15, Rebased: 2026-08-08, Updated: 2026-02-15
     - Next: On hold - marked as DRAFT by ronso0
     - Specifics:
       - Marked as DRAFT by ronso0 (Feb 9)
@@ -333,7 +357,7 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
     - Tested?: yes
   - [x] **feature/2025.11nov.16-playback-position-control** - [#15617](https://github.com/mixxxdj/mixxx/pull/15617) - REVIEW_REQUIRED
     - Issue: [#14288](https://github.com/mixxxdj/mixxx/issues/14288)
-    - Created: 2025-11-16, Last comment: 2026-05-26 (mxmilkiib), Rebased: 2026-08-03, Updated: 2026-07-16
+    - Created: 2025-11-16, Last comment: 2026-05-26 (mxmilkiib), Rebased: 2026-08-08, Updated: 2026-07-16
     - Next: Await re-review — all ronso0 CHANGES_REQUESTED addressed 2026-05-26; CI failures are pre-existing flaky (Flatpak aarch64 network timeout, macOS x64 BeatsTranslateTest SEGFAULT — unrelated to our changes)
     - Specifics:
       - daschuer (Feb 9): "this feature already exists" (pref option) — clarified: pref has no CO for runtime control
@@ -343,7 +367,7 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
 - ⚠️ **Schema-Changing Branches (Excluded from Integration)**
   - [ ] **feature/2025.10oct.17-library-column-hotcue-count** - [#15462](https://github.com/mixxxdj/mixxx/pull/15462) - REVIEW_REQUIRED
     - Issue: [#15461](https://github.com/mixxxdj/mixxx/issues/15461)
-    - Created: 2025-10-17, Last comment: 2026-02-22 (stale-bot), Rebased: 2026-08-03, Updated: 2026-01-30
+    - Created: 2025-10-17, Last comment: 2026-02-22 (stale-bot), Rebased: 2026-08-08, Updated: 2026-01-30
     - Next: Check recent comment, await review
     - Specifics:
       - PR marked stale (Jan 17 2026) — needs activity to unstale
@@ -356,7 +380,7 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
     - Tested?: no
   - [ ] **feature/2025.11nov.16-catalogue-number-column** - [#15616](https://github.com/mixxxdj/mixxx/pull/15616) - REVIEW_REQUIRED
     - Issue: [#12583](https://github.com/mixxxdj/mixxx/issues/12583)
-    - Created: 2025-11-16, Last comment: 2026-02-15, Rebased: 2026-08-03, Updated: 2026-02-15
+    - Created: 2025-11-16, Last comment: 2026-02-15, Rebased: 2026-08-08, Updated: 2026-02-15
     - Next: Await review
     - Specifics:
       - acolombier left review comment 2026-02-14; replied 2026-02-15
@@ -374,17 +398,17 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
       - Base class `WaveformRendererSignalBase` Option enum only has: `None`, `SplitStereoSignal`, `HighDetail`, `AllOptionsCombined`
       - Fix: add `MonoSignal = 0b100` to Option enum, store `m_options` in protected block, handle in both .cpp files
   - [x] **feature/2025.10oct.14-waveform-hotcue-label-options**
-    - Created: 2025-10-14, Rebased: 2026-08-03, Updated: 2026-01-30
+    - Created: 2025-10-14, Rebased: 2026-08-08, Updated: 2026-01-30
     - Next: Maintain for personal use
   - [x] **feature/2025.10oct.08-utf8-string-controls**
     - Dependency for: hotcue-labelling, hotcue-label-options
-    - Created: 2025-10-08, Rebased: 2026-08-03, Updated: 2026-01-30
+    - Created: 2025-10-08, Rebased: 2026-08-08, Updated: 2026-01-30
     - Next: Maintain for personal use (not for upstream)
   - [x] **feature/2025.09sep.25-hotcue-labelling**
-    - Created: 2025-09-25, Rebased: 2026-08-03, Updated: 2026-02-20
+    - Created: 2025-09-25, Rebased: 2026-08-08, Updated: 2026-02-20
     - Next: Maintain for personal use
   - [x] **feature/2025.11nov.05-deere-waveform-zoom-deck-colors**
-    - Created: 2025-11-05, Rebased: 2026-08-03, Updated: 2026-01-30
+    - Created: 2025-11-05, Rebased: 2026-08-08, Updated: 2026-01-30
     - Next: Merge to integration, decide if PR-worthy
     - Specifics:
       - Evaluate if the Deere-specific waveform zoom deck color change is worth a PR or remains personal use
@@ -399,7 +423,7 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
       - Depends on replace-libmodplug-with-libopenmpt (#15519) being accepted first
       - Block until correct API is identified or available
   - [ ] **feature/2025.02feb.17-waveform-blend-customization** — LOCAL_ONLY — not in integration (branch name year typo: should be 2026)
-    - Created: 2026-02-17, Rebased: 2026-08-03 (empty — no commits), Updated: unknown
+    - Created: 2026-02-17, Rebased: 2026-08-08 (empty — no commits), Updated: unknown
     - Note: untracked worktree in mixxx-dev; branch has zero commits; placeholder or lost work
     - Next: Decide whether to populate, repurpose, or remove worktree
   - [ ] **bugfix/2026.02feb.19-wglwidget-xcb-resize-gap** — ABANDONED
@@ -449,6 +473,7 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
 - Integration rebuilt 2026-08-03: rebased 20 active branches on upstream/main (216 new commits incl. 2.6 sync, stem stacked waveforms, AutoDJ orientation); integration rebuilt from scratch (reset to upstream/main, merged 19 [x] branches — wayland excluded, now 2.6-based); resolved conflicts in dlgprefcontroller.h (showLearningWizard), overviewtype.h + waveformoverviewrenderer.cpp/h + woverview.cpp (StackedRGB+Simple coexistence — one resolution initially duplicated RGB enum, fixed), dlgprefwaveform.cpp (simple-waveform sort+move dropped, waveform-menu-order handles ordering); textured-waveform-fbo-resize + openglwindow-resize-repaint (no worktrees) rebased via temp worktrees; script gap fixed: build_all_tests now rebuilds binaries older than HEAD commit (stale binaries were previously tested after rebases); known gap: push_changed smart-diff compares against moving upstream/main so ALL branches push after any upstream sync (20 pushed) — needs range-diff-based comparison; ~/src/mixxx build dir needed taglib1 cache wipe (CMakeCache + libdjinterop stamps moved aside) before test binary rebuild; build clean; 20/20 tests pass; integration + integrating pushed (4d0590b836); GA CI triggered on origin/integrating
 - Integrated promoted 2026-08-03: GA CI run #30852260900 completed — Flatpak (x86_64) xvfb-run exit 1, Flatpak (aarch64) cancelled (cascade); all other jobs green (coverage, clazy, clang-tidy, macOS arm64+x64, Android, Windows x64+ARM64, pre-commit, Ubuntu 24.04). Added `KNOWN_INFRA_FAILURES` allowlist to script — `promote_integrated()` now fetches failed job names and promotes when every failure matches a known infra/flaky pattern, blocking on any unknown failure. Promoted integrating → integrated.
 - Integration patched 2026-08-05: merged hid-init-race-on-enumeration mutex fix (part 2 — `s_hidOpenMutex` serialising `hid_open*` calls in `fetchReportDescriptorInBackground()`); resolved comment conflict in `hidenumerator.cpp` (incoming version references both `hid_init()` and mutex); also brings `mixxx-controls.d.ts` and `stemcontrolobjecttest.cpp` changes from upstream
+- Integration rebuilt 2026-08-08: fetched upstream (2 new commits — CrateFeature comment removal); rebased 20 active branches on upstream/main (3 skipped: tracker-module-stems, mono-waveform-option, wayland-opengl-resize-warning); 20/20 builds OK (ccache 64.62% hit rate, ~3 min serial); 20/20 tests pass (9 run + 11 sentinel-skipped, ~15 min); integration + integrating pushed (0a218c3489); GA CI triggered run #31240292131 on origin/integrating; PR #16838 (hid-init-race) opened upstream 2026-08-04; PR #15460 (restore-last-library-selection) updated with two-commit rewrite, mxmilkiib comment 2026-08-08
 
 ---
 
@@ -457,10 +482,10 @@ Branches with dependencies on local-only branches cannot be submitted upstream a
 - **CHANGES_REQUESTED (7 PRs):** waveform-menu-order (#16046 — daschuer: don't sort combobox with lambda, adjust order in factory), simple-waveform-top-and-overview (#16021 — daschuer: upgrade path changes RGB to Simple, default should remain RGB), wayland-opengl-resize-warning (#16014 — daschuer: drop MIXXX_USE_QOPENGL guard, addressed 2026-08-03; rebased to 2.6, ready for review), playback-position-control (#15617 — ronso0: tooltip wording + null check pattern, addressed 2026-05-26), controller-wizard-quick-access (#15577 — ronso0: disconnect logic + range-for, addressed Feb 18), stacked-overview-waveform (#15516 — ronso0: remove redundant HSV/LMH renderers, addressed), restore-last-library-selection (#15460 — daschuer+ronso0: size check, programmatic string, match() instead of manual iteration, addressed 2026-02-28)
 - **REVIEW_REQUIRED (8 PRs):** textured-waveform-fbo-resize (#16010), openglwindow-resize-repaint (#16012), hide-unenabled-controllers (#15580), deere-channel-mute-buttons (#15624, DRAFT), catalogue-number-column (#15616), replace-libmodplug-with-libopenmpt (#15519, DRAFT), hotcues-on-overview-waveform (#15514, DRAFT), library-column-hotcue-count (#15462, DRAFT)
 - **Merged upstream:** midi-makeinputhandler-null-engine (#16003 — MERGED 2026-06-18; worktree removed)
-- **CI status:** GA CI on origin/integrating run #30852260900 — Flatpak (x86_64) xvfb-run exit 1, Flatpak (aarch64) cancelled (cascade); all other jobs green (coverage, clazy, clang-tidy, macOS arm64, macOS x64, Android, Windows x64, Windows ARM64, pre-commit, Ubuntu 24.04). Failures are known infra/flaky — matched by `KNOWN_INFRA_FAILURES` in the script. Promoted integrating → integrated 2026-08-03.
+- **CI status:** GA CI run #31240292131 on origin/integrating (SHA 0a218c3489) — queued 2026-08-08; awaiting completion. Previous run #31050928168 had Flatpak (x86_64) xvfb-run exit 1 + Windows ARM64 AdjustReplayGainTest SEGFAULT — both known infra/flaky, promoted to integrated.
 - **Architecture changes needed:** replace-libmodplug-with-libopenmpt (daschuer: DSP to effect rack)
 - **Draft / on hold:** deere-channel-mute-buttons (draft — needs broader plan)
-- **Secondary patches:** hid-init-race-on-enumeration (evaluate for upstream PR)
+- **Secondary patches:** hid-init-race-on-enumeration (#16838 — REVIEW_REQUIRED, opened 2026-08-04)
 - **Local dev decisions:** deere-waveform-zoom-deck-colors (PR-worthy?), tracker-module-stems (continue or archive?)
 
 ---
@@ -489,17 +514,17 @@ This process updates all feature/bugfix branches in `mixxx-dev/` to latest upstr
 - Branches with unresolved conflicts SHOULD be noted for later attention
 - After all branches are updated, the **Integration Merge Process** SHOULD be run
 
-Automated via `./mixxx-milkii-update-branches.sh` (run from `~/src/mixxx-dev/integration/`).
+Automated via `./mixxx-milkii-integration-update-branches.sh --full` (run from `~/src/mixxx-dev/integration/`); the script has no rebase-only mode — `--full` rebases, builds test binaries, runs tests, and pushes `integration`/`integrating`. For manual rebase-only, run `git rebase upstream/main` in each worktree.
 
 ## Dev Helper Scripts
 
-All scripts use the `mixxx-milkii-` filename prefix. All are committed to the `integration` branch and synced to a single gist: https://gist.github.com/mxmilkiib/5fb35c401736efed47ad7d78268c80b6
+All scripts use the `mixxx-milkii-integration-` filename prefix. All are committed to the `integration` branch and synced to a single gist: https://gist.github.com/mxmilkiib/5fb35c401736efed47ad7d78268c80b6
 
 | Script | Purpose |
 |---|---|
-| `mixxx-milkii-update-branches.sh` | Rebase all worktrees (no push), configure+build test binaries (parallel configure, serial build, `nice 15`), run test suite with per-branch sentinels for selective re-runs, smart-diff push (`--push-changed` — only content changes trigger CI), push `integration`/`integrating`, poll GA CI with per-job status (`--promote-integrated`), end-to-end pipeline (`--full-promote` — rebase+build+test+push+CI poll+promote in one command), grand summary |
-| `mixxx-milkii-pre-push.sh` | Pre-push hook logic (versioned); `.git/hooks/pre-push` delegates here; runs clang-format check + test suite, blocks local-only files from reaching `mixxxdj/mixxx` |
-| `mixxx-milkii-gdb-run.sh` | Launch Mixxx under GDB with `--developer --controller-debug --debug-assert-break`; auto-detects the `mixxx` binary; logs to timestamped file, discards on clean exit; sets `debuginfod enabled`, suppresses `SIG32`/`SIGPIPE`/`SIGUSR*` |
+| `mixxx-milkii-integration-update-branches.sh` | Rebase all worktrees (no push), configure+build test binaries (parallel configure, serial build, `nice 15`), run test suite with per-branch sentinels for selective re-runs, smart-diff push (`--push-changed` — only content changes trigger CI), push `integration`/`integrating`, poll GA CI with per-job status (`--promote-integrated`), end-to-end pipeline (`--full-promote` — rebase+build+test+push+CI poll+promote in one command), grand summary |
+| `mixxx-milkii-integration-pre-push.sh` | Pre-push hook logic (versioned); `.git/hooks/pre-push` delegates here; runs clang-format check + test suite, blocks local-only files from reaching `mixxxdj/mixxx` |
+| `mixxx-milkii-integration-gdb-run.sh` | Launch Mixxx under GDB with `--developer --controller-debug --debug-assert-break`; auto-detects the `mixxx` binary; logs to timestamped file, discards on clean exit; sets `debuginfod enabled`, suppresses `SIG32`/`SIGPIPE`/`SIGUSR*` |
 
 ## Integration Merge Process
 This process merges all `[x]` marked branches into the integration branch for a combined bleeding-edge build.
@@ -513,10 +538,7 @@ This process merges all `[x]` marked branches into the integration branch for a 
    ```bash
    git fetch upstream
    ```
-3. **Run batch branch update** to rebase all worktree branches on upstream/main:
-   ```bash
-   ./mixxx-milkii-update-branches.sh
-   ```
+3. **Rebase all worktree branches** on upstream/main — see the **Batch Branch Update Process** section. The script does not have a rebase-only mode; either rebase each worktree manually (`git rebase upstream/main` in each `~/src/mixxx-dev/<branch>/`) or run `./mixxx-milkii-integration-update-branches.sh --full` which rebases + builds tests + runs tests + pushes (steps 4–9 below are the manual integration merge that `--full` does NOT do — `--full` only pushes the existing integration branch).
 4. **Checkout the integration branch**
    ```bash
    git checkout integration
@@ -525,7 +547,7 @@ This process merges all `[x]` marked branches into the integration branch for a 
    ```bash
    git merge upstream/main
    ```
-6. **Merge each `[x]` branch** from the outline that has "Next: Merge to integration":
+6. **Merge each `[x]` branch** from the outline — the `Next:` field is commentary, not a filter; ALL `[x]`-marked branches are merged:
    ```bash
    git merge <local-branch-name>
    ```
@@ -542,21 +564,21 @@ This process merges all `[x]` marked branches into the integration branch for a 
 
    Incremental rebuild (most common — after source changes):
    ```bash
-   cmake --build /home/milkii/src/mixxx/build --target mixxx -- -j$(nproc --ignore=2)
+   CCACHE_BASEDIR=~/src/mixxx-dev/integration nice -n 15 cmake --build ~/src/mixxx-dev/integration/build --target mixxx -- -j$(nproc --ignore=2)
    ```
    Full reconfigure (only needed when new branches add CMakeLists changes or new source files):
    ```bash
-   cmake -B /home/milkii/src/mixxx/build -S /home/milkii/src/mixxx -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCCACHE_SUPPORT=ON
-   cmake --build /home/milkii/src/mixxx/build --target mixxx -- -j$(nproc --ignore=2)
+   cmake -B ~/src/mixxx-dev/integration/build -S ~/src/mixxx-dev/integration -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCCACHE_SUPPORT=ON
+   CCACHE_BASEDIR=~/src/mixxx-dev/integration nice -n 15 cmake --build ~/src/mixxx-dev/integration/build --target mixxx -- -j$(nproc --ignore=2)
    ```
    Basic functionality SHOULD be tested after build.
 
 10. **Sync to Gist**:
     ```bash
     gh gist edit 5fb35c401736efed47ad7d78268c80b6 --filename INTEGRATION.md INTEGRATION.md
-    gh gist edit 5fb35c401736efed47ad7d78268c80b6 --filename mixxx-milkii-update-branches.sh mixxx-milkii-update-branches.sh
-    gh gist edit 5fb35c401736efed47ad7d78268c80b6 --filename mixxx-milkii-pre-push.sh mixxx-milkii-pre-push.sh
-    gh gist edit 5fb35c401736efed47ad7d78268c80b6 --filename mixxx-milkii-gdb-run.sh mixxx-milkii-gdb-run.sh
+    gh gist edit 5fb35c401736efed47ad7d78268c80b6 --filename mixxx-milkii-integration-update-branches.sh mixxx-milkii-integration-update-branches.sh
+    gh gist edit 5fb35c401736efed47ad7d78268c80b6 --filename mixxx-milkii-integration-pre-push.sh mixxx-milkii-integration-pre-push.sh
+    gh gist edit 5fb35c401736efed47ad7d78268c80b6 --filename mixxx-milkii-integration-gdb-run.sh mixxx-milkii-integration-gdb-run.sh
     ```
 
 ## Checking PR Status
@@ -565,6 +587,70 @@ This process merges all `[x]` marked branches into the integration branch for a 
 gh pr view <PR-number>
 gh pr list --repo mixxxdj/mixxx --author mxmilkiib
 ```
+
+## Manjaro/Arch Release Pipeline
+
+`.github/workflows/manjaro-release.yml` is a release-packaging workflow separate from the `build.yml` CI matrix. It produces an installable Manjaro/Arch package from the CI-confirmed `integrated` branch and publishes it as a GitHub Release on `mxmilkiib/mixxx`.
+
+### Trigger
+
+- `push` to `integrated` — fires automatically on every successful `--promote-integrated`.
+- `workflow_dispatch` — manual run from the Actions UI against any branch/SHA.
+
+Only the CI-confirmed tier is packaged; `integration` and `integrating` pushes do NOT trigger it. `concurrency: group: manjaro-release` with `cancel-in-progress: true` ensures rapid successive `integrated` promotions do not stack overlapping package builds; the newest promotion wins.
+
+### Build environment
+
+- Runner: `ubuntu-24.04` with a `manjarolinux/base:latest` container (`--privileged`).
+- Base deps installed via `pacman -Syu`: `base-devel git cmake ninja ccache sudo`.
+- `makepkg` refuses to run as root, so a non-root `builder` user (in `wheel`, passwordless sudo) is created. All `makepkg` invocations run as `builder` via `su builder -c`.
+- Mixxx build deps installed from the Manjaro repos: protobuf, vamp-plugin-sdk, chromaprint, libid3tag, rubberband, soundtouch, lame, libogg, libmad, libvorbis, libmp4v2, faad2, opusfile, wavpack, libshout, libsndfile, portmidi, portaudio, sqlite, upower, lilv, libebur128, libopenmpt, qt6-declarative, qtkeychain-qt6, qt6-svg, qt6-shadertools, qt6-5compat, qt6-multimedia-ffmpeg, qt6-scxml, microsoft-gsl, hidapi, ffmpeg, fftw, flac, glu, pipewire, pipewire-jack, libusb, jsoncpp, gtest, gmock.
+- `taglib1` is NOT in the Manjaro repos and is built from AUR (`https://aur.archlinux.org/taglib1.git`) as the `builder` user with `makepkg -si --skippgpcheck`. The PKGBUILD `arch` array is patched to add `aarch64`. This is the only AUR dependency.
+
+### CMake configure flags
+
+The workflow uses the same feature flags as the local integration build, with a few packaging-conscious differences. Notable flags: `QT6=ON`, `QML=ON`, `BULK=ON`, `FFMPEG=ON`, `MAD=ON`, `MODPLUG=OFF`, `OPENMPT=ON`, `WAVPACK=ON`, `BATTERY=ON`, `BROADCAST=ON`, `HID=ON`, `KEYFINDER=ON`, `LILV=ON`, `OPUS=ON`, `QTKEYCHAIN=ON`, `VINYLCONTROL=ON`, `INSTALL_USER_UDEV_RULES=OFF` (no root udev install in the container), `WARNINGS_FATAL=OFF`, `DEBUG_ASSERTIONS_FATAL=OFF`, `CMAKE_BUILD_TYPE=RelWithDebInfo`, ccache launchers on C/C++.
+
+### ccache
+
+- Cache path `/ccache`, 5 GB cap, `hash_dir=false`.
+- Keyed `ccache-manjaro-${{ github.sha }}` with `restore-keys: ccache-manjaro-` for fallback. Saved on every run (`if: always()`).
+
+### Test step
+
+`ctest --timeout 45 --parallel $(nproc)` with the same exclusion regex used locally: `AdjustReplayGainTest.AdjustReplayGainUpdatesPregain|MidiMappings/.*|HidMappings/.*|BulkMappings/.*|ControllerScriptEngineLegacyTest.*|ControllerScriptEngineLegacyTimerTest.*`. These suites are excluded for the same state-poisoning / known-failing reasons documented in the **Upstream test filter scope** and **Pre-push hook timeout** rules. A test failure fails the workflow before any package is produced.
+
+### Package construction
+
+1. `cmake --install` into a staging dir (`DESTDIR=$GITHUB_WORKSPACE/staging`), then `chmod -R a+rX` so the `builder` user can read it for `makepkg`.
+2. A `PKGBUILD` is generated dynamically:
+   - `pkgname=mixxx-milkiib-integrated-manjaro`
+   - `pkgver=${MIXXX_VERSION}_${PKGVER_TIMESTAMP}_${SHORT_SHA}` (e.g. `2.6_20260809_1430_abc1234`)
+   - `pkgrel=1`, `arch=('x86_64')`, `license=('GPL2')`, `url=https://mixxx.org`
+   - `conflicts=('mixxx' 'mixxx-git')`, `provides=('mixxx')` — installing it replaces a stock `mixxx`/`mixxx-git` package.
+   - `options=('!strip' '!emptydirs')` — keeps debug symbols (matches `RelWithDebInfo`) and avoids empty-dir warnings.
+   - `depends=(...)` is computed at build time by running `ldd` on the staged `mixxx` binary, mapping each shared lib to its owning pacman package via `pacman -Qo`, stripping version constraints, and excluding `gcc`/`glibc`. This keeps the dependency list accurate to what the binary actually links against on Manjaro.
+   - `package()` simply `cp -a`s the staged `usr/local/` tree into `${pkgdir}/usr/`.
+3. `makepkg -f --noconfirm --skippgpcheck` runs as `builder`. On failure, the PKGBUILD and staging dir listing are printed for debugging before the step exits non-zero.
+4. The produced `*.pkg.tar.zst` is uploaded as a workflow artifact (`manjaro-package`, `archive: false`) and attached to a GitHub Release.
+
+### Release
+
+- Action: `softprops/action-gh-release@v2`.
+- Tag: `mixxx-milkiib-integrated-${timestamp}-${short_sha}` (timestamp `YYYYMMDD-HHMM` UTC).
+- Name: `Mixxx MilkiiB Integrated Manjaro Build ${major.minor}-${short_sha}` (major.minor extracted from `project(mixxx VERSION ...)` in `CMakeLists.txt`).
+- `prerelease: true`, `draft: false`.
+- Release body includes install instructions: `sudo pacman -U <pkg>` and a one-liner `curl ... | sudo pacman -U` that pulls the asset directly from the release URL.
+- Notes the build is unsigned, built on Manjaro, compatible with Manjaro and Arch derivatives, with deps resolved by pacman.
+
+### Operational notes
+
+- Every `--promote-integrated` triggers a full Manjaro package build (~10–20 min depending on ccache hit rate).
+- The workflow does NOT block `integrated` promotion; it runs asynchronously after the push. Check status with `gh run list --workflow manjaro-release.yml --repo mxmilkiib/mixxx --limit 3`.
+- Releases accumulate as pre-releases. Prune old ones with `gh release delete <tag> --repo mxmilkiib/mixxx` (and `git push origin :refs/tags/<tag>` to drop the tag) when they are no longer needed — the workflow does not auto-prune.
+- The `builder` user creation is guarded by `id builder >/dev/null 2>&1 || useradd ...` so re-runs within a cached container layer do not fail.
+- `git config --global --add safe.directory "$GITHUB_WORKSPACE"` is required because `actions/checkout` inside a container runs as root but the checkout is owned by a different UID, triggering git's dubious-ownership check.
+- `git fetch origin --force --tags` ensures `git describe --always --first-parent` produces a meaningful version string for the release tag/body.
 
 ## Outline Format Reference
 This section documents the structure of this file for AI assistants and future maintainers.

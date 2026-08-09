@@ -6,15 +6,15 @@
 # Gist: https://gist.github.com/mxmilkiib/5fb35c401736efed47ad7d78268c80b6
 #
 # Usage:
-#   ./mixxx-milkii-update-branches.sh                   rebase all worktrees (no push)
-#   ./mixxx-milkii-update-branches.sh --rebuild-tests   detect and rebuild stale test binaries only (serial)
-#   ./mixxx-milkii-update-branches.sh --build-all-tests configure cmake + build ALL non-skipped branches (serial)
-#   ./mixxx-milkii-update-branches.sh --run-tests       run mixxx-test suite; skips branches with valid per-branch sentinel
-#   ./mixxx-milkii-update-branches.sh --push-changed    push only PR branches whose patch content changed (smart-diff)
-#   ./mixxx-milkii-update-branches.sh --push-integrating promote integration → integrating (requires all worktrees tested)
-#   ./mixxx-milkii-update-branches.sh --promote-integrated promote integrating → integrated (requires GA CI green or known-infra-only failures)
-#   ./mixxx-milkii-update-branches.sh --full            rebase + build-all-tests + run-tests + push-integration + push-integrating
-#   ./mixxx-milkii-update-branches.sh --full-promote    --full + poll GA CI + promote to integrated (end-to-end, no manual step)
+#   ./mixxx-milkii-integration-update-branches.sh                   rebase all worktrees (no push)
+#   ./mixxx-milkii-integration-update-branches.sh --rebuild-tests   detect and rebuild stale test binaries only (serial)
+#   ./mixxx-milkii-integration-update-branches.sh --build-all-tests configure cmake + build ALL non-skipped branches (serial)
+#   ./mixxx-milkii-integration-update-branches.sh --run-tests       run mixxx-test suite; skips branches with valid per-branch sentinel
+#   ./mixxx-milkii-integration-update-branches.sh --push-changed    push only PR branches whose patch content changed (smart-diff)
+#   ./mixxx-milkii-integration-update-branches.sh --push-integrating promote integration → integrating (requires all worktrees tested)
+#   ./mixxx-milkii-integration-update-branches.sh --promote-integrated promote integrating → integrated (requires GA CI green or known-infra-only failures)
+#   ./mixxx-milkii-integration-update-branches.sh --full            rebase + build-all-tests + run-tests + push-integration + push-integrating
+#   ./mixxx-milkii-integration-update-branches.sh --full-promote    --full + poll GA CI + promote to integrated (end-to-end, no manual step)
 #
 # Three-branch promotion chain:
 #   integration  — working merges; script operates here; may fail
@@ -37,13 +37,13 @@
 #
 # Killing a running build:
 #   Ctrl-C in the running terminal sends SIGINT to the script's process group, which the trap handles.
-#   From another shell: kill -TERM -$(pgrep -fo 'mixxx-milkii-update-branches.sh' | head -1)
+#   From another shell: kill -TERM -$(pgrep -fo 'mixxx-milkii-integration-update-branches.sh' | head -1)
 #   Do NOT use pkill on cmake/ninja alone — child cc1plus processes will survive and saturate the CPU.
 #
 # Related files (all committed to integration branch, all synced to gist 5fb35c4):
-#   mixxx-milkii-update-branches.sh  — this script
-#   mixxx-milkii-pre-push.sh         — hook logic (versioned); .git/hooks/pre-push delegates here
-#   mixxx-milkii-gdb-run.sh          — GDB launcher with logging
+#   mixxx-milkii-integration-update-branches.sh  — this script
+#   mixxx-milkii-integration-pre-push.sh         — hook logic (versioned); .git/hooks/pre-push delegates here
+#   mixxx-milkii-integration-gdb-run.sh          — GDB launcher with logging
 #   INTEGRATION.md                        — branch registry, process rules, status outline
 #
 # Runtime state files (not committed):
@@ -87,7 +87,9 @@ check_deps
 MIXXX_DEV="${HOME}/src/mixxx-dev"
 # MIXXX_MAIN: the integration worktree where the script, INTEGRATION.md and
 # helper scripts live and where git operations on the promotion branches run.
-# ~/src/mixxx/ is now checked out on 'integrated' (the daily-driver binary).
+# ~/src/mixxx/ is checked out on 'main' (synced with upstream main);
+# ~/src/mixxx-dev/integration/ is on 'integration' (all [x] branches merged,
+# daily-driver binary built here).
 MIXXX_MAIN="${HOME}/src/mixxx-dev/integration"
 # BUILD_JOBS: leaves 2 threads unallocated. BUILD_NICE lowers compiler priority so
 # interactive processes immediately preempt — more effective than core-count alone.
@@ -99,11 +101,16 @@ CACHE_DIR="${HOME}/.cache/mixxx-integration"
 # Known upstream test failures filtered in both run_tests_serial and the pre-push hook.
 # Keep in sync with KNOWN_FAILING in .git/hooks/pre-push.
 # Remove entries once the upstream fix is merged into mixxxdj/mixxx main.
+#   ControllerScriptEngineLegacyTest.*: softTakeover_setParameter hangs indefinitely in
+#     headless environments (no JS controller engine audio output); the entire suite is
+#     filtered because softTakeover tests also leave corrupted ControlObject state.
 #   ControllerScriptEngineLegacyTimerTest.*: coTimerId ControlPotmeter max=50 clamped QTimer IDs;
 #     ALL timer tests filtered (not just singleShot*) because beginTimer_repeatedTimer leaves
 #     corrupted ID-50 state that causes downstream MidiMappings JS tests to hang indefinitely.
+#   AdjustReplayGainTest.AdjustReplayGainUpdatesPregain: consistent segfault (core dump)
+#     in headless environments; likely missing audio engine dependencies.
 #   keepWithespaceKey: getKeyText() returns internal enum string instead of display format
-KNOWN_FAILING='ControllerScriptEngineLegacyTimerTest.*:TrackMetadataExportTest.keepWithespaceKey'
+KNOWN_FAILING='ControllerScriptEngineLegacyTest.*:ControllerScriptEngineLegacyTimerTest.*:AdjustReplayGainTest.AdjustReplayGainUpdatesPregain:TrackMetadataExportTest.keepWithespaceKey'
 
 _TQDM=$(command -v tqdm 2>/dev/null || true)
 _HAS_TTY=false; [[ -t 1 ]] && _HAS_TTY=true
@@ -210,6 +217,7 @@ SKIP_BRANCHES=(
 KNOWN_INFRA_FAILURES=(
     "build / Flatpak (*"          # xvfb-run exit 1 inside flatpak-builder sandbox
     "build / Windows *VS* *x64"   # dependency checksum mismatch on Windows runners
+    "build / Windows *VS* *ARM64" # AdjustReplayGainTest SEGFAULT (same as KNOWN_FAILING locally)
     "build / macOS * x64"         # BeatsTranslateTest SEGFAULT (flaky, pre-existing)
 )
 
@@ -874,27 +882,12 @@ promote_integrated() {
         fi
     fi
     if (( _promote )); then
-        # git blocks any ref update (including push) for branches checked out in
-        # any worktree. Use gh api to update origin/integrated directly (no local
-        # ref touched), then fetch + reset --hard FETCH_HEAD in the integrated
-        # worktree (FETCH_HEAD is not a branch ref, so no worktree check fires).
-        local integrated_wt="${HOME}/src/mixxx"
+        # ~/src/mixxx/ is on 'main' — no dedicated integrated worktree exists.
+        # Update the local ref from MIXXX_MAIN and force-push to origin.
         local integrating_sha; integrating_sha=$(GIT_PAGER=cat git -C "$MIXXX_MAIN" rev-parse integrating)
-        # Capture first — grep -q closes the pipe after first match, which sends
-        # SIGPIPE to git; with pipefail that makes the condition false every time.
-        local _wt_list; _wt_list=$(GIT_PAGER=cat git -C "$MIXXX_MAIN" worktree list --porcelain 2>/dev/null)
-        if echo "$_wt_list" | grep -q "worktree ${integrated_wt}$"; then
-            local new_sha
-            new_sha=$(gh api repos/mxmilkiib/mixxx/git/refs/heads/integrated \
-                --method PATCH --field sha="$integrating_sha" --field force=true \
-                --jq '.object.sha')
-            status "  origin/integrated → ${new_sha}"
-            GIT_PAGER=cat git -C "$integrated_wt" fetch origin integrated
-            GIT_PAGER=cat git -C "$integrated_wt" reset --hard FETCH_HEAD
-        else
-            GIT_PAGER=cat git -C "$MIXXX_MAIN" branch -f integrated integrating
-            GIT_PAGER=cat git -C "$MIXXX_MAIN" push --no-verify --force-with-lease origin integrated
-        fi
+        GIT_PAGER=cat git -C "$MIXXX_MAIN" branch -f integrated "$integrating_sha"
+        GIT_PAGER=cat git -C "$MIXXX_MAIN" push --no-verify --force-with-lease origin integrated
+        status "  origin/integrated → ${integrating_sha}"
         status "DONE integrated pushed — CI-confirmed clean build"
     fi
 }

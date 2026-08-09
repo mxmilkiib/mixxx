@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Mixxx GDB runner with UX enhancements and datetime logging
-# Usage: mixxx-milkii-gdb-run [additional mixxx args]
+# Usage: mixxx-milkii-integration-gdb-run [additional mixxx args]
 # Gist: https://gist.github.com/mxmilkiib/5fb35c401736efed47ad7d78268c80b6
 
 set -e

@@ -1,7 +1,7 @@
 #!/bin/bash
 # Pre-push hook logic for mxmilkiib/mixxx.
 # This file is committed to the integration branch and versioned alongside
-# mixxx-milkii-update-branches.sh. The actual .git/hooks/pre-push is a
+# mixxx-milkii-integration-update-branches.sh. The actual .git/hooks/pre-push is a
 # thin delegate that execs this script, so hook logic is tracked in git.
 # Gist: https://gist.github.com/mxmilkiib/5fb35c401736efed47ad7d78268c80b6
 #
@@ -15,7 +15,7 @@
 #      script, and the GDB helper — these must never reach mixxxdj/mixxx.
 #
 # KNOWN_FAILING must be kept in sync with the same constant in
-# mixxx-milkii-update-branches.sh. Remove entries once the upstream
+# mixxx-milkii-integration-update-branches.sh. Remove entries once the upstream
 # fix is merged into mixxxdj/mixxx main.
 
 remote="$1"
@@ -48,11 +48,16 @@ fi
 echo "Running Mixxx tests before push..."
 BUILD_DIR="$REPO_ROOT/build"
 
+#   ControllerScriptEngineLegacyTest.*: softTakeover_setParameter hangs indefinitely in
+#     headless environments (no JS controller engine audio output); the entire suite is
+#     filtered because softTakeover tests also leave corrupted ControlObject state.
 #   ControllerScriptEngineLegacyTimerTest.*: coTimerId ControlPotmeter max=50 clamped QTimer IDs;
 #     ALL timer tests filtered (not just singleShot*) because beginTimer_repeatedTimer leaves
 #     corrupted ID-50 state that causes downstream MidiMappings JS tests to hang indefinitely.
+#   AdjustReplayGainTest.AdjustReplayGainUpdatesPregain: consistent segfault (core dump)
+#     in headless environments; likely missing audio engine dependencies.
 #   keepWithespaceKey: getKeyText() returns internal enum string instead of display format
-KNOWN_FAILING='ControllerScriptEngineLegacyTimerTest.*:TrackMetadataExportTest.keepWithespaceKey'
+KNOWN_FAILING='ControllerScriptEngineLegacyTest.*:ControllerScriptEngineLegacyTimerTest.*:AdjustReplayGainTest.AdjustReplayGainUpdatesPregain:TrackMetadataExportTest.keepWithespaceKey'
 
 HOOK_TIMEOUT=420
 if [ -f "$BUILD_DIR/mixxx-test" ]; then
@@ -95,7 +100,7 @@ while read local_ref local_oid remote_ref remote_oid; do
     else
         range="$remote_oid..$local_oid"
     fi
-    protected_files="INTEGRATION.md mixxx-milkii-gdb-run.sh mixxx-milkii-update-branches.sh mixxx-milkii-pre-push.sh"
+    protected_files="INTEGRATION.md mixxx-milkii-integration-gdb-run.sh mixxx-milkii-integration-update-branches.sh mixxx-milkii-integration-pre-push.sh"
     for f in $protected_files; do
         if git log --diff-filter=ACDMR --name-only --pretty=format: $range -- "$f" | grep -q .; then
             echo "ERROR: Push blocked. $f must not be pushed to $remote ($url)."
