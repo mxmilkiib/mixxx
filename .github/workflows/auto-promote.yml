@@ -1,0 +1,139 @@
+name: Auto-promote integrated
+
+# Fires when the "Pull request or branch build" (develop.yml) workflow completes
+# on the integrating branch. If all failures are known infra/flaky patterns,
+# promotes integrating → integrated automatically.
+#
+# KNOWN_INFRA_FAILURES must be kept in sync with the same list in
+# mixxx-milkii-integration-update-branches.sh.
+
+on:
+  workflow_run:
+    workflows:
+      - "Pull request or branch build"
+    types:
+      - completed
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: auto-promote
+  cancel-in-progress: false
+
+jobs:
+  promote:
+    name: Promote integrating to integrated
+    if: ${{ github.event.workflow_run.head_branch == 'integrating' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Fetch CI run details"
+        id: ci
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          RUN_ID="${{ github.event.workflow_run.id }}"
+          HEAD_SHA="${{ github.event.workflow_run.head_sha }}"
+          CONCLUSION="${{ github.event.workflow_run.conclusion }}"
+
+          echo "head_sha=${HEAD_SHA}" >> "$GITHUB_OUTPUT"
+          echo "conclusion=${CONCLUSION}" >> "$GITHUB_OUTPUT"
+
+          # Fetch all jobs from the completed run
+          JOBS_JSON=$(gh api "repos/${{ github.repository }}/actions/runs/${RUN_ID}/jobs" --jq '.jobs')
+          echo "$JOBS_JSON" | jq -r '.[] | "\(.conclusion // .status)\t\(.name)"' > /tmp/jobs.txt
+          echo "=== All jobs ==="
+          cat /tmp/jobs.txt
+
+          # Extract failed jobs (conclusion == failure)
+          grep $'^failure\t' /tmp/jobs.txt | cut -f2 > /tmp/failed_jobs.txt || true
+          FAILED_COUNT=$(wc -l < /tmp/failed_jobs.txt || echo 0)
+          echo "failed_count=${FAILED_COUNT}" >> "$GITHUB_OUTPUT"
+
+          if [ "$FAILED_COUNT" -eq 0 ]; then
+            echo "all_pass=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "=== Failed jobs ==="
+          cat /tmp/failed_jobs.txt
+
+      - name: "Check failures against known infra patterns"
+        id: infra
+        if: ${{ steps.ci.outputs.conclusion == 'failure' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          # Known infra/flaky failure patterns — glob-matched against job names.
+          # Keep in sync with KNOWN_INFRA_FAILURES in mixxx-milkii-integration-update-branches.sh.
+          KNOWN_INFRA_FAILURES=(
+            "build / Flatpak (*"
+            "build / Windows *VS* *x64"
+            "build / Windows *VS* *ARM64"
+            "build / macOS * x64"
+          )
+
+          UNKNOWN_FAILURES=()
+          while IFS= read -r job_name; do
+            [ -z "$job_name" ] && continue
+            matched=false
+            for pat in "${KNOWN_INFRA_FAILURES[@]}"; do
+              # shellcheck disable=SC2053
+              if [[ "$job_name" == $pat ]]; then
+                echo "  known infra: $job_name (matches: $pat)"
+                matched=true
+                break
+              fi
+            done
+            if [ "$matched" = false ]; then
+              echo "  UNKNOWN failure: $job_name"
+              UNKNOWN_FAILURES+=("$job_name")
+            fi
+          done < /tmp/failed_jobs.txt
+
+          if [ ${#UNKNOWN_FAILURES[@]} -eq 0 ]; then
+            echo "all_known=true" >> "$GITHUB_OUTPUT"
+            echo "All ${FAILED_COUNT:-0} failure(s) are known infra/flaky — safe to promote"
+          else
+            echo "all_known=false" >> "$GITHUB_OUTPUT"
+            echo "BLOCKING promotion — ${#UNKNOWN_FAILURES[@]} unknown failure(s):"
+            printf '  - %s\n' "${UNKNOWN_FAILURES[@]}"
+            exit 1
+          fi
+
+      - name: "Check if already promoted"
+        id: stale
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          INTEGRATED_SHA=$(gh api "repos/${{ github.repository }}/git/refs/heads/integrated" --jq '.object.sha')
+          INTEGRATING_SHA="${{ steps.ci.outputs.head_sha }}"
+          echo "integrated_sha=${INTEGRATED_SHA}" >> "$GITHUB_OUTPUT"
+          echo "integrating_sha=${INTEGRATING_SHA}" >> "$GITHUB_OUTPUT"
+          if [ "$INTEGRATED_SHA" = "$INTEGRATING_SHA" ]; then
+            echo "already_promoted=true" >> "$GITHUB_OUTPUT"
+            echo "integrated already at ${INTEGRATING_SHA} — nothing to do"
+          else
+            echo "already_promoted=false" >> "$GITHUB_OUTPUT"
+            echo "integrated at ${INTEGRATED_SHA}, integrating at ${INTEGRATING_SHA} — promoting"
+          fi
+
+      - name: "Promote integrating → integrated"
+        if: ${{ steps.stale.outputs.already_promoted == 'false' && (steps.ci.outputs.conclusion == 'success' || steps.infra.outputs.all_known == 'true') }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          INTEGRATING_SHA="${{ steps.ci.outputs.integrating_sha }}"
+          echo "Promoting integrated → ${INTEGRATING_SHA}"
+          gh api "repos/${{ github.repository }}/git/refs/heads/integrated" \
+            --method PATCH \
+            --field sha="${INTEGRATING_SHA}" \
+            --field force=true \
+            --jq '.object.sha'
+          echo "Done — integrated is now at ${INTEGRATING_SHA}"
+          echo "This push triggers the Manjaro release pipeline."
