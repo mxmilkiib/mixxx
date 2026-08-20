@@ -9,13 +9,14 @@
 - **Purpose**: this living document is a prompt file that includes the rules and procedures, plus state, for an AI skill to manage multiple feature and bugfix branches, as well as a combined PR test build of Mixxx
   - a script rebases all branches, builds test binaries, and runs the test suite.
   - **Last updated**: The "Last updated" date at the top of this file MUST be updated whenever this file is edited. It should remain as only a date.
-  - **Gist sync**: `INTEGRATION.md` (this file), `mixxx-milkii-integration-update-branches.sh`, `mixxx-milkii-integration-pre-push.sh`, `mixxx-milkii-integration-gdb-run.sh`, and `.github/workflows/mixxx-milkii-integration-manjaro-release.yml` MUST be updated and synced to Gist as the workflow evolve.
+  - **Gist sync**: `INTEGRATION.md` (this file), `mixxx-milkii-integration-update-branches.sh`, `mixxx-milkii-integration-pre-push.sh`, `mixxx-milkii-integration-gdb-run.sh`, `.github/workflows/mixxx-milkii-integration-manjaro-release.yml`, and `.github/workflows/auto-promote.yml` MUST be updated and synced to Gist as the workflow evolve.
     ```bash
     gh gist edit 5fb35c401736efed47ad7d78268c80b6 --filename INTEGRATION.md INTEGRATION.md
     gh gist edit 5fb35c401736efed47ad7d78268c80b6 --filename mixxx-milkii-integration-update-branches.sh mixxx-milkii-integration-update-branches.sh
     gh gist edit 5fb35c401736efed47ad7d78268c80b6 --filename mixxx-milkii-integration-pre-push.sh mixxx-milkii-integration-pre-push.sh
     gh gist edit 5fb35c401736efed47ad7d78268c80b6 --filename mixxx-milkii-integration-gdb-run.sh mixxx-milkii-integration-gdb-run.sh
     gh gist edit 5fb35c401736efed47ad7d78268c80b6 --filename mixxx-milkii-integration-manjaro-release.yml .github/workflows/mixxx-milkii-integration-manjaro-release.yml
+    gh gist edit 5fb35c401736efed47ad7d78268c80b6 --filename auto-promote.yml .github/workflows/auto-promote.yml
     ```
   - **Cross-model review**: This document, the scripts, and the branch outline MUST be cross-checked against ground truth by a *different* model from the one that last wrote them, at least every several sessions or whenever a claim in the doc is questionable. Self-review by the authoring model reliably misses its own confabulations — status lines get carried forward, "auto-promoted" gets written for something never observed, dates get copied instead of queried. Anything the checking model cannot verify MUST be marked UNVERIFIED rather than left as an assertion.
 
