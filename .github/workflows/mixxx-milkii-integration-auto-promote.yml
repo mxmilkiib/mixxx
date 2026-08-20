@@ -1,4 +1,4 @@
-name: Auto-promote integrated
+name: auto-promote to integrated; build and package
 
 # Fires when the "Pull request or branch build" (develop.yml) workflow completes
 # on the integrating branch. If all failures are known infra/flaky patterns,
@@ -13,6 +13,7 @@ on:
       - "Pull request or branch build"
     types:
       - completed
+  workflow_dispatch:
 
 permissions:
   contents: write
