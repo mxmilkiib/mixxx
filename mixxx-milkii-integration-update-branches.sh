@@ -1209,8 +1209,10 @@ print_grand_summary() {
 #   5. push_integration       — push integration branch to origin
 #   6. push_integrating       — promote to integrating if all gates pass (skipped on build failure)
 #   7. print_grand_summary    — timing, per-phase results, slowest branch, sys stats
-# A merge conflict in step 2 is fatal: the script stops before build/test/push.
-# The AI resolves the conflict manually, then re-runs.
+# A merge conflict in step 2 with genuinely unresolved paths is fatal: the script
+# stops before build/test/push. If rerere has staged a resolution with no unmerged
+# paths, the merge is committed automatically. The AI resolves unresolved conflicts
+# manually, then re-runs.
 # A build failure is non-fatal: steps 3–4 still run, step 5 is blocked.
 # Stopped partway: each phase persists its own state (cmake build dirs, per-branch
 # sentinels), so individual modes can be re-run to resume from any point.
