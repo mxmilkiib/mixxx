@@ -485,7 +485,7 @@ remerge_integration() {
     # Record pre-reset SHA so infrastructure files that live only on the
     # integration branch (not in upstream/main or any feature branch) can be
     # restored after the remerge.  Without this, git reset --hard upstream/main
-    # destroys auto-promote.yml, manjaro-release.yml, the helper scripts, and
+    # destroys auto-promote.yml, mixxx-milkii-integration-manjaro-release.yml, the helper scripts, and
     # INTEGRATION.md — breaking the promotion chain on the next push.
     local pre_reset_sha
     pre_reset_sha=$(GIT_PAGER=cat git -C "$MIXXX_MAIN" rev-parse HEAD)
@@ -547,7 +547,7 @@ remerge_integration() {
     # Restore infrastructure files that live only on the integration branch.
     # Two categories:
     #   (a) Files that do NOT exist in upstream/main — gone after reset, must be
-    #       restored from the pre-reset SHA (auto-promote.yml, manjaro-release.yml,
+    #       restored from the pre-reset SHA (auto-promote.yml, mixxx-milkii-integration-manjaro-release.yml,
     #       INTEGRATION.md, the three helper scripts).
     #   (b) Files that DO exist in upstream/main but have integration-specific
     #       modifications — reset replaces them with upstream versions, so the
@@ -556,7 +556,7 @@ remerge_integration() {
     local infra_files=(
         ".github/workflows/auto-promote.yml"
         ".github/workflows/develop.yml"
-        ".github/workflows/manjaro-release.yml"
+        ".github/workflows/mixxx-milkii-integration-manjaro-release.yml"
         ".github/workflows/pre-commit.yml"
         "INTEGRATION.md"
         "mixxx-milkii-integration-gdb-run.sh"
