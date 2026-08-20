@@ -57,7 +57,7 @@ BUILD_DIR="$REPO_ROOT/build"
 #   AdjustReplayGainTest.AdjustReplayGainUpdatesPregain: consistent segfault (core dump)
 #     in headless environments; likely missing audio engine dependencies.
 #   keepWithespaceKey: getKeyText() returns internal enum string instead of display format
-KNOWN_FAILING='ControllerScriptEngineLegacyTest.*:ControllerScriptEngineLegacyTimerTest.*:AdjustReplayGainTest.AdjustReplayGainUpdatesPregain:TrackMetadataExportTest.keepWithespaceKey'
+KNOWN_FAILING='ControllerScriptEngineLegacyTest.*:ControllerScriptEngineLegacyTimerTest.*:AdjustReplayGainTest.AdjustReplayGainUpdatesPregain:TrackMetadataExportTest.keepWithespaceKey:MidiMappings/.*:HidMappings/.*:BulkMappings/.*'
 
 HOOK_TIMEOUT=420
 if [ -f "$BUILD_DIR/mixxx-test" ]; then

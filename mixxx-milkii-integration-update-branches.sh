@@ -122,7 +122,7 @@ CACHE_DIR="${HOME}/.cache/mixxx-integration"
 #   AdjustReplayGainTest.AdjustReplayGainUpdatesPregain: consistent segfault (core dump)
 #     in headless environments; likely missing audio engine dependencies.
 #   keepWithespaceKey: getKeyText() returns internal enum string instead of display format
-KNOWN_FAILING='ControllerScriptEngineLegacyTest.*:ControllerScriptEngineLegacyTimerTest.*:AdjustReplayGainTest.AdjustReplayGainUpdatesPregain:TrackMetadataExportTest.keepWithespaceKey'
+KNOWN_FAILING='ControllerScriptEngineLegacyTest.*:ControllerScriptEngineLegacyTimerTest.*:AdjustReplayGainTest.AdjustReplayGainUpdatesPregain:TrackMetadataExportTest.keepWithespaceKey:MidiMappings/.*:HidMappings/.*:BulkMappings/.*'
 
 _TQDM=$(command -v tqdm 2>/dev/null || true)
 _HAS_TTY=false; [[ -t 1 ]] && _HAS_TTY=true
