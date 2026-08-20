@@ -9,12 +9,13 @@
 - **Purpose**: this living document is a prompt file that includes the rules and procedures, plus state, for an AI skill to manage multiple feature and bugfix branches, as well as a combined PR test build of Mixxx
   - a script rebases all branches, builds test binaries, and runs the test suite.
   - **Last updated**: The "Last updated" date at the top of this file MUST be updated whenever this file is edited. It should remain as only a date.
-  - **Gist sync**: `INTEGRATION.md` (this file), `mixxx-milkii-integration-update-branches.sh`, `mixxx-milkii-integration-pre-push.sh`, and `mixxx-milkii-integration-gdb-run.sh` MUST be updated and synced to Gist as the workflow evolve.
+  - **Gist sync**: `INTEGRATION.md` (this file), `mixxx-milkii-integration-update-branches.sh`, `mixxx-milkii-integration-pre-push.sh`, `mixxx-milkii-integration-gdb-run.sh`, and `.github/workflows/manjaro-release.yml` MUST be updated and synced to Gist as the workflow evolve.
     ```bash
     gh gist edit 5fb35c401736efed47ad7d78268c80b6 --filename INTEGRATION.md INTEGRATION.md
     gh gist edit 5fb35c401736efed47ad7d78268c80b6 --filename mixxx-milkii-integration-update-branches.sh mixxx-milkii-integration-update-branches.sh
     gh gist edit 5fb35c401736efed47ad7d78268c80b6 --filename mixxx-milkii-integration-pre-push.sh mixxx-milkii-integration-pre-push.sh
     gh gist edit 5fb35c401736efed47ad7d78268c80b6 --filename mixxx-milkii-integration-gdb-run.sh mixxx-milkii-integration-gdb-run.sh
+    gh gist edit 5fb35c401736efed47ad7d78268c80b6 --filename manjaro-release.yml .github/workflows/manjaro-release.yml
     ```
   - **Cross-model review**: This document, the scripts, and the branch outline MUST be cross-checked against ground truth by a *different* model from the one that last wrote them, at least every several sessions or whenever a claim in the doc is questionable. Self-review by the authoring model reliably misses its own confabulations — status lines get carried forward, "auto-promoted" gets written for something never observed, dates get copied instead of queried. Anything the checking model cannot verify MUST be marked UNVERIFIED rather than left as an assertion.
 
@@ -30,6 +31,7 @@
   - **Dev location**: All individual branch development should be done using the `mixxx-dev` worktree directory
   - **Rebase hygiene**: All branches SHOULD be kept up-to-date and rebased with `mixxxdj/mixxx` main to minimize merge conflicts, except merged branches
   - **Rebase first**: A branch MUST be rebased as an initial step before any new change is made to said branch
+  - **"origin/main"** is "ours", **"upstream/main"** is "theirs" (mixxxdj/mixxx)
 
 
 - **Worktrees**: All development MUST use worktrees, keeping individual branches compartmentalised and clean for upstream PRs.
@@ -344,7 +346,7 @@ waveform-menu-order MUST merge after simple-waveform — it removes the sort lam
 
 - **Upstream-resolved cleanup**: If an upstream commit (by any contributor) fully resolves the problem a local branch was addressing — rendering the local branch redundant or superseded — the branch entry MUST also be moved to the "Merged to Upstream" section and marked **RESOLVED** (not MERGED), with a note identifying the upstream commit or PR that resolved it. The worktree MUST then be pruned per the **Worktree pruning** rule.
 
-- **Upstream verification before closing**: Before closing or marking a PR/branch as RESOLVED, the fix MUST be verified by reading the actual code in `upstream/main` and `upstream/2.5` — `git show upstream/main:path/to/file.cpp | grep -A N "function"`. A verbal claim that the fix is upstream is NOT sufficient. If verification fails, do not close the PR.
+- **Upstream verification before closing**: Before closing or marking a PR/branch as RESOLVED, the fix MUST be verified by reading the actual code in `upstream/main` and `upstream/2.[latest-major]` — `git show upstream/main:path/to/file.cpp | grep -A N "function"`. A verbal claim that the fix is upstream is NOT sufficient. If verification fails, do not close the PR.
 
 - **Worktree pruning**: When a branch is merged upstream, closed, or abandoned, its worktree MUST be removed (`git worktree remove ~/src/mixxx-dev/<name>`) and the local branch ref MAY be deleted. 
   - This keeps `mixxx-dev/` lean and prevents `mixxx-milkii-integration-update-branches.sh` from wasting time on dead branches.
