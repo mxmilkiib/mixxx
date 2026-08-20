@@ -154,7 +154,7 @@
 
 - 5. **Fetch upstream/main and sync**
   - `git fetch upstream && git rev-list --left-right --count upstream/main...main`;
-  - if the left count is non-zero, `main` has drifted and MUST be fast-forwarded and pushed to `origin`.
+  - if the left count is non-zero, `main` is behind upstream and MUST be fast-forwarded and pushed to `origin`. If the right count is non-zero, `main` has stray commits (violates Main read-only) — reset with `git reset --hard upstream/main` and force-push.
 
   - **Branch merged** Check all `[x]` branches: for each, verify whether its commits are already present in `upstream/main` (`git log upstream/main --oneline | grep <keyword>`); if fully merged, move the entry to the "Merged to Upstream" section, remove the `[x]` marker, and record the merge date — do this BEFORE rebasing or rebuilding so merged branches are excluded from both
 

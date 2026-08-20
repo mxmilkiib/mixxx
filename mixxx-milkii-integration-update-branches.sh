@@ -388,7 +388,8 @@ build_with_progress() {
 
 # ── mode: rebase_all ──────────────────────────────────────────────────────────
 # Default mode (no argument). Fetches upstream/main, then rebases every non-skipped
-# worktree in MIXXX_DEV on upstream/main and force-pushes to origin if a remote exists.
+# worktree in MIXXX_DEV on upstream/main. Does NOT push — use --push-changed for
+# CI-conscious pushing of branches whose patch content actually changed.
 # Skipped branches (SKIP_BRANCHES) are listed but otherwise untouched.
 # Does NOT rebuild or retest — run --rebase-merge-test-push or --build-all-tests separately.
 
