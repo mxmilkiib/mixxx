@@ -128,7 +128,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          INTEGRATING_SHA="${{ steps.ci.outputs.integrating_sha }}"
+          INTEGRATING_SHA="${{ steps.stale.outputs.integrating_sha }}"
           echo "Promoting integrated → ${INTEGRATING_SHA}"
           gh api "repos/${{ github.repository }}/git/refs/heads/integrated" \
             --method PATCH \
