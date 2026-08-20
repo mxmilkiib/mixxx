@@ -1,0 +1,324 @@
+name: Manjaro/Arch Release
+
+on:
+  push:
+    branches:
+      - integrated
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: manjaro-release
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    container:
+      image: manjarolinux/base:latest
+      options: --privileged
+    steps:
+      - name: "Install base dependencies"
+        run: |
+          pacman -Syu --noconfirm
+          pacman -S --noconfirm --needed base-devel git cmake ninja ccache sudo
+
+          # makepkg refuses to run as root — create a non-root builder user
+          # with passwordless sudo for pacman (needed by makepkg -si)
+          id builder >/dev/null 2>&1 || useradd -m -G wheel -s /bin/bash builder
+          echo 'builder ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
+
+      - name: "Check out repository"
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: "Workaround for safe.directory in container"
+        run: git config --global --add safe.directory "${GITHUB_WORKSPACE}"
+
+      - name: "Ensure all tags are fetched"
+        run: git fetch origin --force --tags
+
+      - name: "Restore ccache"
+        uses: actions/cache/restore@v4
+        with:
+          path: /ccache
+          key: ccache-manjaro-${{ github.sha }}
+          restore-keys: |
+            ccache-manjaro-
+
+      - name: "Configure ccache"
+        run: |
+          mkdir -p /ccache
+          ccache -M 5G
+          ccache -o cache_dir=/ccache
+          ccache -o hash_dir=false
+          ccache -z
+
+      - name: "Install Mixxx build dependencies"
+        run: |
+          set -e
+          pacman -S --needed --noconfirm \
+            protobuf vamp-plugin-sdk \
+            chromaprint libid3tag rubberband soundtouch \
+            lame libogg libmad libvorbis libmp4v2 faad2 opusfile wavpack \
+            libshout libsndfile portmidi portaudio \
+            sqlite upower lilv libebur128 libopenmpt \
+            qt6-declarative qtkeychain-qt6 qt6-svg qt6-shadertools \
+            qt6-5compat qt6-multimedia-ffmpeg qt6-scxml microsoft-gsl \
+            hidapi ffmpeg fftw flac glu pipewire pipewire-jack libusb jsoncpp \
+            gtest gmock
+
+          # taglib1 from AUR (needed for taglib 1.x compatibility)
+          # makepkg cannot run as root — run as the builder user
+          if ! pacman -Qi taglib1 >/dev/null 2>&1; then
+            echo 'Building taglib1 from the AUR'
+            rm -rf /tmp/taglib1
+            git clone https://aur.archlinux.org/taglib1.git /tmp/taglib1
+            chown -R builder:builder /tmp/taglib1
+            cd /tmp/taglib1
+            sed -i 's/arch=(x86_64)/arch=(x86_64 aarch64)/' PKGBUILD
+            su builder -c 'cd /tmp/taglib1 && makepkg -si --noconfirm --skippgpcheck'
+          fi
+
+      - name: "Create build directory"
+        run: mkdir -p build
+
+      - name: "Configure"
+        run: >-
+          cmake
+          -DQT6=ON
+          -DQML=ON
+          -DBULK=ON
+          -DFFMPEG=ON
+          -DLOCALECOMPARE=ON
+          -DMAD=ON
+          -DMODPLUG=OFF
+          -DOPENMPT=ON
+          -DWAVPACK=ON
+          -DINSTALL_USER_UDEV_RULES=OFF
+          -DCMAKE_BUILD_TYPE=RelWithDebInfo
+          -DWARNINGS_FATAL=OFF
+          -DDEBUG_ASSERTIONS_FATAL=OFF
+          -DBATTERY=ON
+          -DBROADCAST=ON
+          -DDOWNLOAD_MANUAL=ON
+          -DHID=ON
+          -DKEYFINDER=ON
+          -DLILV=ON
+          -DOPUS=ON
+          -DQTKEYCHAIN=ON
+          -DVINYLCONTROL=ON
+          -DCMAKE_VERBOSE_MAKEFILE=OFF
+          -DCMAKE_C_COMPILER_LAUNCHER=ccache
+          -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+          -L
+          ..
+        working-directory: build
+
+      - name: "Build"
+        run: cmake --build . --config RelWithDebInfo --parallel "$(nproc)"
+        working-directory: build
+        env:
+          CCACHE_NOCOMPRESS: true
+          CCACHE_DIR: /ccache
+
+      - name: "Print ccache stats"
+        run: ccache -s
+        env:
+          CCACHE_DIR: /ccache
+
+      - name: "Test"
+        run: ctest --timeout 45 --parallel "$(nproc)" --exclude-regex 'AdjustReplayGainTest.AdjustReplayGainUpdatesPregain|MidiMappings/.*|HidMappings/.*|BulkMappings/.*|ControllerScriptEngineLegacyTest.*|ControllerScriptEngineLegacyTimerTest.*'
+        working-directory: build
+        env:
+          GTEST_COLOR: 1
+          CTEST_OUTPUT_ON_FAILURE: 1
+
+      - name: "Generate git describe"
+        id: git-describe
+        run: |
+          GIT_DESC=$(git describe --always --first-parent --dirty=-modified)
+          echo "git_describe=${GIT_DESC}" >> "$GITHUB_OUTPUT"
+          echo "GIT_DESC=${GIT_DESC}" >> "$GITHUB_ENV"
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          echo "short_sha=${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+          TIMESTAMP=$(date -u +%Y%m%d-%H%M)
+          echo "timestamp=${TIMESTAMP}" >> "$GITHUB_OUTPUT"
+          PKGVER_TIMESTAMP=$(date -u +%Y%m%d_%H%M)
+          echo "pkgver_timestamp=${PKGVER_TIMESTAMP}" >> "$GITHUB_OUTPUT"
+          echo "PKGVER_TIMESTAMP=${PKGVER_TIMESTAMP}" >> "$GITHUB_ENV"
+          # Extract major.minor from CMake project version
+          MIXXX_VERSION=$(grep -m1 'project(mixxx VERSION' CMakeLists.txt | sed 's/.*VERSION \([0-9]*\.[0-9]*\).*/\1/')
+          echo "mixxx_version=${MIXXX_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "MIXXX_VERSION=${MIXXX_VERSION}" >> "$GITHUB_ENV"
+          echo "SHORT_SHA=${SHORT_SHA}" >> "$GITHUB_ENV"
+
+      - name: "Install to staging directory"
+        run: |
+          DESTDIR="${GITHUB_WORKSPACE}/staging" cmake --install . --config RelWithDebInfo
+          # makepkg runs as builder user — needs read access to staging
+          chmod -R a+rX "${GITHUB_WORKSPACE}/staging"
+        working-directory: build
+
+      - name: "Fetch and install personal resources"
+        run: |
+          set -euo pipefail
+          STAGING="${GITHUB_WORKSPACE}/staging"
+          MIXXX_BIN=$(find "${STAGING}" -name mixxx -type f -print -quit)
+          STAGING_USR=$(dirname "$(dirname "${MIXXX_BIN}")")
+          MIXXX_DATA="${STAGING_USR}/share/mixxx"
+          WORK="${GITHUB_WORKSPACE}/.mixxx-extras"
+          mkdir -p "${MIXXX_DATA}/skins" "${MIXXX_DATA}/controllers" "${WORK}"
+          cd "${WORK}"
+
+          git clone --depth 1 https://github.com/mxmilkiib/deere-redo.git
+          rm -rf deere-redo/.git
+          mkdir -p "${MIXXX_DATA}/skins/Deere-Redo"
+          cp -aT deere-redo/ "${MIXXX_DATA}/skins/Deere-Redo/"
+          rm -rf deere-redo
+          rm -f \
+            "${MIXXX_DATA}/skins/Deere-Redo/CHANGELOG_FORK.md" \
+            "${MIXXX_DATA}/skins/Deere-Redo/CHANNEL_MUTE_ANALYSIS.md" \
+            "${MIXXX_DATA}/skins/Deere-Redo/TEMPLATE_STRUCTURE_OUTLINE.txt" \
+            "${MIXXX_DATA}/skins/Deere-Redo/skin_include_tree.dot" \
+            "${MIXXX_DATA}/skins/Deere-Redo/skin_include_tree.png" \
+            "${MIXXX_DATA}/skins/Deere-Redo/style.qss.backup"
+          find "${MIXXX_DATA}/skins/Deere-Redo" -type f \( -name '*.xml' -o -name '*.qss' \) \
+            -exec sed -i 's/\[Deere\]/[Deere-Redo]/g' {} +
+
+          git clone --depth 1 https://github.com/mxmilkiib/mixxx-novation-launchpad-pro-mk3-milkii.git lppro
+          cp lppro/LaunchpadProMK3.midi.xml lppro/LaunchpadProMK3.js "${MIXXX_DATA}/controllers/"
+          rm -rf lppro
+
+          git clone --depth 1 https://github.com/mxmilkiib/mixxx-akai-mpd218-milkii.git mpd218
+          cp mpd218/Akai-MPD218-milkii.midi.xml mpd218/Akai-MPD218-milkii-scripts.js "${MIXXX_DATA}/controllers/"
+          rm -rf mpd218
+
+          git clone --depth 1 https://github.com/mxmilkiib/mixxx-korg-nanokontrol-2-milkii.git nano2
+          cp nano2/Korg-nanoKONTROL-2-milkii.midi.xml nano2/Korg-nanoKONTROL-2-scripts-milkii.js "${MIXXX_DATA}/controllers/"
+          rm -rf nano2
+
+          chmod -R a+rX "${MIXXX_DATA}/skins/Deere-Redo" "${MIXXX_DATA}/controllers"
+
+      - name: "Create Manjaro/Arch package"
+        shell: bash
+        run: |
+          set -e
+          PKG_DIR="${GITHUB_WORKSPACE}/pkgbuild"
+          mkdir -p "${PKG_DIR}"
+          STAGING="${GITHUB_WORKSPACE}/staging"
+          PKGVER="${MIXXX_VERSION}_${PKGVER_TIMESTAMP}_${SHORT_SHA}"
+
+          # cmake installs to /usr/local by default — find the actual binary
+          # Use -print -quit to avoid SIGPIPE from `find | head` under pipefail
+          MIXXX_BIN=$(find "${STAGING}" -name mixxx -type f -print -quit)
+          echo "Found mixxx binary: ${MIXXX_BIN}"
+          STAGING_USR=$(dirname "$(dirname "${MIXXX_BIN}")")  # /.../staging/usr/local
+          echo "Staging usr dir: ${STAGING_USR}"
+
+          # Compute dependencies from the installed binaries
+          # Wrap in `|| true` since grep/awk may exit non-zero under pipefail
+          DEPS=$(ldd "${MIXXX_BIN}" 2>/dev/null \
+            | awk '/=> \// {print $3}' \
+            | while read -r lib; do pacman -Qo "$lib" 2>/dev/null; done \
+            | sed 's/.*is owned by \([^ ]*\) .*/\1/' \
+            | awk -F'[<>=]' '{print $1}' \
+            | sort -u \
+            | grep -v -E '^(gcc|glibc)$' \
+            | sed "s/^/'/; s/$/'/" \
+            | tr '\n' ' ' || true)
+          echo "Dependencies: ${DEPS}"
+
+          # Write PKGBUILD using printf to avoid heredoc indentation issues in YAML
+          printf '%s\n' \
+            '# Maintainer: mxmilkiib' \
+            'pkgname=mixxx-milkiib-integrated-manjaro' \
+            "pkgver=${PKGVER}" \
+            'pkgrel=1' \
+            'pkgdesc="Digital DJ software (integration build)"' \
+            "arch=('x86_64')" \
+            'url="https://mixxx.org"' \
+            "license=('GPL2')" \
+            "depends=(${DEPS})" \
+            "conflicts=('mixxx' 'mixxx-git')" \
+            "provides=('mixxx')" \
+            "options=('!strip' '!emptydirs')" \
+            '' \
+            'package() {' \
+            '  cp -a "'"${STAGING_USR}"'/" "${pkgdir}/usr/"' \
+            '}' \
+            > "${PKG_DIR}/PKGBUILD"
+
+          echo "=== PKGBUILD ==="
+          cat "${PKG_DIR}/PKGBUILD"
+          echo "================"
+
+          cd "${PKG_DIR}"
+          chown -R builder:builder "${PKG_DIR}"
+          # Run makepkg as builder; capture stderr for debugging
+          su builder -c "cd ${PKG_DIR} && makepkg -f --noconfirm --skippgpcheck" 2>&1 || {
+            echo "=== makepkg failed — PKGBUILD contents: ==="
+            cat "${PKG_DIR}/PKGBUILD"
+            echo "=== staging dir: ==="
+            ls -la "${STAGING}/usr/bin/" 2>&1 || true
+            exit 1
+          }
+
+          # Find the produced package
+          pkg_file=$(ls *.pkg.tar.zst 2>/dev/null | head -1)
+          if [ -z "$pkg_file" ]; then
+            echo "ERROR: No package file produced"
+            exit 1
+          fi
+          echo "PACKAGE_FILE=${PKG_DIR}/${pkg_file}" >> "$GITHUB_ENV"
+          echo "PACKAGE_NAME=${pkg_file}" >> "$GITHUB_ENV"
+
+      - name: "Upload package artifact"
+        uses: actions/upload-artifact@v7
+        with:
+          name: manjaro-package
+          path: ${{ env.PACKAGE_FILE }}
+          archive: "false"
+
+      - name: "Create or update GitHub Release"
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: mixxx-milkiib-integrated-${{ steps.git-describe.outputs.timestamp }}-${{ steps.git-describe.outputs.short_sha }}
+          name: "Mixxx MilkiiB Integrated Manjaro Build ${{ steps.git-describe.outputs.mixxx_version }}-${{ steps.git-describe.outputs.short_sha }}"
+          body: |
+            ## Manjaro/Arch Linux Package
+
+            Built from the `integrated` branch at commit ${{ steps.git-describe.outputs.git_describe }}.
+
+            ### Install
+
+            ```bash
+            sudo pacman -U ${{ env.PACKAGE_NAME }}
+            ```
+
+            ### One-liner (download + install)
+
+            ```bash
+            curl --progress-bar -L -o /tmp/${{ env.PACKAGE_NAME }} https://github.com/mxmilkiib/mixxx/releases/download/mixxx-milkiib-integrated-${{ steps.git-describe.outputs.timestamp }}-${{ steps.git-describe.outputs.short_sha }}/${{ env.PACKAGE_NAME }} && sudo pacman -U /tmp/${{ env.PACKAGE_NAME }}
+            ```
+
+            ### Notes
+
+            - This is an unsigned integration build for testing purposes
+            - Built on Manjaro Linux, compatible with Manjaro and other Arch derivatives
+            - Dependencies are resolved automatically by pacman
+          files: ${{ env.PACKAGE_FILE }}
+          prerelease: true
+          draft: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: "Save ccache"
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: /ccache
+          key: ccache-manjaro-${{ github.sha }}
