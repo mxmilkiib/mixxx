@@ -86,14 +86,22 @@ check_deps() {
 }
 check_deps
 
-# Enable git rerere (reuse recorded resolution) for the shared .git database.
-# rerere records conflict resolutions during merges and auto-replays them when
-# the same conflict recurs — essential for remerge_integration() which rebuilds
-# the integration branch from scratch. Without rerere, every from-scratch remerge
-# would require manual re-resolution of known conflicts.
+# git rerere (reuse recorded resolution) is scoped to remerge_integration ONLY.
+# rerere records conflict resolutions during integration merges and auto-replays
+# them when the same conflict recurs — essential for remerge_integration() which
+# rebuilds the integration branch from scratch.
+#
+# Rerere is NOT enabled globally because all worktrees share one .git/config.
+# If left on, rerere could fire during a feature branch `git rebase upstream/main`
+# and auto-apply an integration-merge resolution that combines content from
+# multiple branches — polluting the feature branch with unrelated changes that
+# could reach an upstream PR.
+#
+# Instead: remerge_integration() enables rerere before merging and disables it
+# after. The recorded resolutions persist in .git/rr-cache/ for the next remerge.
 # autoupdate = true: auto-stages resolved files so the merge can continue without
 # manual `git add` after rerere fires.
-GIT_PAGER=cat git config rerere.enabled true
+GIT_PAGER=cat git config rerere.enabled false
 GIT_PAGER=cat git config rerere.autoupdate true
 
 MIXXX_DEV="${HOME}/src/mixxx-dev"
@@ -387,6 +395,11 @@ build_with_progress() {
 rebase_all() {
     _T_REBASE_START=$(date +%s)
     status "PHASE rebase_all — fetching upstream"
+    # Ensure rerere is disabled during feature branch rebases — an integration
+    # merge resolution must never auto-apply to a feature branch (could pollute
+    # a PR with another branch's content). remerge_integration() enables it
+    # only for the duration of the integration merge loop.
+    GIT_PAGER=cat git config rerere.enabled false
     GIT_PAGER=cat git -C "$MIXXX_MAIN" fetch upstream
 
     local failed=() skipped=() succeeded=()
@@ -476,6 +489,10 @@ remerge_integration() {
     local pre_reset_sha
     pre_reset_sha=$(GIT_PAGER=cat git -C "$MIXXX_MAIN" rev-parse HEAD)
 
+    # Enable rerere only for the duration of this remerge.
+    # See the comment at the top of the script for why rerere is not globally enabled.
+    GIT_PAGER=cat git config rerere.enabled true
+
     # Reset integration to upstream/main (clean slate)
     GIT_PAGER=cat git -C "$MIXXX_MAIN" reset --hard upstream/main
     status "  integration reset to upstream/main $(GIT_PAGER=cat git -C "$MIXXX_MAIN" rev-parse --short upstream/main)"
@@ -518,15 +535,23 @@ remerge_integration() {
         status "  Already merged cleanly (${#merged[@]}): ${merged[*]}"
         status "  Resolve manually in the integration worktree:"
         status "    cd $MIXXX_MAIN && git merge --no-edit $branch"
-        status "    (resolve conflict, git add, git commit — rerere records the resolution)"
+        status "  (rerere is enabled — resolve, git add, git commit to record the resolution)"
         status "  Then re-run: $0 --rebase-merge-test-push"
         status "  Or continue without remerge: $0 --build-all-tests && $0 --run-tests && $0 --push-integrating"
+        # Leave rerere enabled so the manual resolution gets recorded.
+        # rebase_all() will disable it before rebasing feature branches.
         return 1
     fi
 
     # Restore infrastructure files that live only on the integration branch.
-    # These are not in upstream/main or any feature branch, so the reset above
-    # removed them.  Bring them back from the pre-reset SHA and commit.
+    # Two categories:
+    #   (a) Files that do NOT exist in upstream/main — gone after reset, must be
+    #       restored from the pre-reset SHA (auto-promote.yml, manjaro-release.yml,
+    #       INTEGRATION.md, the three helper scripts).
+    #   (b) Files that DO exist in upstream/main but have integration-specific
+    #       modifications — reset replaces them with upstream versions, so the
+    #       modifications are silently lost unless we detect the content drift
+    #       and restore from the pre-reset SHA (develop.yml, pre-commit.yml).
     local infra_files=(
         ".github/workflows/auto-promote.yml"
         ".github/workflows/develop.yml"
@@ -539,7 +564,10 @@ remerge_integration() {
     )
     local need_restore=()
     for f in "${infra_files[@]}"; do
-        if ! GIT_PAGER=cat git -C "$MIXXX_MAIN" cat-file -e HEAD:"$f" 2>/dev/null; then
+        local pre_sha post_sha
+        pre_sha=$(GIT_PAGER=cat git -C "$MIXXX_MAIN" rev-parse "$pre_reset_sha:$f" 2>/dev/null || echo "")
+        post_sha=$(GIT_PAGER=cat git -C "$MIXXX_MAIN" rev-parse "HEAD:$f" 2>/dev/null || echo "")
+        if [[ -z "$post_sha" || "$pre_sha" != "$post_sha" ]]; then
             need_restore+=("$f")
         fi
     done
@@ -548,6 +576,10 @@ remerge_integration() {
         GIT_PAGER=cat git -C "$MIXXX_MAIN" checkout "$pre_reset_sha" -- "${need_restore[@]}"
         GIT_EDITOR=true git -C "$MIXXX_MAIN" commit -m "restore integration infrastructure after remerge" 2>/dev/null
     fi
+
+    # Disable rerere — feature branch rebases must not auto-apply integration
+    # merge resolutions (see the comment at the top of the script).
+    GIT_PAGER=cat git config rerere.enabled false
 
     status "DONE remerge_integration: ${#merged[@]} branches merged cleanly"
 }
