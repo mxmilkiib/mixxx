@@ -111,7 +111,7 @@ TEST_LOG_DIR="/tmp/mixxx-test-logs"
 CACHE_DIR="${HOME}/.cache/mixxx-integration"
 
 # Known upstream test failures filtered in both run_tests_serial and the pre-push hook.
-# Keep in sync with KNOWN_FAILING in .git/hooks/pre-push.
+# Keep in sync with KNOWN_FAILING in mixxx-milkii-integration-pre-push.sh.
 # Remove entries once the upstream fix is merged into mixxxdj/mixxx main.
 #   ControllerScriptEngineLegacyTest.*: softTakeover_setParameter hangs indefinitely in
 #     headless environments (no JS controller engine audio output); the entire suite is
@@ -122,6 +122,12 @@ CACHE_DIR="${HOME}/.cache/mixxx-integration"
 #   AdjustReplayGainTest.AdjustReplayGainUpdatesPregain: consistent segfault (core dump)
 #     in headless environments; likely missing audio engine dependencies.
 #   keepWithespaceKey: getKeyText() returns internal enum string instead of display format
+#   MidiMappings/.*: HidMappings/.*: BulkMappings/.*: LoadMapping parameterised tests load
+#     every bundled controller mapping XML and initialise the JS engine per fixture. Even
+#     with ControllerScriptEngineLegacy* filtered, some mappings leave poisoned ControlObject
+#     or timer state that causes later MappingTestFixture instances to hang indefinitely
+#     (observed: Pioneer_CDJ_350_Ch2_midi_xml). All three mapping suites are filtered
+#     because they share the same fixture lifecycle and poisoning pathway.
 KNOWN_FAILING='ControllerScriptEngineLegacyTest.*:ControllerScriptEngineLegacyTimerTest.*:AdjustReplayGainTest.AdjustReplayGainUpdatesPregain:TrackMetadataExportTest.keepWithespaceKey:MidiMappings/.*:HidMappings/.*:BulkMappings/.*'
 
 _TQDM=$(command -v tqdm 2>/dev/null || true)
@@ -420,9 +426,15 @@ rebase_all() {
 # in INTEGRATION_BRANCHES in order with `git merge --no-edit`.
 # Skip-when-clean: if upstream/main is an ancestor of integration AND all
 # INTEGRATION_BRANCHES are ancestors, the remerge is skipped (integration is current).
-# On conflict: aborts that merge, prints a CONFLICT message, and exits non-zero.
+# On conflict: if git rerere has staged a resolution and no unmerged paths remain,
+# the merge is committed automatically (rerere-resolved). Only conflicts with
+# genuinely unresolved paths abort the remerge with a CONFLICT message.
 # git rerere (enabled in repo config) records conflict resolutions — after resolving
 # a conflict once manually, subsequent remerges auto-resolve the same conflict.
+# Infrastructure preservation: files that exist only on the integration branch
+# (workflows, helper scripts, INTEGRATION.md) are saved from the pre-reset HEAD and
+# restored after all merges complete — git reset --hard upstream/main would otherwise
+# destroy them and break the promotion chain.
 # Schema-excluded and [ ]-marked branches are NOT in INTEGRATION_BRANCHES.
 
 remerge_integration() {

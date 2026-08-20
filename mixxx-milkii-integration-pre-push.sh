@@ -57,6 +57,12 @@ BUILD_DIR="$REPO_ROOT/build"
 #   AdjustReplayGainTest.AdjustReplayGainUpdatesPregain: consistent segfault (core dump)
 #     in headless environments; likely missing audio engine dependencies.
 #   keepWithespaceKey: getKeyText() returns internal enum string instead of display format
+#   MidiMappings/.*: HidMappings/.*: BulkMappings/.*: LoadMapping parameterised tests load
+#     every bundled controller mapping XML and initialise the JS engine per fixture. Even
+#     with ControllerScriptEngineLegacy* filtered, some mappings leave poisoned ControlObject
+#     or timer state that causes later MappingTestFixture instances to hang indefinitely
+#     (observed: Pioneer_CDJ_350_Ch2_midi_xml). All three mapping suites are filtered
+#     because they share the same fixture lifecycle and poisoning pathway.
 KNOWN_FAILING='ControllerScriptEngineLegacyTest.*:ControllerScriptEngineLegacyTimerTest.*:AdjustReplayGainTest.AdjustReplayGainUpdatesPregain:TrackMetadataExportTest.keepWithespaceKey:MidiMappings/.*:HidMappings/.*:BulkMappings/.*'
 
 HOOK_TIMEOUT=420
