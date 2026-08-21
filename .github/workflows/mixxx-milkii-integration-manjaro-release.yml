@@ -1,0 +1,395 @@
+name: Manjaro/Arch Release
+
+on:
+  push:
+    branches:
+      - integrated
+  workflow_dispatch:
+    inputs:
+      expected_sha:
+        description: Exact current integrated SHA to package
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: manjaro-release
+  cancel-in-progress: true
+
+jobs:
+  manifest:
+    name: Resolve authoritative package inputs
+    runs-on: ubuntu-latest
+    outputs:
+      expected_sha: ${{ steps.manifest.outputs.expected_sha }}
+      container: ${{ steps.manifest.outputs.container }}
+      test_filter: ${{ steps.manifest.outputs.test_filter }}
+      taglib_url: ${{ steps.manifest.outputs.taglib_url }}
+      taglib_commit: ${{ steps.manifest.outputs.taglib_commit }}
+      deere_url: ${{ steps.manifest.outputs.deere_url }}
+      deere_commit: ${{ steps.manifest.outputs.deere_commit }}
+      launchpad_url: ${{ steps.manifest.outputs.launchpad_url }}
+      launchpad_commit: ${{ steps.manifest.outputs.launchpad_commit }}
+      mpd218_url: ${{ steps.manifest.outputs.mpd218_url }}
+      mpd218_commit: ${{ steps.manifest.outputs.mpd218_commit }}
+      nano2_url: ${{ steps.manifest.outputs.nano2_url }}
+      nano2_commit: ${{ steps.manifest.outputs.nano2_commit }}
+    steps:
+      - name: "Check out the requested SHA"
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ inputs.expected_sha || github.sha }}
+          fetch-depth: 1
+
+      - name: "Validate integrated and read its manifest"
+        id: manifest
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha || github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          INTEGRATED_SHA=$(git ls-remote origin refs/heads/integrated | cut -f1)
+          test "$INTEGRATED_SHA" = "$EXPECTED_SHA"
+          python3 - <<'PY'
+          import json
+          import os
+          import pathlib
+          import re
+
+          text = pathlib.Path("INTEGRATION.md").read_text()
+          match = re.search(
+              r"<!-- MIXXX_INTEGRATION_MANIFEST_START -->\s*```json\s*(.*?)\s*```\s*<!-- MIXXX_INTEGRATION_MANIFEST_END -->",
+              text,
+              re.DOTALL,
+          )
+          if not match:
+              raise SystemExit("integration manifest not found")
+          data = json.loads(match.group(1))
+          sources = data["package_sources"]
+          values = {
+              "expected_sha": os.environ["EXPECTED_SHA"],
+              "container": sources["container"],
+              "test_filter": "|".join(data["test_exclusions"]),
+              "taglib_url": sources["taglib1"]["url"],
+              "taglib_commit": sources["taglib1"]["commit"],
+              "deere_url": sources["deere_redo"]["url"],
+              "deere_commit": sources["deere_redo"]["commit"],
+              "launchpad_url": sources["launchpad_pro_mk3"]["url"],
+              "launchpad_commit": sources["launchpad_pro_mk3"]["commit"],
+              "mpd218_url": sources["akai_mpd218"]["url"],
+              "mpd218_commit": sources["akai_mpd218"]["commit"],
+              "nano2_url": sources["korg_nanokontrol2"]["url"],
+              "nano2_commit": sources["korg_nanokontrol2"]["commit"],
+          }
+          with open(os.environ["GITHUB_OUTPUT"], "a") as output:
+              for key, value in values.items():
+                  output.write(f"{key}={value}\n")
+          PY
+
+  build:
+    name: Build exact integrated package
+    needs: manifest
+    runs-on: ubuntu-24.04
+    container:
+      image: ${{ needs.manifest.outputs.container }}
+    env:
+      EXPECTED_SHA: ${{ needs.manifest.outputs.expected_sha }}
+      TEST_FILTER: ${{ needs.manifest.outputs.test_filter }}
+      TAGLIB_URL: ${{ needs.manifest.outputs.taglib_url }}
+      TAGLIB_COMMIT: ${{ needs.manifest.outputs.taglib_commit }}
+      DEERE_URL: ${{ needs.manifest.outputs.deere_url }}
+      DEERE_COMMIT: ${{ needs.manifest.outputs.deere_commit }}
+      LAUNCHPAD_URL: ${{ needs.manifest.outputs.launchpad_url }}
+      LAUNCHPAD_COMMIT: ${{ needs.manifest.outputs.launchpad_commit }}
+      MPD218_URL: ${{ needs.manifest.outputs.mpd218_url }}
+      MPD218_COMMIT: ${{ needs.manifest.outputs.mpd218_commit }}
+      NANO2_URL: ${{ needs.manifest.outputs.nano2_url }}
+      NANO2_COMMIT: ${{ needs.manifest.outputs.nano2_commit }}
+    steps:
+      - name: "Install base dependencies"
+        run: |
+          pacman -Syu --noconfirm
+          pacman -S --noconfirm --needed base-devel git cmake ninja ccache
+          id builder >/dev/null 2>&1 || useradd -m -s /bin/bash builder
+
+      - name: "Check out exact integrated source"
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ needs.manifest.outputs.expected_sha }}
+          fetch-depth: 0
+
+      - name: "Verify source identity"
+        run: |
+          git config --global --add safe.directory "${GITHUB_WORKSPACE}"
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          git fetch origin --force --tags
+
+      - name: "Restore ccache"
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: /ccache
+          key: ccache-manjaro-${{ needs.manifest.outputs.expected_sha }}
+          restore-keys: |
+            ccache-manjaro-
+
+      - name: "Configure ccache"
+        run: |
+          mkdir -p /ccache
+          ccache -M 5G
+          ccache -o cache_dir=/ccache
+          ccache -o hash_dir=false
+          ccache -z
+
+      - name: "Install Mixxx build dependencies"
+        run: |
+          set -euo pipefail
+          pacman -S --needed --noconfirm \
+            protobuf vamp-plugin-sdk \
+            chromaprint libid3tag rubberband soundtouch \
+            lame libogg libmad libvorbis libmp4v2 faad2 opusfile wavpack \
+            libshout libsndfile portmidi portaudio \
+            sqlite upower lilv libebur128 libopenmpt \
+            qt6-declarative qtkeychain-qt6 qt6-svg qt6-shadertools \
+            qt6-5compat qt6-multimedia-ffmpeg qt6-scxml microsoft-gsl \
+            hidapi ffmpeg fftw flac glu pipewire pipewire-jack libusb jsoncpp \
+            gtest gmock utf8cpp cppunit zlib
+
+          if ! pacman -Qi taglib1 >/dev/null 2>&1; then
+            git clone "$TAGLIB_URL" /tmp/taglib1
+            git -C /tmp/taglib1 checkout --detach "$TAGLIB_COMMIT"
+            test "$(git -C /tmp/taglib1 rev-parse HEAD)" = "$TAGLIB_COMMIT"
+            chown -R builder:builder /tmp/taglib1
+            su builder -c 'cd /tmp/taglib1 && makepkg -f --noconfirm'
+            pacman -U --noconfirm /tmp/taglib1/*.pkg.tar.zst
+          fi
+
+      - name: "Configure"
+        run: >-
+          cmake
+          -S .
+          -B build
+          -GNinja
+          -DQT6=ON
+          -DQML=ON
+          -DBULK=ON
+          -DFFMPEG=ON
+          -DLOCALECOMPARE=ON
+          -DMAD=ON
+          -DMODPLUG=OFF
+          -DOPENMPT=ON
+          -DWAVPACK=ON
+          -DINSTALL_USER_UDEV_RULES=OFF
+          -DCMAKE_BUILD_TYPE=RelWithDebInfo
+          -DWARNINGS_FATAL=OFF
+          -DDEBUG_ASSERTIONS_FATAL=OFF
+          -DBATTERY=ON
+          -DBROADCAST=ON
+          -DDOWNLOAD_MANUAL=ON
+          -DHID=ON
+          -DKEYFINDER=ON
+          -DLILV=ON
+          -DOPUS=ON
+          -DQTKEYCHAIN=ON
+          -DVINYLCONTROL=ON
+          -DCMAKE_VERBOSE_MAKEFILE=OFF
+          -DCMAKE_C_COMPILER_LAUNCHER=ccache
+          -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+
+      - name: "Build"
+        run: cmake --build build --config RelWithDebInfo --parallel "$(nproc)"
+        env:
+          CCACHE_NOCOMPRESS: true
+          CCACHE_DIR: /ccache
+
+      - name: "Print ccache stats"
+        run: ccache -s
+        env:
+          CCACHE_DIR: /ccache
+
+      - name: "Test serially"
+        run: ctest --test-dir build --timeout 45 --parallel 1 --exclude-regex "$TEST_FILTER"
+        env:
+          GTEST_COLOR: 1
+          CTEST_OUTPUT_ON_FAILURE: 1
+
+      - name: "Generate build identity"
+        id: git-describe
+        run: |
+          GIT_DESC=$(git describe --always --first-parent --dirty=-modified)
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          TIMESTAMP=$(date -u +%Y%m%d-%H%M)
+          PKGVER_TIMESTAMP=$(date -u +%Y%m%d_%H%M)
+          MIXXX_VERSION=$(grep -m1 'project(mixxx VERSION' CMakeLists.txt | sed 's/.*VERSION \([0-9]*\.[0-9]*\).*/\1/')
+          echo "git_describe=${GIT_DESC}" >> "$GITHUB_OUTPUT"
+          echo "short_sha=${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+          echo "timestamp=${TIMESTAMP}" >> "$GITHUB_OUTPUT"
+          echo "mixxx_version=${MIXXX_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "GIT_DESC=${GIT_DESC}" >> "$GITHUB_ENV"
+          echo "SHORT_SHA=${SHORT_SHA}" >> "$GITHUB_ENV"
+          echo "PKGVER_TIMESTAMP=${PKGVER_TIMESTAMP}" >> "$GITHUB_ENV"
+          echo "MIXXX_VERSION=${MIXXX_VERSION}" >> "$GITHUB_ENV"
+
+      - name: "Install to staging directory"
+        run: |
+          DESTDIR="${GITHUB_WORKSPACE}/staging" cmake --install build --config RelWithDebInfo
+          chmod -R a+rX "${GITHUB_WORKSPACE}/staging"
+
+      - name: "Fetch pinned personal resources"
+        run: |
+          set -euo pipefail
+          STAGING="${GITHUB_WORKSPACE}/staging"
+          MIXXX_BIN=$(find "$STAGING" -name mixxx -type f -print -quit)
+          STAGING_USR=$(dirname "$(dirname "$MIXXX_BIN")")
+          MIXXX_DATA="${STAGING_USR}/share/mixxx"
+          WORK="${GITHUB_WORKSPACE}/.mixxx-extras"
+          mkdir -p "${MIXXX_DATA}/skins" "${MIXXX_DATA}/controllers" "$WORK"
+          cd "$WORK"
+
+          checkout_pinned() {
+            local url="$1" commit="$2" directory="$3"
+            git clone "$url" "$directory"
+            git -C "$directory" checkout --detach "$commit"
+            test "$(git -C "$directory" rev-parse HEAD)" = "$commit"
+          }
+
+          checkout_pinned "$DEERE_URL" "$DEERE_COMMIT" deere-redo
+          rm -rf deere-redo/.git
+          mkdir -p "${MIXXX_DATA}/skins/Deere-Redo"
+          cp -aT deere-redo/ "${MIXXX_DATA}/skins/Deere-Redo/"
+          rm -rf deere-redo
+          rm -f \
+            "${MIXXX_DATA}/skins/Deere-Redo/CHANGELOG_FORK.md" \
+            "${MIXXX_DATA}/skins/Deere-Redo/CHANNEL_MUTE_ANALYSIS.md" \
+            "${MIXXX_DATA}/skins/Deere-Redo/TEMPLATE_STRUCTURE_OUTLINE.txt" \
+            "${MIXXX_DATA}/skins/Deere-Redo/skin_include_tree.dot" \
+            "${MIXXX_DATA}/skins/Deere-Redo/skin_include_tree.png" \
+            "${MIXXX_DATA}/skins/Deere-Redo/style.qss.backup"
+          find "${MIXXX_DATA}/skins/Deere-Redo" -type f \( -name '*.xml' -o -name '*.qss' \) \
+            -exec sed -i 's/\[Deere\]/[Deere-Redo]/g' {} +
+
+          checkout_pinned "$LAUNCHPAD_URL" "$LAUNCHPAD_COMMIT" lppro
+          cp lppro/LaunchpadProMK3.midi.xml lppro/LaunchpadProMK3.js "${MIXXX_DATA}/controllers/"
+          rm -rf lppro
+
+          checkout_pinned "$MPD218_URL" "$MPD218_COMMIT" mpd218
+          cp mpd218/Akai-MPD218-milkii.midi.xml mpd218/Akai-MPD218-milkii-scripts.js "${MIXXX_DATA}/controllers/"
+          rm -rf mpd218
+
+          checkout_pinned "$NANO2_URL" "$NANO2_COMMIT" nano2
+          cp nano2/Korg-nanoKONTROL-2-milkii.midi.xml nano2/Korg-nanoKONTROL-2-scripts-milkii.js "${MIXXX_DATA}/controllers/"
+          rm -rf nano2
+          chmod -R a+rX "${MIXXX_DATA}/skins/Deere-Redo" "${MIXXX_DATA}/controllers"
+
+      - name: "Create Manjaro/Arch package"
+        shell: bash
+        run: |
+          set -euo pipefail
+          PKG_DIR="${GITHUB_WORKSPACE}/pkgbuild"
+          STAGING="${GITHUB_WORKSPACE}/staging"
+          PKGVER="${MIXXX_VERSION}_${PKGVER_TIMESTAMP}_${SHORT_SHA}"
+          mkdir -p "$PKG_DIR"
+          MIXXX_BIN=$(find "$STAGING" -name mixxx -type f -print -quit)
+          STAGING_USR=$(dirname "$(dirname "$MIXXX_BIN")")
+
+          DEPS=$(ldd "$MIXXX_BIN" 2>/dev/null \
+            | awk '/=> \// {print $3}' \
+            | while read -r lib; do pacman -Qo "$lib" 2>/dev/null; done \
+            | sed 's/.*is owned by \([^ ]*\) .*/\1/' \
+            | awk -F'[<>=]' '{print $1}' \
+            | sort -u \
+            | grep -v -E '^(gcc|glibc)$' \
+            | sed "s/^/'/; s/$/'/" \
+            | tr '\n' ' ' || true)
+
+          printf '%s\n' \
+            '# Maintainer: mxmilkiib' \
+            'pkgname=mixxx-milkiib-integrated-manjaro' \
+            "pkgver=${PKGVER}" \
+            'pkgrel=1' \
+            'pkgdesc="Digital DJ software (integration build)"' \
+            "arch=('x86_64')" \
+            'url="https://mixxx.org"' \
+            "license=('GPL2')" \
+            "depends=(${DEPS})" \
+            "conflicts=('mixxx' 'mixxx-git')" \
+            "provides=('mixxx')" \
+            "options=('!strip' '!emptydirs')" \
+            '' \
+            'package() {' \
+            '  cp -a "'"${STAGING_USR}"'/" "${pkgdir}/usr/"' \
+            '}' \
+            > "${PKG_DIR}/PKGBUILD"
+
+          chown -R builder:builder "$PKG_DIR"
+          su builder -c "cd ${PKG_DIR} && makepkg -f --noconfirm"
+          package_files=("${PKG_DIR}"/*.pkg.tar.zst)
+          test -f "${package_files[0]}"
+          echo "PACKAGE_FILE=${package_files[0]}" >> "$GITHUB_ENV"
+          echo "PACKAGE_NAME=$(basename "${package_files[0]}")" >> "$GITHUB_ENV"
+
+      - name: "Generate checksum and provenance"
+        run: |
+          CHECKSUM_FILE="${PACKAGE_FILE}.sha256"
+          PROVENANCE_FILE="${PACKAGE_FILE}.provenance.txt"
+          sha256sum "$PACKAGE_FILE" > "$CHECKSUM_FILE"
+          printf '%s\n' \
+            "mixxx_sha=${EXPECTED_SHA}" \
+            "git_describe=${GIT_DESC}" \
+            "container=${{ needs.manifest.outputs.container }}" \
+            "taglib1=${TAGLIB_COMMIT}" \
+            "deere_redo=${DEERE_COMMIT}" \
+            "launchpad_pro_mk3=${LAUNCHPAD_COMMIT}" \
+            "akai_mpd218=${MPD218_COMMIT}" \
+            "korg_nanokontrol2=${NANO2_COMMIT}" \
+            > "$PROVENANCE_FILE"
+          echo "CHECKSUM_FILE=$CHECKSUM_FILE" >> "$GITHUB_ENV"
+          echo "PROVENANCE_FILE=$PROVENANCE_FILE" >> "$GITHUB_ENV"
+
+      - name: "Upload package artifact"
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: manjaro-package
+          path: |
+            ${{ env.PACKAGE_FILE }}
+            ${{ env.CHECKSUM_FILE }}
+            ${{ env.PROVENANCE_FILE }}
+
+      - name: "Create GitHub prerelease"
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
+        with:
+          tag_name: mixxx-milkiib-integrated-${{ steps.git-describe.outputs.timestamp }}-${{ steps.git-describe.outputs.short_sha }}
+          name: "Mixxx Integrated Manjaro Build ${{ steps.git-describe.outputs.mixxx_version }}-pre-${{ steps.git-describe.outputs.short_sha }}"
+          body: |
+            ## Manjaro/Arch Linux Package
+
+            Built and tested from the exact `integrated` commit `${{ needs.manifest.outputs.expected_sha }}`.
+            The attached checksum and provenance files record all pinned non-repository inputs.
+
+            ### Install
+
+            ```bash
+            sudo pacman -U ${{ env.PACKAGE_NAME }}
+            ```
+
+            ### Notes
+
+            - This is an unsigned personal integration build for testing
+            - Tests ran serially with exclusions declared in `INTEGRATION.md`
+            - Dependencies are resolved by pacman
+          files: |
+            ${{ env.PACKAGE_FILE }}
+            ${{ env.CHECKSUM_FILE }}
+            ${{ env.PROVENANCE_FILE }}
+          prerelease: true
+          draft: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: "Save ccache"
+        if: always()
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: /ccache
+          key: ccache-manjaro-${{ needs.manifest.outputs.expected_sha }}
