@@ -194,9 +194,12 @@ void WWaveformViewer::mouseReleaseEvent(QMouseEvent* /*event*/) {
 
 void WWaveformViewer::wheelEvent(QWheelEvent* event) {
     if (m_waveformWidget) {
-        if (event->angleDelta().y() > 0) {
+        const bool invert = m_pConfig->getValue(
+                ConfigKey("[Waveform]", "invert_zoom_direction"), false);
+        const int delta = invert ? -event->angleDelta().y() : event->angleDelta().y();
+        if (delta > 0) {
             onZoomChange(m_waveformWidget->getZoom() / 1.05);
-        } else if (event->angleDelta().y() < 0) {
+        } else if (delta < 0) {
             onZoomChange(m_waveformWidget->getZoom() * 1.05);
         }
     }
