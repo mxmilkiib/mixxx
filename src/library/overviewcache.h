@@ -15,6 +15,7 @@ class OverviewCache : public QObject, public Singleton<OverviewCache> {
     Q_OBJECT
   public:
     void onTrackSummaryChanged(TrackId);
+    void invalidateAll();
 
     QPixmap requestCachedOverview(
             mixxx::OverviewType type,
@@ -30,7 +31,8 @@ class OverviewCache : public QObject, public Singleton<OverviewCache> {
 
     struct FutureResult {
         FutureResult()
-                : requester(nullptr) {
+                : requester(nullptr),
+                  uniformTimeBase(false) {
         }
 
         TrackId trackId;
@@ -38,6 +40,7 @@ class OverviewCache : public QObject, public Singleton<OverviewCache> {
         QImage image;
         QSize resizedToSize;
         const QObject* requester;
+        bool uniformTimeBase;
     };
 
   public slots:
