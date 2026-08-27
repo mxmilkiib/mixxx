@@ -6,6 +6,7 @@
 #include <QSqlQuery>
 #include <QSqlRecord>
 #include <QtConcurrentRun>
+#include <algorithm>
 
 #include "library/dao/analysisdao.h"
 #include "library/dao/cuedao.h"
@@ -23,12 +24,18 @@ namespace {
 
 mixxx::Logger kLogger("OverviewCache");
 
-QString pixmapCacheKey(TrackId trackId, QSize size, mixxx::OverviewType type) {
-    return QString("Overview_%1_%2_%3_%4")
+// The cache key includes the uniform time base mode flag so that toggling
+// the preference invalidates stale pixmaps.
+QString pixmapCacheKeyUniform(TrackId trackId,
+        QSize size,
+        mixxx::OverviewType type,
+        bool uniformTimeBase) {
+    return QString("Overview_%1_%2_%3_%4_%5")
             .arg(QString::number(static_cast<int>(type)),
                     trackId.toString(),
                     QString::number(size.width()),
-                    QString::number(size.height()));
+                    QString::number(size.height()),
+                    uniformTimeBase ? QLatin1String("u") : QLatin1String("s"));
 }
 
 // The transformation mode when scaling images
@@ -36,6 +43,33 @@ const Qt::TransformationMode kTransformationMode = Qt::SmoothTransformation;
 
 inline QImage resizeImageSize(const QImage& image, QSize size) {
     return image.scaled(size, Qt::IgnoreAspectRatio, kTransformationMode);
+}
+
+// Redraw minute markers at exact pixel positions on a uniform-time-base
+// overview image. The renderer draws markers proportionally on a fixed-width
+// image; scaling introduces rounding that shifts markers by 1-2px between
+// tracks. This redraws them at markerSeconds * pixelsPerSecond so they
+// align across all tracks regardless of duration.
+void redrawMinuteMarkersUniform(QImage* image, double durationSeconds, double pixelsPerSecond) {
+    if (image->format() != QImage::Format_ARGB32_Premultiplied) {
+        *image = image->convertToFormat(QImage::Format_ARGB32_Premultiplied);
+    }
+    QPainter painter(image);
+    painter.setRenderHint(QPainter::Antialiasing, false);
+    const int markerHeight = static_cast<int>(image->height() * 0.2);
+    const int lowerMarkerYPos = static_cast<int>(image->height() * 0.8);
+    const QColor minuteColor(255, 255, 255, 255);
+    painter.setCompositionMode(QPainter::CompositionMode_Source);
+    for (double markerSeconds = 60.0;
+            markerSeconds < durationSeconds;
+            markerSeconds += 60.0) {
+        const int x = static_cast<int>(markerSeconds * pixelsPerSecond);
+        if (x >= 0 && x < image->width()) {
+            painter.fillRect(x, 0, 2, markerHeight, minuteColor);
+            painter.fillRect(x, lowerMarkerYPos, 2, image->height() - lowerMarkerYPos, minuteColor);
+        }
+    }
+    painter.setCompositionMode(QPainter::CompositionMode_SourceOver);
 }
 } // anonymous namespace
 
@@ -69,6 +103,24 @@ void OverviewCache::onTrackSummaryChanged(TrackId trackId) {
     emit overviewChanged(trackId);
 }
 
+void OverviewCache::invalidateAll() {
+    // Clear all cached overview pixmaps so they are re-rendered with the
+    // current uniform time base settings.
+    QSet<TrackId> affectedIds;
+    for (auto it = m_cacheKeysByTrackId.constBegin();
+            it != m_cacheKeysByTrackId.constEnd();
+            ++it) {
+        QPixmapCache::remove(it.value());
+        affectedIds.insert(it.key());
+    }
+    m_cacheKeysByTrackId.clear();
+    m_tracksWithoutOverview.clear();
+    // Notify delegates for each affected track
+    for (const TrackId& trackId : std::as_const(affectedIds)) {
+        emit overviewChanged(trackId);
+    }
+}
+
 QPixmap OverviewCache::requestCachedOverview(
         mixxx::OverviewType type,
         TrackId trackId,
@@ -89,7 +141,9 @@ QPixmap OverviewCache::requestCachedOverview(
 
     // kLogger.info() << "requestCachedOverview()" << trackId << pRequester << desiredSize;
 
-    const QString cacheKey = pixmapCacheKey(trackId, desiredSize, type);
+    const bool uniform = m_pConfig->getValue(
+            ConfigKey("[Waveform]", QStringLiteral("overview_uniform_time_base")), false);
+    const QString cacheKey = pixmapCacheKeyUniform(trackId, desiredSize, type, uniform);
     QPixmap pixmap;
     QPixmapCache::find(cacheKey, &pixmap);
     return pixmap;
@@ -118,7 +172,11 @@ QPixmap OverviewCache::requestUncachedOverview(
         return QPixmap();
     }
 
-    const QString cacheKey = pixmapCacheKey(trackId, desiredSize, type);
+    // kLogger.info() << "requestUncachedOverview()" << trackId << pRequester << desiredSize;
+
+    const bool uniform = m_pConfig->getValue(
+            ConfigKey("[Waveform]", QStringLiteral("overview_uniform_time_base")), false);
+    const QString cacheKey = pixmapCacheKeyUniform(trackId, desiredSize, type, uniform);
     QPixmap pixmap;
     // Maybe it has been cached since the request for cached image?
     if (QPixmapCache::find(cacheKey, &pixmap)) {
@@ -161,11 +219,15 @@ OverviewCache::FutureResult OverviewCache::prepareOverview(
     result.type = type;
     result.requester = pRequester;
     result.image = QImage();
-    result.resizedToSize = desiredSize;
+    result.requestedSize = desiredSize;
 
     if (!pTrack || !result.trackId.isValid() || desiredSize.isEmpty()) {
         return result;
     }
+
+    const bool uniformTimeBase = pConfig->getValue(
+            ConfigKey("[Waveform]", QStringLiteral("overview_uniform_time_base")), false);
+    result.uniformTimeBase = uniformTimeBase;
 
     mixxx::DbConnectionPooler dbConnectionPooler(pDbConnectionPool);
     QSqlDatabase database = mixxx::DbConnectionPooled(pDbConnectionPool);
@@ -204,7 +266,48 @@ OverviewCache::FutureResult OverviewCache::prepareOverview(
                     trackDurationMillis);
 
             if (!image.isNull()) {
-                image = resizeImageSize(image, desiredSize);
+                if (uniformTimeBase) {
+                    // Render the waveform at a width proportional to the
+                    // track duration so that all overviews share the same
+                    // pixels-per-second ratio. Short tracks occupy less
+                    // than the full column; long tracks are clipped.
+                    const double timeBaseMinutes = pConfig->getValue(
+                            ConfigKey("[Waveform]",
+                                    QStringLiteral("overview_time_base_minutes")),
+                            6.0);
+                    const double pixelsPerSecond =
+                            static_cast<double>(desiredSize.width()) /
+                            (timeBaseMinutes * 60.0);
+
+                    // Query track duration directly from the library table.
+                    double durationSeconds = 0.0;
+                    {
+                        QSqlDatabase dbConnection =
+                                mixxx::DbConnectionPooled(pDbConnectionPool);
+                        QSqlQuery query(dbConnection);
+                        query.prepare(QStringLiteral(
+                                "SELECT duration FROM library WHERE id = :id"));
+                        query.bindValue(QStringLiteral(":id"), result.trackId.toVariant());
+                        if (query.exec() && query.next()) {
+                            durationSeconds = query.value(0).toDouble();
+                        }
+                    }
+
+                    if (durationSeconds > 0.0) {
+                        int uniformWidth = static_cast<int>(
+                                durationSeconds * pixelsPerSecond);
+                        uniformWidth = std::clamp(uniformWidth, 1, desiredSize.width());
+                        QSize uniformSize(uniformWidth, desiredSize.height());
+                        image = resizeImageSize(image, uniformSize);
+                        redrawMinuteMarkersUniform(&image,
+                                durationSeconds,
+                                pixelsPerSecond);
+                    } else {
+                        image = resizeImageSize(image, desiredSize);
+                    }
+                } else {
+                    image = resizeImageSize(image, desiredSize);
+                }
             }
             result.image = image;
         }
@@ -222,11 +325,14 @@ void OverviewCache::overviewPrepared() {
 
     // Create pixmap, GUI thread only
     QPixmap pixmap = QPixmap::fromImage(res.image);
-    if (!pixmap.isNull() && !res.resizedToSize.isEmpty()) {
+    if (!pixmap.isNull() && !res.requestedSize.isEmpty()) {
         // we have to be sure that cacheKey is unique
         // because insert replaces the images with the same key
-        const QString cacheKey = pixmapCacheKey(
-                res.trackId, res.resizedToSize, res.type);
+        // Use requestedSize (the cell size) so the key matches the lookup
+        // in requestCachedOverview/requestUncachedOverview. The actual image
+        // may be narrower in uniform mode, but the delegate handles that.
+        const QString cacheKey = pixmapCacheKeyUniform(
+                res.trackId, res.requestedSize, res.type, res.uniformTimeBase);
         QPixmapCache::insert(cacheKey, pixmap);
         // Store the cached track id so we can clear ALL pixmaps of a track
         // in case the waveform has been cleared/updated.
