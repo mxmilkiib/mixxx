@@ -65,6 +65,11 @@ OverviewDelegate::OverviewDelegate(QTableView* pTableView)
             this);
     m_pTypeControl->connectValueChanged(this, &OverviewDelegate::slotTypeControlChanged);
     slotTypeControlChanged(m_pTypeControl->get());
+
+    m_pUniformTimeBaseControl = make_parented<ControlProxy>(
+            QStringLiteral("[Waveform]"),
+            QStringLiteral("overview_uniform_time_base"),
+            this);
 }
 
 void OverviewDelegate::slotTypeControlChanged(double v) {
@@ -169,11 +174,22 @@ void OverviewDelegate::paintItem(QPainter* painter,
         }
         paintItemBackground(painter, option, index);
     } else {
-        // We have a cached pixmap, paint it
+        // We have a cached pixmap, paint it.
+        // When uniform time base is active, the pixmap may be narrower than
+        // the column (short track) or clipped (long track). Draw it
+        // left-aligned at natural size rather than stretching to fill.
         pixmap.setDevicePixelRatio(scaleFactor);
         // disable smooth transform to preserve marker opacity
         painter->setRenderHint(QPainter::SmoothPixmapTransform, false);
-        painter->drawPixmap(option.rect, pixmap);
+        const bool uniform = static_cast<bool>(m_pUniformTimeBaseControl->get());
+        if (uniform && pixmap.width() < option.rect.width() * scaleFactor) {
+            QRect targetRect(option.rect.topLeft(),
+                    QSize(static_cast<int>(pixmap.width() / scaleFactor),
+                            option.rect.height()));
+            painter->drawPixmap(targetRect, pixmap);
+        } else {
+            painter->drawPixmap(option.rect, pixmap);
+        }
         painter->setRenderHint(QPainter::SmoothPixmapTransform, true);
     }
 
