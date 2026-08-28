@@ -17,7 +17,8 @@ QImage render(ConstWaveformPointer pWaveform,
         const WaveformSignalColors& signalColors,
         bool mono = false,
         const QList<mixxx::CueInfo>& cueInfos = QList<mixxx::CueInfo>(),
-        double trackDurationMillis = 0.0);
+        double trackDurationMillis = 0.0,
+        bool drawMinuteMarkers = false);
 
 /// These paint methods return the fullsize image
 /// They allow "mono" rendering (mono-mixdown, bottom-aligned).
