@@ -2,8 +2,10 @@
 
 #include <QPainter>
 
+#include "util/color/color.h"
 #include "util/colorcomponents.h"
 #include "util/math.h"
+#include "util/painterscope.h"
 #include "util/timer.h"
 #include "waveform/renderers/waveformsignalcolors.h"
 
@@ -12,7 +14,9 @@ namespace waveformOverviewRenderer {
 QImage render(ConstWaveformPointer pWaveform,
         mixxx::OverviewType type,
         const WaveformSignalColors& signalColors,
-        bool mono) {
+        bool mono,
+        const QList<mixxx::CueInfo>& cueInfos,
+        double trackDurationMillis) {
     const int dataSize = pWaveform->getDataSize();
     if (dataSize <= 0) {
         return QImage();
@@ -72,6 +76,60 @@ QImage render(ConstWaveformPointer pWaveform,
     QImage normImage = croppedImage.scaled(image.size(),
             Qt::IgnoreAspectRatio,
             Qt::SmoothTransformation);
+
+    // draw hotcue markers on the normalized image for maximum visibility
+    if (trackDurationMillis > 0 && !cueInfos.isEmpty()) {
+        if (normImage.format() != QImage::Format_ARGB32_Premultiplied) {
+            normImage = normImage.convertToFormat(QImage::Format_ARGB32_Premultiplied);
+        }
+
+        QPainter markerPainter(&normImage);
+        markerPainter.setRenderHint(QPainter::Antialiasing, false);
+        const int imageWidth = normImage.width();
+        const int imageHeight = normImage.height();
+        PainterScope painterScope(&markerPainter);
+        for (const auto& cueInfo : cueInfos) {
+            if (cueInfo.getType() != mixxx::CueType::HotCue) {
+                continue;
+            }
+
+            auto positionMillis = cueInfo.getStartPositionMillis();
+            if (!positionMillis.has_value()) {
+                continue;
+            }
+
+            // allow negative positions (preroll)
+            if (*positionMillis > trackDurationMillis) {
+                continue;
+            }
+
+            const int x = static_cast<int>(
+                    (*positionMillis / trackDurationMillis) * imageWidth);
+
+            if (x < 0 || x >= imageWidth) {
+                continue;
+            }
+
+            // use same rendering style as deck overview:
+            // contrasting border line + bright fill line
+            auto color = cueInfo.getColor();
+            if (!color.has_value()) {
+                continue;
+            }
+
+            QColor fillColor = QColor::fromRgb(*color).lighter(110);
+            QColor borderColor = Color::chooseContrastColor(
+                    QColor::fromRgb(*color), 120);
+
+            // draw border/shadow line (1px wide, offset by -1)
+            markerPainter.setPen(borderColor);
+            markerPainter.drawLine(x - 1, 0, x - 1, imageHeight);
+
+            // draw main bright marker line (1px wide)
+            markerPainter.setPen(fillColor);
+            markerPainter.drawLine(x, 0, x, imageHeight);
+        }
+    }
 
     return normImage;
 }
