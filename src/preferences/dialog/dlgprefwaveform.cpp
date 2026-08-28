@@ -3,10 +3,12 @@
 #include <QLocale>
 #include <QMetaEnum>
 
+#include "control/controlobject.h"
 #include "control/controlpushbutton.h"
 #include "library/dao/analysisdao.h"
 #include "library/library.h"
 #include "library/overviewcache.h"
+#include "mixer/playerinfo.h"
 #include "moc_dlgprefwaveform.cpp"
 #include "preferences/waveformsettings.h"
 #include "util/db/dbconnectionpooled.h"
@@ -481,10 +483,11 @@ void DlgPrefWaveform::slotResetToDefaults() {
     midVisualGain->setValue(WaveformWidgetFactory::getVisualGainDefault(BandIndex::Mid));
     highVisualGain->setValue(WaveformWidgetFactory::getVisualGainDefault(BandIndex::High));
 
-    // Default zoom level is 3 in WaveformWidgetFactory.
+    // Default zoom level is s_waveformDefaultZoom in WaveformWidgetFactory.
     const int subOneCount =
             (WaveformWidgetRenderer::s_waveformMinZoom < 1.0) ? 1 : 0;
-    defaultZoomComboBox->setCurrentIndex(subOneCount + 3 - 1);
+    defaultZoomComboBox->setCurrentIndex(
+            subOneCount + static_cast<int>(WaveformWidgetRenderer::s_waveformDefaultZoom) - 1);
 
     synchronizeZoomCheckBox->setChecked(true);
 
@@ -761,6 +764,22 @@ void DlgPrefWaveform::slotSetDefaultZoom(int index) {
             ? WaveformWidgetRenderer::s_waveformMinZoom
             : static_cast<double>(index - subOneCount + 1);
     WaveformWidgetFactory::instance()->setDefaultZoom(zoom);
+    QStringList groups;
+    for (int i = 1; i <= PlayerInfo::instance().numDecks(); i++) {
+        groups.append(QStringLiteral("[Channel%1]").arg(i));
+    }
+    for (int i = 1; i <= PlayerInfo::instance().numSamplers(); i++) {
+        groups.append(QStringLiteral("[Sampler%1]").arg(i));
+    }
+    for (int i = 1; i <= PlayerInfo::instance().numPreviewDecks(); i++) {
+        groups.append(QStringLiteral("[PreviewDeck%1]").arg(i));
+    }
+    for (const QString& group : std::as_const(groups)) {
+        ControlObject* pControl = ControlObject::getControl(
+                group, QStringLiteral("waveform_zoom"));
+        DEBUG_ASSERT(pControl);
+        pControl->setDefaultValue(zoom);
+    }
 }
 
 void DlgPrefWaveform::slotSetZoomSynchronization(bool checked) {
