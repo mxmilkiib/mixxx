@@ -163,6 +163,9 @@ OverviewCache::FutureResult OverviewCache::prepareOverview(
         return result;
     }
 
+    const bool drawMinuteMarkers = pConfig->getValue(
+            ConfigKey("[Waveform]", QStringLiteral("draw_overview_minute_markers")), true);
+
     mixxx::DbConnectionPooler dbConnectionPooler(pDbConnectionPool);
     QSqlDatabase database = mixxx::DbConnectionPooled(pDbConnectionPool);
 
@@ -197,7 +200,8 @@ OverviewCache::FutureResult OverviewCache::prepareOverview(
                     signalColors,
                     true /* mono, bottom-aligned */,
                     cueInfos,
-                    trackDurationMillis);
+                    trackDurationMillis,
+                    drawMinuteMarkers);
 
             if (!image.isNull()) {
                 image = resizeImageSize(image, desiredSize);
