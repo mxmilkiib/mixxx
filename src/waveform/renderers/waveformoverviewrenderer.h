@@ -2,6 +2,7 @@
 
 #include <QColor>
 
+#include "track/cueinfo.h"
 #include "waveform/overviewtype.h"
 #include "waveform/waveform.h"
 
@@ -14,7 +15,9 @@ namespace waveformOverviewRenderer {
 QImage render(ConstWaveformPointer pWaveform,
         mixxx::OverviewType type,
         const WaveformSignalColors& signalColors,
-        bool mono = false);
+        bool mono = false,
+        const QList<mixxx::CueInfo>& cueInfos = QList<mixxx::CueInfo>(),
+        double trackDurationMillis = 0.0);
 
 /// These paint methods return the fullsize image
 /// They allow "mono" rendering (mono-mixdown, bottom-aligned).
