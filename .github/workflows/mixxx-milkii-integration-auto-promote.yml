@@ -77,18 +77,32 @@ jobs:
           fi
 
           COMPARE_STATUS=$(gh api "repos/${{ github.repository }}/compare/${INTEGRATED_SHA}...${RUN_SHA}" --jq '.status')
-          if [ "$COMPARE_STATUS" != ahead ]; then
-            echo "tested SHA is not a fast-forward from integrated: $COMPARE_STATUS"
-            exit 1
-          fi
+          case "$COMPARE_STATUS" in
+            ahead)
+              echo "force=false" >> "$GITHUB_OUTPUT"
+              ;;
+            diverged)
+              echo "force=true" >> "$GITHUB_OUTPUT"
+              echo "integrated diverged from tested SHA — force-updating per from-scratch remerge design"
+              ;;
+            behind)
+              echo "tested SHA is behind integrated ($COMPARE_STATUS) — refusing to regress"
+              exit 1
+              ;;
+            *)
+              echo "unexpected compare status: $COMPARE_STATUS"
+              exit 1
+              ;;
+          esac
           echo "promote=true" >> "$GITHUB_OUTPUT"
           echo "run_sha=$RUN_SHA" >> "$GITHUB_OUTPUT"
 
-      - name: "Fast-forward integrated"
+      - name: "Update integrated"
         if: ${{ steps.verify.outputs.promote == 'true' }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RUN_SHA: ${{ steps.verify.outputs.run_sha }}
+          FORCE: ${{ steps.verify.outputs.force }}
         run: |
           set -euo pipefail
           CURRENT=$(gh api "repos/${{ github.repository }}/git/refs/heads/integrating" --jq '.object.sha')
@@ -99,7 +113,7 @@ jobs:
           PROMOTED=$(gh api "repos/${{ github.repository }}/git/refs/heads/integrated" \
             --method PATCH \
             --field sha="$RUN_SHA" \
-            --field force=false \
+            --field force="$FORCE" \
             --jq '.object.sha')
           test "$PROMOTED" = "$RUN_SHA"
 

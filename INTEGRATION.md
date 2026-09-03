@@ -23,7 +23,7 @@
   - **This instance**: all file prefixes and the gist title currently in this instance MUST refer to user **"Milkii"** (user: change if this is not you)
   - **Cross-model review**: This document, the scripts, and the branch outline MUST be cross-checked against ground truth by a *different* model from the one that last wrote them, at least every several sessions or whenever a claim in the doc is questionable. Self-review by the authoring model reliably misses its own confabulations — status lines get carried forward, "auto-promoted" gets written for something never observed, dates get copied instead of queried. Anything the checking model cannot verify MUST be marked UNVERIFIED rather than left as an assertion.
     - **Model usage log**: Each model used to write or review this document MUST be recorded below with its first-use date and last-use date. A model's review record breaks when a different model starts being used — the new model gets its own entry. This log is the audit trail for the cross-model requirement.
-      - **GLM-5.2 High** — first used: 2026-08-21, last used: 2026-08-22 (writing: manifest PR head fields, Personal Only section, auto gist sync, cross-model review tracking; branch cleanup: mono-waveform-option deletion, waveform-blend-customization deletion, invert-zoom-direction commit; libopenmpt: tracker DSP effect rack refactor, SoundSourceOpenMPT/TrackerEffect tests, PR #15519 closed and superseded by #16921)
+      - **GLM-5.2 High** — first used: 2026-08-21, last used: 2026-09-03 (writing: manifest PR head fields, Personal Only section, auto gist sync, cross-model review tracking; branch cleanup: mono-waveform-option deletion, waveform-blend-customization deletion, invert-zoom-direction commit; libopenmpt: tracker DSP effect rack refactor, SoundSourceOpenMPT/TrackerEffect tests, PR #15519 closed and superseded by #16921; auto-promote workflow fix: force-update when from-scratch remerge diverges from previous integrated, correcting the fast-forward-only gate that blocked every promotion when upstream/main had moved)
     - **What to ask**
       - "what's the state of everything?"
       - "does the manifest and the outline match the current state?"
@@ -271,9 +271,9 @@ JSON array order is the rebase/dependency order. `merge_order` is separately aut
 - **Stage 1 — Review and commit pending integration infrastructure changes** before starting. `remerge_integration` refuses tracked changes because its pre-reset commit is the transaction's infrastructure source. Commits and pushes remain deliberate human actions under `AGENTS.md`.
   - Run `./mixxx-milkii-integration-update-branches.sh --validate-manifest` first. It MUST confirm the JSON structure, outline `[x]` entries, worktree inventory, checked-out refs, bases, dependencies, merge order, full source pins, and infrastructure list.
 - **Stage 2 — Promotion check**: At the start of any session, verify the exact-SHA invariant:
-  - `integrated` MUST be an ancestor-or-equal of `origin/integrating`, never ahead or divergent. Verify with `git rev-list --left-right --count origin/integrating...origin/integrated`; a non-zero right-hand count is a gate violation.
+  - `integrated` MUST never be ahead of `origin/integrating`. Verify with `git rev-list --left-right --count origin/integrating...origin/integrated`; a non-zero right-hand count is a gate violation. Divergence (both counts non-zero) is expected when a new from-scratch remerge candidate is pending promotion; promotion force-updates `integrated` to the tested SHA.
   - Manual promotion queries only the manifest-declared workflow, branch, push event, and exact current `origin/integrating` SHA. It fetches again before promotion and aborts if the branch moved.
-  - Automatic promotion receives the tested SHA from `workflow_run`, requires a `success` conclusion, confirms `integrating` still equals it, and updates `integrated` without force. It then dispatches the manifest-declared release workflow with that SHA.
+  - Automatic promotion receives the tested SHA from `workflow_run`, requires a `success` conclusion, confirms `integrating` still equals it, and updates `integrated` — force-updating when the from-scratch remerge diverges from the previous `integrated`. It then dispatches the manifest-declared release workflow with that SHA.
   - **Why exact SHA matters**: querying only the latest branch run can return the previous successful run before GitHub registers the new one, allowing untested code through. Delayed or rerun events can also target an old SHA. Both promotion paths therefore bind workflow, event type, branch, tested SHA, current remote SHA, and promoted SHA.
   - **No failure allowlist**: job names reveal where a failure occurred, not why. A Windows job with a known flaky test can later fail because the code no longer compiles; treating the whole job as infrastructure would hide that regression. Cancelled, timed-out, stale, neutral, skipped, startup-failed, or failed runs all block promotion.
   - **Workflow chaining**: GitHub suppresses `push` workflows caused by `GITHUB_TOKEN`. Auto-promote MUST call the release workflow with `workflow_dispatch`; rerunning auto-promote checks for an existing successful or active package run before dispatching another.
@@ -292,7 +292,7 @@ JSON array order is the rebase/dependency order. `merge_order` is separately aut
   - The manifest order is topological: dependency roots are rebased first, and a dependent rebases onto its declared dependency rather than blindly onto `upstream/main`.
   - Remerge happens in a temporary detached worktree. A conflict, failed infrastructure restore, or interruption leaves the checked-out `integration` branch unchanged and disables rerere before returning. There is no partial-build or "continue without remerge" route.
   - Every phase is fatal. Neither `integration` nor `integrating` is pushed after a failed rebase, merge, build, or test.
-  - `--rebase-merge-test-push-promote` additionally waits for CI on the exact pushed SHA and fast-forwards `integrated` only after strict success.
+  - `--rebase-merge-test-push-promote` additionally waits for CI on the exact pushed SHA and promotes `integrated` only after strict success.
   - After tests pass, the pipeline also builds the main `mixxx` executable for the integration worktree so one has a runnable local binary at `~/src/mixxx-dev/integration/build/mixxx`.
   - **Quick integration**: When one only needs **a runnable integration binary without local tests or remote operations**, run `--quick-integration` instead of the full Stage 7. It rebases all branches, transactionally remerges, and builds both `mixxx-test` and `mixxx` for the integration tree only, skipping per-branch builds, local tests, pushes, CI, and promotion. Use this for fast iteration between full pipeline runs.
   - **Personal-only backup**: Committed personal-only branches SHOULD be pushed to `origin` for off-machine backup. Pushing a branch ref cannot back up uncommitted working-tree changes.
@@ -339,7 +339,7 @@ JSON array order is the rebase/dependency order. `merge_order` is separately aut
   - **Conflict policy**: Feature branches MUST stay suitable for standalone upstream review. Compatibility needed only when branch B is combined with branch A belongs in the integration merge and its rerere resolution, not in B's PR commits. Genuine branch defects MUST remain fixed on the branch itself.
   - A conflict MUST NOT be followed by build or promotion. The temporary merge is aborted and removed, the real branch remains unchanged, and the conflicting relationship MUST be resolved before rerunning the whole transaction.
   - **Dry run**: `--remerge-integration --dry-run` performs every step through candidate resolution but skips the final `reset --hard`, leaving `integration` at its original SHA. The rerere cache is still written, so a following real run reuses recorded resolutions. Side effects are limited to the temp worktree, the `rerere.enabled` config toggle, and `rr-cache`.
-  - `integration` and `integrating` are reconstructed refs and therefore use `--force-with-lease`; `integrated` is promotion-only and MUST fast-forward without force.
+  - `integration` and `integrating` are reconstructed refs and therefore use `--force-with-lease`; `integrated` is promotion-only — both manual and automatic promotion force-update when the from-scratch remerge diverges from the previous `integrated`.
   - A full reconfigure is REQUIRED only when branches add CMake files or sources:
 
     ```bash
@@ -421,7 +421,7 @@ JSON array order is the rebase/dependency order. `merge_order` is separately aut
 
 | Script | Purpose |
 | --- | --- |
-| `mixxx-milkii-integration-update-branches.sh` | Parses and validates this document; performs dependency-aware rebases, transactional ordered remerge, exact build/test stamping for branches plus the combined tree, content-aware pushes, local gating, exact-SHA CI polling, and fast-forward promotion |
+| `mixxx-milkii-integration-update-branches.sh` | Parses and validates this document; performs dependency-aware rebases, transactional ordered remerge, exact build/test stamping for branches plus the combined tree, content-aware pushes, local gating, exact-SHA CI polling, and exact-SHA promotion (force-update when diverged) |
 | `mixxx-milkii-integration-pre-push.sh` | Reads exclusions and protected paths from this document; blocks integration infrastructure on every non-tier destination, requires formatting, incrementally rebuilds `mixxx-test`, rejects dirty/stale trees, and runs tests |
 | `mixxx-milkii-integration-gdb-run.sh` | Runs Mixxx non-interactively under GDB with debuginfod, forwards additional arguments, returns the inferior's exit status, collects crash diagnostics conditionally, and retains timestamped logs |
 
@@ -437,7 +437,7 @@ JSON array order is the rebase/dependency order. `merge_order` is separately aut
 | `--run-tests` | Run only tests whose exact build signature lacks a current pass; never accept a dirty tree |
 | `--push-changed` | Push only `rebase: true` branches whose stable patch IDs differ from their fork refs; pushes to `pr_head` when declared (legacy undated PR heads); pre-push checks still apply |
 | `--push-integrating` | Recheck every `gate: true` branch and the combined tree, then force-with-lease the exact `integration` SHA to `integrating` |
-| `--promote-integrated` | Poll only the declared push workflow for exact `origin/integrating`, require success and an unchanged ref, then fast-forward `integrated` |
+| `--promote-integrated` | Poll only the declared push workflow for exact `origin/integrating`, require success and an unchanged ref, then update `integrated` (force-update when diverged) |
 | `--rebase-merge-test-push` | Run the complete local pipeline; every phase is fatal; syncs Gist after success |
 | `--rebase-merge-test-push-promote` | Run the local pipeline, wait for exact-SHA CI, promote after success; syncs Gist after success |
 | `--quick-integration` | Rebase, transactional remerge, build `mixxx-test` and `mixxx` for the integration tree only; skip local tests and all remote operations (push, CI, promotion). Use for fast iteration when one only needs a runnable integration binary |
