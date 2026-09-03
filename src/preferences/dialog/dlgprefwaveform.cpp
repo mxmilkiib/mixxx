@@ -22,6 +22,8 @@ const ConfigKey kWaveformOptionsKey(kWaveformGroup,
         QStringLiteral("waveform_options"));
 const ConfigKey kHardwareAccelerationKey(kWaveformGroup,
         QStringLiteral("use_hardware_acceleration"));
+const ConfigKey kInvertZoomDirectionKey(kWaveformGroup,
+        QStringLiteral("invert_zoom_direction"));
 } // namespace
 
 // for OverviewType
@@ -188,6 +190,10 @@ DlgPrefWaveform::DlgPrefWaveform(
             &QCheckBox::clicked,
             this,
             &DlgPrefWaveform::slotSetZoomSynchronization);
+    connect(invertZoomDirectionCheckBox,
+            &QCheckBox::clicked,
+            this,
+            &DlgPrefWaveform::slotSetInvertZoomDirection);
     connect(allVisualGain,
             QOverload<double>::of(&QDoubleSpinBox::valueChanged),
             this,
@@ -354,6 +360,8 @@ void DlgPrefWaveform::slotUpdate() {
     endOfTrackWarningTimeSpinBox->setValue(factory->getEndOfTrackWarningTime());
     endOfTrackWarningTimeSlider->setValue(factory->getEndOfTrackWarningTime());
     synchronizeZoomCheckBox->setChecked(factory->isZoomSync());
+    invertZoomDirectionCheckBox->setChecked(
+            m_pConfig->getValue(kInvertZoomDirectionKey, false));
     allVisualGain->setValue(factory->getVisualGain(BandIndex::AllBand));
     lowVisualGain->setValue(factory->getVisualGain(BandIndex::Low));
     midVisualGain->setValue(factory->getVisualGain(BandIndex::Mid));
@@ -418,7 +426,7 @@ void DlgPrefWaveform::slotUpdate() {
     WaveformSettings waveformSettings(m_pConfig);
     enableWaveformCaching->setChecked(waveformSettings.waveformCachingEnabled());
     enableWaveformGenerationWithAnalysis->setChecked(
-        waveformSettings.waveformGenerationWithAnalysisEnabled());
+            waveformSettings.waveformGenerationWithAnalysisEnabled());
     calculateCachedWaveformDiskUsage();
 }
 
@@ -427,7 +435,7 @@ void DlgPrefWaveform::slotApply() {
     WaveformSettings waveformSettings(m_pConfig);
     waveformSettings.setWaveformCachingEnabled(enableWaveformCaching->isChecked());
     waveformSettings.setWaveformGenerationWithAnalysisEnabled(
-        enableWaveformGenerationWithAnalysis->isChecked());
+            enableWaveformGenerationWithAnalysis->isChecked());
 }
 
 void DlgPrefWaveform::slotResetToDefaults() {
@@ -466,6 +474,8 @@ void DlgPrefWaveform::slotResetToDefaults() {
     defaultZoomComboBox->setCurrentIndex(subOneCount + 3 - 1);
 
     synchronizeZoomCheckBox->setChecked(true);
+
+    invertZoomDirectionCheckBox->setChecked(false);
 
     // RGB overview.
     waveformOverviewComboBox->setCurrentIndex(
@@ -739,6 +749,10 @@ void DlgPrefWaveform::slotSetDefaultZoom(int index) {
 
 void DlgPrefWaveform::slotSetZoomSynchronization(bool checked) {
     WaveformWidgetFactory::instance()->setZoomSync(checked);
+}
+
+void DlgPrefWaveform::slotSetInvertZoomDirection(bool checked) {
+    m_pConfig->setValue(kInvertZoomDirectionKey, checked);
 }
 
 void DlgPrefWaveform::slotSetVisualGainAll(double gain) {
