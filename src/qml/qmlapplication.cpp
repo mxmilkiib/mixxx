@@ -402,6 +402,7 @@ QmlApplication::~QmlApplication() {
         WaveformWidgetFactory::destroy();
     }
     m_visualsManager.reset();
+    QmlCoreServices::destroy();
     QmlApplicationProxy::registerVinylControlManager(nullptr);
     m_pCoreServices.reset();
 }
