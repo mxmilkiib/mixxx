@@ -154,7 +154,7 @@ jobs:
             qt6-declarative qtkeychain-qt6 qt6-svg qt6-shadertools \
             qt6-5compat qt6-multimedia-ffmpeg qt6-scxml microsoft-gsl \
             hidapi ffmpeg fftw flac glu pipewire pipewire-jack libusb jsoncpp \
-            mesa ttf-dejavu gtest gmock utf8cpp cppunit zlib
+            mesa ttf-dejavu gdb gtest gmock utf8cpp cppunit zlib
 
           if ! pacman -Qi taglib1 >/dev/null 2>&1; then
             git clone "$TAGLIB_URL" /tmp/taglib1
@@ -214,7 +214,14 @@ jobs:
           CCACHE_DIR: /ccache
 
       - name: "Test serially"
-        run: ctest --test-dir build --timeout 45 --parallel 1 --exclude-regex "$TEST_FILTER"
+        shell: bash
+        run: |
+          if ! ctest --test-dir build --timeout 45 --parallel 1 --exclude-regex "$TEST_FILTER"; then
+            echo "::warning::ctest failed — capturing gdb backtrace for the QML smoke test"
+            gdb -batch -ex run -ex 'thread apply all bt' -ex quit \
+              --args ./build/mixxx-test --gtest_filter='QmlSkins/*' 2>&1 || true
+            exit 1
+          fi
         env:
           GTEST_COLOR: 1
           CTEST_OUTPUT_ON_FAILURE: 1
