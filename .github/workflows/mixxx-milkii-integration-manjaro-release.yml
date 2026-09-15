@@ -154,7 +154,7 @@ jobs:
             qt6-declarative qtkeychain-qt6 qt6-svg qt6-shadertools \
             qt6-5compat qt6-multimedia-ffmpeg qt6-scxml microsoft-gsl \
             hidapi ffmpeg fftw flac glu pipewire pipewire-jack libusb jsoncpp \
-            gtest gmock utf8cpp cppunit zlib
+            mesa ttf-dejavu gtest gmock utf8cpp cppunit zlib
 
           if ! pacman -Qi taglib1 >/dev/null 2>&1; then
             git clone "$TAGLIB_URL" /tmp/taglib1
@@ -375,7 +375,15 @@ jobs:
             ### Install
 
             ```bash
+            curl -fLO https://github.com/mxmilkiib/mixxx/releases/download/mixxx-milkiib-integrated-${{ steps.git-describe.outputs.timestamp }}-${{ steps.git-describe.outputs.short_sha }}/${{ env.PACKAGE_NAME }}
             sudo pacman -U ${{ env.PACKAGE_NAME }}
+            ```
+
+            Optionally verify the checksum first:
+
+            ```bash
+            curl -fLO https://github.com/mxmilkiib/mixxx/releases/download/mixxx-milkiib-integrated-${{ steps.git-describe.outputs.timestamp }}-${{ steps.git-describe.outputs.short_sha }}/${{ env.PACKAGE_NAME }}.sha256
+            sha256sum -c ${{ env.PACKAGE_NAME }}.sha256
             ```
 
             ### Notes
