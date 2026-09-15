@@ -1,6 +1,6 @@
 # Mixxx Multi-PR Dev & Test Build (AI Integration Skill + State)
 
-> Last updated: 2026-09-11
+> Last updated: 2026-09-15
 > URL: <https://gist.github.com/mxmilkiib/5fb35c401736efed47ad7d78268c80b6>
 > [RFC 2119](https://datatracker.ietf.org/doc/html/rfc2119)
 
@@ -24,7 +24,7 @@
   - **Cross-model review**: This document, the scripts, and the branch outline MUST be cross-checked against ground truth by a *different* model from the one that last wrote them, at least every several sessions or whenever a claim in the doc is questionable. Self-review by the authoring model reliably misses its own confabulations — status lines get carried forward, "auto-promoted" gets written for something never observed, dates get copied instead of queried. Anything the checking model cannot verify MUST be marked UNVERIFIED rather than left as an assertion.
     - **Model usage log**: Each model used to write or review this document MUST be recorded below with its first-use date and last-use date. A model's review record breaks when a different model starts being used — the new model gets its own entry. This log is the audit trail for the cross-model requirement.
       - **GLM-5.2 High** — first used: 2026-08-21, last used: 2026-09-03 (writing: manifest PR head fields, Personal Only section, auto gist sync, cross-model review tracking; branch cleanup: mono-waveform-option deletion, waveform-blend-customization deletion, invert-zoom-direction commit; libopenmpt: tracker DSP effect rack refactor, SoundSourceOpenMPT/TrackerEffect tests, PR #15519 closed and superseded by #16921; auto-promote workflow fix: force-update when from-scratch remerge diverges from previous integrated, correcting the fast-forward-only gate that blocked every promotion when upstream/main had moved)
-      - **SWE-2 High** — first used: 2026-09-11, last used: 2026-09-11 (rebase conflict resolution: controller-wizard-quick-access dlgpreferences vs upstream #16962, head-split-reverse enginemixer vs upstream mono-mixdown; new secondary patch bugfix/2026.09sep.11-qml-coreservices-singleton-lifetime fixing upstream QmlCoreServices dangling-singleton UAF; NewUi smoke-test exclusion)
+      - **SWE-2 High** — first used: 2026-09-11, last used: 2026-09-15 (rebase conflict resolution: controller-wizard-quick-access dlgpreferences vs upstream #16962, head-split-reverse enginemixer vs upstream mono-mixdown, qml-coreservices ~QmlApplication vs upstream WaveformWidgetFactory teardown; new secondary patch bugfix/2026.09sep.11-qml-coreservices-singleton-lifetime fixing upstream QmlCoreServices dangling-singleton UAF; NewUi smoke-test exclusion)
     - **What to ask**
       - "what's the state of everything?"
       - "does the manifest and the outline match the current state?"
@@ -546,7 +546,7 @@ Branches with dependencies on personal-only branches cannot be submitted upstrea
 
 ## Branch and Integration Status Outline
 
-**Summary** (verified 2026-09-11; each branch counted once): 7 changes-addressed · 7 review-required · 1 changes-requested-open · 2 schema-excluded · 7 local-only/abandoned/archived · 3 personal-only · 3 secondary patches · 2 external-testing · 10 merged/resolved upstream · 0 untracked WIP worktree
+**Summary** (verified 2026-09-15; each branch counted once): 7 changes-addressed · 7 review-required · 1 changes-requested-open · 2 schema-excluded · 7 local-only/abandoned/archived · 3 personal-only · 3 secondary patches · 2 external-testing · 10 merged/resolved upstream · 0 untracked WIP worktree
 
 - 🔴 **Awaiting Review from Others**
   - none
@@ -554,7 +554,7 @@ Branches with dependencies on personal-only branches cannot be submitted upstrea
   - [x] **feature/restore-last-library-selection** - [#15460](https://github.com/mixxxdj/mixxx/pull/15460) - CHANGES_ADDRESSED
     - Worktree: `~/src/mixxx-dev/2025.10oct.20-restore-last-library-selection/` (dir is dated, branch ref is not — branch matches the PR head, so pushes land correctly)
     - Issue: [#10125](https://github.com/mixxxdj/mixxx/issues/10125) (OPEN)
-    - Created: 2025-10-08, Last comment: 2026-08-08 (mxmilkiib), Last review: 2025-11-17 (ronso0, CHANGES_REQUESTED), Rebased: 2026-09-11, Updated: 2026-09-11
+    - Created: 2025-10-08, Last comment: 2026-08-08 (mxmilkiib), Last review: 2025-11-17 (ronso0, CHANGES_REQUESTED), Rebased: 2026-09-15, Updated: 2026-09-11
     - Local HEAD 57aa59b4f5 · origin/PR head e322da90bd — rebased-only since last push, patch identical, nothing to push
     - Next: Redone as two commits, confirmed working — awaiting re-review; mxmilkiib left update comment 2026-08-08
     - Specifics:
@@ -570,7 +570,7 @@ Branches with dependencies on personal-only branches cannot be submitted upstrea
     - Tested?: yes
   - [x] **feature/2025.11nov.16-playback-position-control** - [#15617](https://github.com/mixxxdj/mixxx/pull/15617) - DRAFT - CHANGES_ADDRESSED
     - Issue: [#14288](https://github.com/mixxxdj/mixxx/issues/14288) (OPEN)
-    - Created: 2025-11-16, Last comment: 2026-02-09 (mxmilkiib), Last review: 2026-05-15 (ronso0, CHANGES_REQUESTED), Rebased: 2026-09-11, Updated: 2026-09-11
+    - Created: 2025-11-16, Last comment: 2026-02-09 (mxmilkiib), Last review: 2026-05-15 (ronso0, CHANGES_REQUESTED), Rebased: 2026-09-15, Updated: 2026-09-11
     - Next: Await re-review — ronso0 CHANGES_REQUESTED (2026-05-15) recorded as addressed 2026-05-26, but no comment or push is visible on the PR after 2026-02-09 and `reviewDecision` is still CHANGES_REQUESTED — UNVERIFIED, confirm before treating as addressed; CI failures are pre-existing flaky (Flatpak aarch64 network timeout, macOS x64 BeatsTranslateTest SEGFAULT — unrelated to our changes)
     - Specifics:
       - daschuer (Feb 9): "this feature already exists" (pref option) — clarified: pref has no CO for runtime control
@@ -579,7 +579,7 @@ Branches with dependencies on personal-only branches cannot be submitted upstrea
     - Tested?: no
   - [x] **feature/2025.11nov.04-controller-wizard-quick-access** - [#15577](https://github.com/mixxxdj/mixxx/pull/15577) - CHANGES_ADDRESSED
     - Issue: [#12262](https://github.com/mixxxdj/mixxx/issues/12262) (OPEN)
-    - Created: 2025-11-04, Last comment: 2026-02-18 (mxmilkiib), Last review: 2025-11-16 (ronso0, CHANGES_REQUESTED), Rebased: 2026-09-11, Updated: 2026-09-11
+    - Created: 2025-11-04, Last comment: 2026-02-18 (mxmilkiib), Last review: 2025-11-16 (ronso0, CHANGES_REQUESTED), Rebased: 2026-09-15, Updated: 2026-09-11
     - Note: rebased with wmainmenubar.cpp/h conflict resolved (Controller+KeyboardEventFilter both included)
     - Rebase conflict resolved 2026-09-11: upstream #16962 added `showSoundHardwareInputPage()` where this branch adds `openControllerLearningWizard()` in `dlgpreferences.cpp/.h` — kept both; pushed to PR head
     - Next: Awaiting re-review — ronso0 CHANGES_REQUESTED (Nov 16) addressed Feb 18; fix-learning-wizard folded in Feb 22 (ffc28f8)
@@ -590,14 +590,14 @@ Branches with dependencies on personal-only branches cannot be submitted upstrea
     - Tested?: yes
   - [x] **feature/2025.11nov.05-hide-unenabled-controllers** - [#15580](https://github.com/mixxxdj/mixxx/pull/15580) - CHANGES_ADDRESSED
     - Issue: [#14275](https://github.com/mixxxdj/mixxx/issues/14275) (OPEN)
-    - Created: 2025-11-05, Last comment: 2026-08-03 (mxmilkiib), Last review: 2025-11-17 (ronso0, COMMENTED), Rebased: 2026-09-11, Updated: 2026-09-11
+    - Created: 2025-11-05, Last comment: 2026-08-03 (mxmilkiib), Last review: 2025-11-17 (ronso0, COMMENTED), Rebased: 2026-09-15, Updated: 2026-09-11
     - Next: Awaiting re-review — ronso0 Nov 17 feedback addressed Feb 28: removed redundant null checks, confirmed rename already done; GitHub `reviewDecision` is REVIEW_REQUIRED (no outstanding change request)
     - Specifics:
       - ~~Rename "unenabled" to "disabled" everywhere — config keys, function names, and UI text (ronso0)~~ done
       - ~~Remove unnecessary null checks on tree items — always valid post-construction (ronso0)~~ done
     - Tested?: yes
   - [x] **feature/2026.02feb.26-waveform-menu-order** - [#16046](https://github.com/mixxxdj/mixxx/pull/16046) - CHANGES_ADDRESSED
-    - Created: 2026-02-26, Last comment: none (no issue comments), Last review: 2026-05-26 (daschuer, CHANGES_REQUESTED), Rebased: 2026-09-11, Updated: 2026-09-11
+    - Created: 2026-02-26, Last comment: none (no issue comments), Last review: 2026-05-26 (daschuer, CHANGES_REQUESTED), Rebased: 2026-09-15, Updated: 2026-09-11
     - Next: Await re-review — addressed daschuer: removed lambda + alphabetical sort; order now set via `kValues` in `waveformwidgettype.h`
     - Specifics:
       - Reorders `kValues` in `WaveformWidgetType`: Simple, Filtered, HSV, RGB, Stacked, VSyncTest
@@ -607,7 +607,7 @@ Branches with dependencies on personal-only branches cannot be submitted upstrea
   - [x] **feature/2025.10oct.21-stacked-overview-waveform** - [#15516](https://github.com/mixxxdj/mixxx/pull/15516) - DRAFT - CHANGES_ADDRESSED
     - **PR head repointed** 2026-08-21: fork branch `feature/stacked-overview-waveform` force-pushed to match the dated ref. The manifest declares `pr_head` so `--push-changed` keeps them in sync going forward.
     - Issue: [#13265](https://github.com/mixxxdj/mixxx/issues/13265) (OPEN)
-    - Created: 2025-10-21, Last comment: 2026-02-17 (mxmilkiib), Last review: 2025-11-01 (mxmilkiib, COMMENTED), Rebased: 2026-09-11 (local ref only), Updated: 2026-09-11
+    - Created: 2025-10-21, Last comment: 2026-02-17 (mxmilkiib), Last review: 2025-11-01 (mxmilkiib, COMMENTED), Rebased: 2026-09-15 (local ref only), Updated: 2026-09-11
     - Next: Repoint the PR head — push the dated branch to `origin/feature/stacked-overview-waveform` after reviewing the diff, or close and reopen from the current ref. Then re-request review to unstale; no new reviewer feedback since the naming comment (Feb 17).
     - Specifics:
       - ~~Remove redundant Stacked HSV and Stacked LMH renderers~~ done
@@ -618,7 +618,7 @@ Branches with dependencies on personal-only branches cannot be submitted upstrea
     - Tested?: yes
   - [ ] **bugfix/2026.02feb.19-wayland-opengl-resize-warning** - [#16014](https://github.com/mixxxdj/mixxx/pull/16014) - CHANGES_ADDRESSED
     - Issue: [#16013](https://github.com/mixxxdj/mixxx/issues/16013) (CLOSED 2026-02-21 as completed — the PR still adds the warning, but the issue no longer justifies it; check whether the PR is still wanted), related [#13814](https://github.com/mixxxdj/mixxx/issues/13814) (OPEN), [#14492](https://github.com/mixxxdj/mixxx/issues/14492) (OPEN)
-    - Created: 2026-02-19, Last comment: 2026-08-03 (daschuer), Rebased: 2026-09-11, Updated: 2026-09-11
+    - Created: 2026-02-19, Last comment: 2026-08-03 (daschuer), Rebased: 2026-09-15, Updated: 2026-09-11
     - Base: `upstream/2.6`; the manifest rebases and tests it against that base but excludes it from the main-based combined tree and promotion gate
     - Next: Await review — rebased onto 2.6 per daschuer, daschuer CHANGES_REQUESTED addressed 2026-08-03, marked ready for review
     - Note: NOT in integration merges — branch now targets upstream/2.6, merging into main-based integration would drag in the 2.6↔main delta
@@ -633,21 +633,22 @@ Branches with dependencies on personal-only branches cannot be submitted upstrea
     - Tested?: yes (1174 tests pass on 2.6 base, 2026-08-03; stale pre-rebase mixxx-test binary was hanging the pre-push hook — rebuilt)
 - 🔧 **Secondary Patches**
   - [x] **bugfix/2026.09sep.11-qml-coreservices-singleton-lifetime** - [#17066](https://github.com/mixxxdj/mixxx/pull/17066) - REVIEW_REQUIRED — upstream use-after-free
-    - Created: 2026-09-11, Updated: 2026-09-11
+    - Created: 2026-09-11, Updated: 2026-09-15
     - PR opened 2026-09-11 (required re-authorising the gh token for the mixxxdj org's SAML SSO first)
+    - Rebase conflict resolved 2026-09-15: upstream added `WaveformWidgetFactory::createInstance()`/`destroy()` (m_ownsWaveformWidgetFactory) and reordered `m_visualsManager.reset()` in `~QmlApplication`; kept upstream's teardown plus `QmlCoreServices::destroy()`
     - `QmlCoreServices` is a `Singleton` parented to `QmlApplication`; destroyed as a child QObject without clearing `m_instance`, so the next `QmlApplication` gets a dangling pointer → SIGSEGV in `QJSEngine::setObjectOwnership`
     - Exposed by `QmlSkins/QmlStartupSmokeTest.Starts/NewUi` (landed 2026-09-04); upstream bug since 2026-09-03 (PR #17004). Upstream CI green — freed heap stays readable there; locally deterministic crash
     - Fix: `QmlCoreServices::destroy()` in `~QmlApplication` after `m_pAppEngine.reset()` — verified, both QML skin params pass
     - Next: await review on #17066; remove `QmlSkins/QmlStartupSmokeTest.Starts/NewUi` exclusion once merged and present in all trees
     - Tested?: yes (automated — both QmlSkins params pass on fixed tree)
   - [x] **bugfix/2026.05may.01-fix-timer-test-potmeter-clamping** — upstream test bug
-    - Created: 2026-05-01, Rebased: 2026-09-11
+    - Created: 2026-05-01, Rebased: 2026-09-15
     - No PR (upstream or fork) exists — the "Next" below has been outstanding since 2026-05-01
     - coTimerId ControlPotmeter max=50 clamped QTimer IDs (10000+ in full suite); replaced with ControlObject
     - Next: open upstream PR to mixxxdj/mixxx
     - Workaround: pre-push hook and script filter `ControllerScriptEngineLegacyTimerTest.*` (entire suite — `beginTimer_repeatedTimer` corrupts clamped-ID-50 state, causing `MidiMappings` JS tests to hang; filtering only `singleShot*` is insufficient), `ControllerScriptEngineLegacyTest.*` (softTakeboard state poisoning), `MidiMappings/.*`/`HidMappings/.*`/`BulkMappings/.*` (MappingTestFixture hangs from residual state poisoning even with Legacy suites filtered — observed: `Pioneer_CDJ_350_Ch2_midi_xml`), and `TrackMetadataExportTest.keepWithespaceKey` (`getKeyText()` returns `B_FLAT_MINOR` internal string instead of `B♭m` display format, fails in all worktrees). Remove filters once upstream fix lands.
   - [x] **bugfix/2026.02feb.21-hid-init-race-on-enumeration**
-    - Created: 2026-02-21, Rebased: 2026-09-11, Updated: 2026-09-11
+    - Created: 2026-02-21, Rebased: 2026-09-15, Updated: 2026-09-11
     - Note: originally tracked as residual from midi-makeinputhandler (#16003, merged upstream 2026-06-18) — stands alone
     - PR: [#16838](https://github.com/mixxxdj/mixxx/pull/16838) — REVIEW_REQUIRED, opened 2026-08-04
     - Next: Await review on #16838
@@ -662,14 +663,14 @@ Branches with dependencies on personal-only branches cannot be submitted upstrea
 - 🐛 **BUG FIXES - Open PRs (REVIEW_REQUIRED)**
   - [x] **bugfix/2026.02feb.19-textured-waveform-fbo-resize** - [#16010](https://github.com/mixxxdj/mixxx/pull/16010) - REVIEW_REQUIRED
     - Worktree: `~/src/mixxx-dev/2026.02feb.19-textured-waveform-fbo-resize/` (created 2026-08-20)
-    - Created: 2026-02-19, Last comment: 2026-05-21 (stale-bot), Last review: none, Rebased: 2026-09-11, Updated: 2026-09-11
+    - Created: 2026-02-19, Last comment: 2026-05-21 (stale-bot), Last review: none, Rebased: 2026-09-15, Updated: 2026-09-11
     - Next: Await review
     - Specifics:
       - Improved: defer FBO reallocation to paintGL via m_pendingResize flag
     - Tested?: yes
   - [x] **bugfix/2026.02feb.19-openglwindow-resize-repaint** - [#16012](https://github.com/mixxxdj/mixxx/pull/16012) - DRAFT - REVIEW_REQUIRED
     - Worktree: `~/src/mixxx-dev/2026.02feb.19-openglwindow-resize-repaint/` (created 2026-08-20)
-    - Created: 2026-02-19, Last comment: 2026-05-21 (stale-bot), Last review: none, Rebased: 2026-09-11, Updated: 2026-09-11
+    - Created: 2026-02-19, Last comment: 2026-05-21 (stale-bot), Last review: none, Rebased: 2026-09-15, Updated: 2026-09-11
     - Next: Await review
     - Specifics:
       - Restores m_dirty flag: defers extra paintGL+swapBuffers from resizeGL to next vsync
@@ -677,7 +678,7 @@ Branches with dependencies on personal-only branches cannot be submitted upstrea
     - Tested?: yes
 - 🟡 **NEW FEATURES - Open PRs (REVIEW_REQUIRED)**
   - [x] **feature/2025.11nov.05-deere-waveform-zoom-deck-colors** - [#16874](https://github.com/mixxxdj/mixxx/pull/16874) - REVIEW_REQUIRED
-    - Created: 2025-11-05, Rebased: 2026-09-11, Updated: 2026-09-11
+    - Created: 2025-11-05, Rebased: 2026-09-15, Updated: 2026-09-11
     - Next: Await review
     - Specifics:
       - Sets WaveformZoomContainer background to DeckBackgroundColor (was hardcoded #333333)
@@ -686,7 +687,7 @@ Branches with dependencies on personal-only branches cannot be submitted upstrea
       - Deere-only change, 5 files, 4 insertions / 4 deletions
     - Tested?: yes (2026-08-10)
   - [x] **feature/2026.05may.03-extend-waveform-zoom-range** — No PR yet
-    - Created: 2026-05-03, Rebased: 2026-09-11, Updated: 2026-09-11
+    - Created: 2026-05-03, Rebased: 2026-09-15, Updated: 2026-09-11
     - Next: Test, then open upstream PR
     - Specifics:
       - Extends `s_waveformMinZoom` from 1.0 → 0.5 (allows 200% zoom-in, twice as detailed)
@@ -696,7 +697,7 @@ Branches with dependencies on personal-only branches cannot be submitted upstrea
     - Tested?: no
   - [x] **feature/2026.02feb.20-simple-waveform-top-and-overview** - [#16021](https://github.com/mixxxdj/mixxx/pull/16021) - CHANGES_REQUESTED
     - Issue: [#16020](https://github.com/mixxxdj/mixxx/issues/16020) (OPEN)
-    - Created: 2026-02-20, Last comment: 2026-05-28 (mxmilkiib, stale-bot reset), Last review: 2026-05-29 (daschuer, CHANGES_REQUESTED), Rebased: 2026-09-11, Updated: 2026-09-11
+    - Created: 2026-02-20, Last comment: 2026-05-28 (mxmilkiib, stale-bot reset), Last review: 2026-05-29 (daschuer, CHANGES_REQUESTED), Rebased: 2026-09-15, Updated: 2026-09-11
     - Next: Address daschuer upgrade-path issue — RGB selected before update becomes Simple after; default should remain RGB; likely combobox position stored instead of enum value
     - Specifics:
       - Adds Simple as an overview waveform type (amplitude envelope, signal color, stereo mirrored)
@@ -723,7 +724,7 @@ Branches with dependencies on personal-only branches cannot be submitted upstrea
       - 7 files, 230 insertions / 18 deletions across `overviewcache.cpp/.h`, `overviewdelegate.cpp/.h`, `dlgprefwaveform.cpp/.h`, `dlgprefwaveformdlg.ui`
     - Tested?: yes (2026-08-22)
   - [x] **feature/2026.08aug.08-waveform-invert-zoom-direction** - [#16928](https://github.com/mixxxdj/mixxx/pull/16928) - REVIEW_REQUIRED
-    - Created: 2026-08-08, Last comment: none, Last review: none, Rebased: 2026-09-11, Updated: 2026-08-23
+    - Created: 2026-08-08, Last comment: none, Last review: none, Rebased: 2026-09-15, Updated: 2026-08-23
     - Next: Await review
     - Specifics:
       - Adds invert zoom direction preference for waveform mouse wheel (4 files, 42 insertions / 12 deletions across `dlgprefwaveform.cpp/.h`, `dlgprefwaveformdlg.ui`, `wwaveformviewer.cpp`)
@@ -731,7 +732,7 @@ Branches with dependencies on personal-only branches cannot be submitted upstrea
   - [x] **feature/2025.10oct.21-replace-libmodplug-with-libopenmpt** - [#16921](https://github.com/mixxxdj/mixxx/pull/16921) - REVIEW_REQUIRED
     - Supersedes [#15519](https://github.com/mixxxdj/mixxx/pull/15519) (CLOSED 2026-08-22)
     - Issue: [#9862](https://github.com/mixxxdj/mixxx/issues/9862) (OPEN)
-    - Created: 2025-10-25, Last comment: none, Last review: none, Rebased: 2026-09-11, Updated: 2026-09-11
+    - Created: 2025-10-25, Last comment: none, Last review: none, Rebased: 2026-09-15, Updated: 2026-09-11
     - Next: Await review on #16921 — rebased branch pushed 2026-09-11 (patch-ids changed vs remote)
     - Specifics:
       - Tracker DSP moved from SoundSource decoder to native built-in effect (`org.mixxx.effects.trackerdsp`) per daschuer architecture feedback
@@ -748,7 +749,7 @@ Branches with dependencies on personal-only branches cannot be submitted upstrea
     - **PR head repointed** 2026-08-21: fork branch `feature/hotcues-on-overview-waveform` force-pushed to match the dated ref. The manifest declares `pr_head` so `--push-changed` keeps them in sync going forward.
     - **Branch rewritten** 2026-08-28: minute markers split out into `feature/2026.08aug.28-library-overview-minute-markers`; this branch now contains hotcue rendering only, squashed to 1 commit
     - Issue: [#14994](https://github.com/mixxxdj/mixxx/issues/14994) (OPEN)
-    - Created: 2025-10-20, Last comment: 2026-01-19 (stale-bot), Last review: 2025-10-20 (ronso0, COMMENTED), Rebased: 2026-09-11, Updated: 2026-08-28
+    - Created: 2025-10-20, Last comment: 2026-01-19 (stale-bot), Last review: 2025-10-20 (ronso0, COMMENTED), Rebased: 2026-09-15, Updated: 2026-08-28
     - Next: Repoint the PR head to the dated ref, which also rebases it; await review
     - Specifics:
       - Hotcue rendering only (minute markers moved to separate branch)
@@ -757,7 +758,7 @@ Branches with dependencies on personal-only branches cannot be submitted upstrea
     - Tested?: no
   - [x] **feature/2025.11nov.17-deere-channel-mute-buttons** - [#15624](https://github.com/mixxxdj/mixxx/pull/15624) - DRAFT - REVIEW_REQUIRED
     - Issue: [#15623](https://github.com/mixxxdj/mixxx/issues/15623) (OPEN)
-    - Created: 2025-11-17, Last comment: 2026-02-23 (ronso0), Last review: none, Rebased: 2026-09-11, Updated: 2026-09-11
+    - Created: 2025-11-17, Last comment: 2026-02-23 (ronso0), Last review: none, Rebased: 2026-09-15, Updated: 2026-09-11
     - Next: On hold - marked as DRAFT by ronso0
     - Specifics:
       - Marked as DRAFT by ronso0 (Feb 9)
@@ -779,7 +780,7 @@ Branches with dependencies on personal-only branches cannot be submitted upstrea
   - [x] **feature/2026.03mar.09-head-split-reverse** - [#16137](https://github.com/mixxxdj/mixxx/pull/16137) - EXTERNAL
     - Author: yashrajpurohit7 · PR head: `feature/head-split-reverse` (on contributor's fork)
     - Issue: [#14821](https://github.com/mixxxdj/mixxx/issues/14821)
-    - Created: 2026-08-25 (local cherry-pick), PR opened: 2026-03-09, Rebased: 2026-09-11, Updated: 2026-09-11
+    - Created: 2026-08-25 (local cherry-pick), PR opened: 2026-03-09, Rebased: 2026-09-15, Updated: 2026-09-11
     - Rebase conflict resolved 2026-09-11: upstream added `else if (m_pMainMonoMixdown)` clause in `processHeadphones` (#17057-era mono mixdown); kept the branch's `reversed` swap logic plus upstream's clause
     - Local ref is a cherry-pick of the PR's single commit rebased onto `upstream/main` for integration dogfooding
     - Next: Monitor upstream PR for review feedback or merge; rebuild integration when the PR updates
@@ -790,7 +791,7 @@ Branches with dependencies on personal-only branches cannot be submitted upstrea
     - Tested?: no
   - [x] **feature/2026.05may.31-waveform-zoom-controlpotmeter** - [#12387](https://github.com/mixxxdj/mixxx/pull/12387) - EXTERNAL
     - Author: ronso0 · PR head: `waveform-zoom-controlpotmeter` (on contributor's fork)
-    - Created: 2026-08-25 (local cherry-pick), PR opened: 2023-12-02, Rebased: 2026-09-11, Updated: 2026-08-25
+    - Created: 2026-08-25 (local cherry-pick), PR opened: 2023-12-02, Rebased: 2026-09-15, Updated: 2026-08-25
     - Local ref is a cherry-pick of the PR's single commit rebased onto `upstream/main` for integration dogfooding
     - Next: Monitor upstream PR for review feedback or merge; rebuild integration when the PR updates
     - Specifics:
@@ -803,7 +804,7 @@ Branches with dependencies on personal-only branches cannot be submitted upstrea
   - [ ] **feature/2025.10oct.17-library-column-hotcue-count** - [#15462](https://github.com/mixxxdj/mixxx/pull/15462) - REVIEW_REQUIRED
     - **PR head repointed** 2026-08-21: fork branch `feature/library-column-hotcue-count` force-pushed to match the dated ref. The manifest declares `pr_head` so `--push-changed` keeps them in sync going forward.
     - Issue: [#15461](https://github.com/mixxxdj/mixxx/issues/15461) (CLOSED 2025-11-16 as DUPLICATE — the driving issue is gone; decide whether the PR still has a home before spending more on it)
-    - Created: 2025-10-17, Last comment: 2026-01-17 (stale-bot), Last review: none, Rebased: 2026-09-11 (local ref only), Updated: 2026-09-11
+    - Created: 2025-10-17, Last comment: 2026-01-17 (stale-bot), Last review: none, Rebased: 2026-09-15 (local ref only), Updated: 2026-09-11
     - Next: Resolve the head mismatch and the closed-issue question before touching the schema work
     - Specifics:
       - PR marked stale (Jan 17 2026) — needs activity to unstale
@@ -816,7 +817,7 @@ Branches with dependencies on personal-only branches cannot be submitted upstrea
     - Tested?: no
   - [ ] **feature/2025.11nov.16-catalogue-number-column** - [#15616](https://github.com/mixxxdj/mixxx/pull/15616) - REVIEW_REQUIRED
     - Issue: [#12583](https://github.com/mixxxdj/mixxx/issues/12583) (OPEN)
-    - Created: 2025-11-16, Last comment: none (no issue comments), Last review: 2026-02-15 (mxmilkiib, COMMENTED), Rebased: 2026-09-11, Updated: 2026-09-11
+    - Created: 2025-11-16, Last comment: none (no issue comments), Last review: 2026-02-15 (mxmilkiib, COMMENTED), Rebased: 2026-09-15, Updated: 2026-09-11
     - Next: Await review
     - Specifics:
       - acolombier left review comment 2026-02-14; replied 2026-02-15
@@ -853,13 +854,13 @@ Branches with dependencies on personal-only branches cannot be submitted upstrea
 - 🟣 **Personal Only (No PR, deliberately not for upstream)**
   - [x] **feature/2025.10oct.08-utf8-string-controls** — PERSONAL_ONLY
     - Dependency for: hotcue-labelling, hotcue-label-options
-    - Created: 2025-10-08, Rebased: 2026-09-11, Updated: 2026-09-11
+    - Created: 2025-10-08, Rebased: 2026-09-15, Updated: 2026-09-11
     - Next: Maintain for personal use (not for upstream)
   - [x] **feature/2025.09sep.25-hotcue-labelling** — PERSONAL_ONLY
-    - Created: 2025-09-25, Rebased: 2026-09-11, Updated: 2026-09-11
+    - Created: 2025-09-25, Rebased: 2026-09-15, Updated: 2026-09-11
     - Next: Maintain for personal use
   - [x] **feature/2025.10oct.14-waveform-hotcue-label-options** — PERSONAL_ONLY
-    - Created: 2025-10-14, Rebased: 2026-09-11, Updated: 2026-09-11
+    - Created: 2025-10-14, Rebased: 2026-09-15, Updated: 2026-09-11
     - Next: Maintain for personal use
 - ✅ **Merged to Upstream**
   - [x] ~~**bugfix/2026.02feb.20-fix-learning-wizard-from-prefs-button**~~ - [#16018](https://github.com/mixxxdj/mixxx/pull/16018) **CLOSED** 2026-02-28 — fix folded into #15577 (commit ffc28f8); bug only manifested in context of wizard menu changes; not a standalone upstream issue
@@ -881,7 +882,7 @@ This section is only the short list of things that are actively wrong or activel
 Detailed per-branch status lives in the outline above and is not repeated here, aside from the branch name and a brief description of the state.
 
 - **Blocking, system-level**
-  - ~~The exact-SHA transactional pipeline changes dated 2026-08-21 are working-tree changes only.~~ DONE 2026-09-11: the commits (incl. the auto-promote force-update fix) travelled integration → integrating → integrated and are live; `integrated` promoted to `e0a233dc` after exact-SHA CI run #34636939594 passed. One promotion path remains unverified: the `workflow_run` auto-promote listener itself — the last remote run (2026-09-03) failed on the old fast-forward gate; today's promotion was done via `--promote-integrated`/manual push. Observe the next upstream-triggered auto-promote to confirm the fix works in CI.
+  - ~~The exact-SHA transactional pipeline changes dated 2026-08-21 are working-tree changes only.~~ DONE 2026-09-11: the commits (incl. the auto-promote force-update fix) travelled integration → integrating → integrated and are live; `integrated` promoted to `e0a233dc` after exact-SHA CI run #34636939594 passed. ~~One promotion path remains unverified~~ VERIFIED 2026-09-15: the `workflow_run` auto-promote listener promoted `integrated` to `abcc443785` on run #35024871657's completion (after a failed-job rerun) and dispatched the Manjaro release workflow — full chain works without local intervention.
   - `--promote-integrated` could not move `integrated` while it is checked out in `~/src/mixxx-dev/integrated` — `git branch -f` refuses checked-out refs. Script fixed 2026-09-11 to `reset --hard` the integrated worktree when it is checked out (with a dirty-tree guard).
   - ~~4 PRs point at legacy undated fork branches~~ RESOLVED 2026-08-21: all 4 PR heads (#15516, #15519, #15514, #15462) force-pushed to match their dated refs. #15519 closed 2026-08-22 and superseded by #16921 (dated ref, no `pr_head` needed). The remaining 3 manifest entries declare `pr` and `pr_head` so `--push-changed` keeps them in sync.
 - **Waiting on reviewers** — 7 changes-addressed PRs; nothing to do but re-request review on the stale ones
@@ -890,9 +891,11 @@ Detailed per-branch status lives in the outline above and is not repeated here, 
   - #15519 libopenmpt — CLOSED 2026-08-22, superseded by #16921 (tracker DSP moved to effect rack, tests added)
   - extend-waveform-zoom-range and fix-timer-test-potmeter-clamping have no PR at all
   - #15624 deere-channel-mute-buttons is on hold pending a broader plan, not pending code
-- **CI status** — PASS. Run #34636939594 for SHA `e0a233dc462cf70d43b4377e4126491683eecf63` completed success — all jobs green. `integrated` force-updated to this SHA (non-fast-forward; main moved between candidates) and the Manjaro package workflow triggered by the push. Includes upstream LateNightQML mic-aux/scaling/key-indicators, menus-on-demand (#16944), 2.6→main syncs, plus the new `qml-coreservices-singleton-lifetime` secondary patch.
+- **CI status** — PASS. Run #35024871657 for SHA `abcc443785d7f6a4c31f3ba4f304c726e5eec03d` completed success after a `--failed` rerun — `build / Windows 11 VS2026 ARM64` first failed on a one-off SEH 0xc0000005 in `SoundSourceProxyTest.regressionTestCachingReaderChunkJumpForward` (test/code unchanged upstream; flake). The `workflow_run` auto-promote then promoted `integrated` itself and dispatched Manjaro release run #35032656408. Includes upstream LateNightQML waveform review-feedback merges, 2.6→main syncs, and the `qml-coreservices-singleton-lifetime` secondary patch rebased over upstream's new `~QmlApplication` teardown.
 - **Known push failure** — `2025.10oct.14-waveform-hotcue-label-options` (personal-only): pre-push clang-format rejects `.arg(group, name)` continuation indent in `controllerscriptinterfacelegacy.cpp`. Local branch is integrated fine; only the origin backup is stale. Fix needs a style commit or history touch on that branch.
 - **Environment note** — system gtest/gmock updated 1.17→1.18 (Aug 30): stale objects linked against removed `testing::internal::*` symbols; fixed by deleting `CMakeFiles/mixxx-test.dir` in affected worktrees and rebuilding.
+- **Environment note** — system protobuf updated 36.0→36.1 (Sep 12): 26 build trees held stale `libprotobuf-lite.so.36.0.0` link paths; fixed by re-running cmake configure per tree. One Make-generator tree (`waveform-invert-zoom-direction`) also needed its generated `*.pb.cc/.pb.h` deleted for protoc regen — the gencode/header version guard fails the compile otherwise.
+- **Known flake** — `mixxx-test` intermittently aborts at process exit (`double free or corruption` / `free(): chunks in smallbin corrupted`, SIGABRT in a pooled thread inside `~QCoreApplication` → `QThreadPoolPrivate::waitForDone`) after all tests pass. ~30% per run, tree-independent. Suspected upstream heap bug in the QML smoke-test path. Mitigation: rerun `--run-tests`; per-tree stamps mean only failures retest.
 - **Architecture changes needed:** none outstanding — replace-libmodplug-with-libopenmpt tracker DSP effect rack refactor done, PR #16921 open for review
 - **Archived:** tracker-module-stems (libopenmpt API gap, worktree removed 2026-08-10)
 - **Secondary patches:** hid-init-race-on-enumeration (#16838 — REVIEW_REQUIRED, opened 2026-08-04), fix-timer-test-potmeter-clamping (no PR yet), qml-coreservices-singleton-lifetime (#17066 — REVIEW_REQUIRED, opened 2026-09-11)
