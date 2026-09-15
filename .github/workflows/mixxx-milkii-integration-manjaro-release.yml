@@ -167,8 +167,30 @@ jobs:
 
       - name: "Patch default skin to Deere-Redo"
         run: |
+          set -euo pipefail
           sed -i 's/return "LateNight"/return "Deere-Redo"/' src/skin/skinloader.cpp
           grep -q 'return "Deere-Redo"' src/skin/skinloader.cpp
+
+          # The skin must exist in res/skins before the test phase runs —
+          # getConfiguredSkin() falls back to this patched default and a missing
+          # dir leaves SkinPointer null (SIGSEGV in DlgPrefInterface). Placing it
+          # here also lets cmake --install package it automatically.
+          git clone "$DEERE_URL" /tmp/deere-redo
+          git -C /tmp/deere-redo checkout --detach "$DEERE_COMMIT"
+          test "$(git -C /tmp/deere-redo rev-parse HEAD)" = "$DEERE_COMMIT"
+          rm -rf /tmp/deere-redo/.git
+          mkdir -p res/skins/Deere-Redo
+          cp -aT /tmp/deere-redo/ res/skins/Deere-Redo/
+          rm -rf /tmp/deere-redo
+          rm -f \
+            res/skins/Deere-Redo/CHANGELOG_FORK.md \
+            res/skins/Deere-Redo/CHANNEL_MUTE_ANALYSIS.md \
+            res/skins/Deere-Redo/TEMPLATE_STRUCTURE_OUTLINE.txt \
+            res/skins/Deere-Redo/skin_include_tree.dot \
+            res/skins/Deere-Redo/skin_include_tree.png \
+            res/skins/Deere-Redo/style.qss.backup
+          find res/skins/Deere-Redo -type f \( -name '*.xml' -o -name '*.qss' \) \
+            -exec sed -i 's/\[Deere\]/[Deere-Redo]/g' {} +
 
       - name: "Configure"
         run: >-
@@ -256,7 +278,7 @@ jobs:
           STAGING_USR=$(dirname "$(dirname "$MIXXX_BIN")")
           MIXXX_DATA="${STAGING_USR}/share/mixxx"
           WORK="${GITHUB_WORKSPACE}/.mixxx-extras"
-          mkdir -p "${MIXXX_DATA}/skins" "${MIXXX_DATA}/controllers" "$WORK"
+          mkdir -p "${MIXXX_DATA}/controllers" "$WORK"
           cd "$WORK"
 
           checkout_pinned() {
@@ -265,21 +287,6 @@ jobs:
             git -C "$directory" checkout --detach "$commit"
             test "$(git -C "$directory" rev-parse HEAD)" = "$commit"
           }
-
-          checkout_pinned "$DEERE_URL" "$DEERE_COMMIT" deere-redo
-          rm -rf deere-redo/.git
-          mkdir -p "${MIXXX_DATA}/skins/Deere-Redo"
-          cp -aT deere-redo/ "${MIXXX_DATA}/skins/Deere-Redo/"
-          rm -rf deere-redo
-          rm -f \
-            "${MIXXX_DATA}/skins/Deere-Redo/CHANGELOG_FORK.md" \
-            "${MIXXX_DATA}/skins/Deere-Redo/CHANNEL_MUTE_ANALYSIS.md" \
-            "${MIXXX_DATA}/skins/Deere-Redo/TEMPLATE_STRUCTURE_OUTLINE.txt" \
-            "${MIXXX_DATA}/skins/Deere-Redo/skin_include_tree.dot" \
-            "${MIXXX_DATA}/skins/Deere-Redo/skin_include_tree.png" \
-            "${MIXXX_DATA}/skins/Deere-Redo/style.qss.backup"
-          find "${MIXXX_DATA}/skins/Deere-Redo" -type f \( -name '*.xml' -o -name '*.qss' \) \
-            -exec sed -i 's/\[Deere\]/[Deere-Redo]/g' {} +
 
           checkout_pinned "$LAUNCHPAD_URL" "$LAUNCHPAD_COMMIT" lppro
           cp lppro/LaunchpadProMK3.midi.xml lppro/LaunchpadProMK3.js "${MIXXX_DATA}/controllers/"
@@ -292,7 +299,7 @@ jobs:
           checkout_pinned "$NANO2_URL" "$NANO2_COMMIT" nano2
           cp nano2/Korg-nanoKONTROL-2-milkii.midi.xml nano2/Korg-nanoKONTROL-2-scripts-milkii.js "${MIXXX_DATA}/controllers/"
           rm -rf nano2
-          chmod -R a+rX "${MIXXX_DATA}/skins/Deere-Redo" "${MIXXX_DATA}/controllers"
+          chmod -R a+rX "${MIXXX_DATA}/controllers"
 
       - name: "Create Manjaro/Arch package"
         shell: bash
