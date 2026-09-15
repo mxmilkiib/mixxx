@@ -11,12 +11,18 @@ on:
     branches:
       - "*"
       - "!main"
+      - "!integration"
+      - "!integrated"
       - "![0-9].[0-9]"
   workflow_dispatch:
 
 permissions:
   contents: read #  to fetch code (actions/checkout)
   checks: write #  to create new checks (coverallsapp/github-action)
+
+concurrency:
+  group: develop-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   stop-build:
