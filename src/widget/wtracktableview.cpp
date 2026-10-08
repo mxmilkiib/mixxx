@@ -1828,10 +1828,30 @@ void WTrackTableView::selectTracksByPosition(const QList<int>& positions, int pr
     }
 
     // Restore previous selection (doesn't affect focused cell).
-    for (int row : rows) {
-        pSelectionModel->select(model()->index(row, prevColumn),
-                QItemSelectionModel::Select | QItemSelectionModel::Rows);
+    // Build contiguous QItemSelectionRanges rather than selecting each row
+    // individually, which can lag the GUI by spamming selectionChanged()
+    // handlers for large selections. See restoreTrackModelState().
+    QList<int> sortedRows = rows;
+    std::sort(sortedRows.begin(), sortedRows.end());
+    QItemSelection newSelection;
+    int rangeStart = -1;
+    int rangeEnd = -1;
+    for (int row : std::as_const(sortedRows)) {
+        if (rangeEnd == -1 || row != rangeEnd + 1) {
+            if (rangeEnd != -1) {
+                newSelection.select(model()->index(rangeStart, prevColumn),
+                        model()->index(rangeEnd, prevColumn));
+            }
+            rangeStart = row;
+        }
+        rangeEnd = row;
     }
+    if (rangeEnd != -1) {
+        newSelection.select(model()->index(rangeStart, prevColumn),
+                model()->index(rangeEnd, prevColumn));
+    }
+    pSelectionModel->select(newSelection,
+            QItemSelectionModel::Select | QItemSelectionModel::Rows);
 }
 
 // Don't use this on playlists since they may contain a TrackId multiple times.
@@ -1874,12 +1894,34 @@ void WTrackTableView::selectTracksById(const QList<TrackId>& trackIds, int prevC
     }
 
     // Restore previous selection (doesn't affect focused cell).
+    // Build contiguous QItemSelectionRanges rather than selecting each row
+    // individually, which can lag the GUI by spamming selectionChanged()
+    // handlers for large selections. See restoreTrackModelState().
+    QItemSelection newSelection;
+    QModelIndex rangeStart;
+    QModelIndex rangeEnd;
     QMapIterator<int, int> i(selectedRows);
     while (i.hasNext()) {
         i.next();
-        QModelIndex tl = pItemModel->index(i.key(), 0);
-        pSelectionModel->select(tl, QItemSelectionModel::Rows | QItemSelectionModel::Select);
+        QModelIndex current = pItemModel->index(i.key(), 0);
+        if (!rangeEnd.isValid()) {
+            rangeStart = current;
+            rangeEnd = current;
+            continue;
+        }
+        if (current.row() == rangeEnd.row() + 1) {
+            rangeEnd = current;
+            continue;
+        }
+        newSelection.select(rangeStart, rangeEnd);
+        rangeStart = current;
+        rangeEnd = current;
     }
+    if (rangeEnd.isValid()) {
+        newSelection.select(rangeStart, rangeEnd);
+    }
+    pSelectionModel->select(newSelection,
+            QItemSelectionModel::Select | QItemSelectionModel::Rows);
 }
 
 void WTrackTableView::applySortingIfVisible() {
